@@ -7,3 +7,18 @@ temp_*.7z
 .venv
 env/
 venv/
+
+# Private local configuration
+config.json
+
+# Private user data and databases
+*.db
+*.sqlite
+*.csv
+data/
+backups/
+logs/
+
+# Local portfolio report artifacts
+LATEST_PORTFOLIO_SUMMARY.md
+
