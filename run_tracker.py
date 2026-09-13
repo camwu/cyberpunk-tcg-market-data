@@ -104,7 +104,12 @@ def main():
     # Standard run for today
     today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
     print(f"\n--- Running Cyberpunk TCG Valuation Pipeline ({today}) ---")
-    print(f"Collection source: {cfg.collection_csv}")
+    if os.path.isfile(cfg.collection_csv):
+        mtime_str = datetime.datetime.fromtimestamp(os.path.getmtime(cfg.collection_csv)).astimezone().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"Collection source: {Path(cfg.collection_csv).name} (modified {mtime_str})")
+        print(f"Full path: {cfg.collection_csv}")
+    else:
+        print(f"Collection source: {cfg.collection_csv}")
 
     sync_market_prices(price_dir=cfg.price_cache_dir, target_date=today, force=args.force)
 

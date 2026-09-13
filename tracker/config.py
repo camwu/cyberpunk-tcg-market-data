@@ -13,25 +13,39 @@ from typing import Optional
 
 @dataclass
 class TrackerConfig:
-    collection_csv: str = "data/active_collection.csv"
+    collection_csv: str = "data"
     database_path: str = "data/price_history.db"
     price_cache_dir: str = "prices"
     output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
     backup_dir: str = "data/backups"
 
 
-def resolve_collection_file(target_path: str) -> str:
+def resolve_collection_file(target_path: str, is_explicit_file: bool = False) -> str:
     """
-    Resolves the collection CSV:
-    - Returns target_path if it is an existing file.
-    - If a directory, finds the newest *.csv by mtime (ignoring backups).
-    - If non-existent but parent is a directory, scans parent for newest *.csv.
+    Resolves the collection CSV path:
+    - If is_explicit_file is True and target_path is an existing file, returns it directly.
+    - If target_path is a directory (or default active_collection.csv), scans for all *.csv files
+      (excluding backups) and selects the newest by mtime.
+    - If target_path does not exist but parent directory exists, scans parent for newest *.csv.
+    - If target_path is an existing file, returns it directly.
+    - Otherwise, returns target_path as-is.
     """
     p = Path(target_path)
-    if p.is_file():
+
+    if is_explicit_file and p.is_file():
         return str(p.resolve())
 
-    search_dir = p if p.is_dir() else (p.parent if p.parent.is_dir() else None)
+    if p.is_dir():
+        search_dir = p
+    elif not is_explicit_file and p.name == "active_collection.csv" and p.parent.is_dir():
+        search_dir = p.parent
+    elif not p.exists() and p.parent.is_dir():
+        search_dir = p.parent
+    elif p.is_file():
+        return str(p.resolve())
+    else:
+        search_dir = None
+
     if search_dir:
         csv_candidates = [
             f for f in search_dir.glob("*.csv")
@@ -39,10 +53,7 @@ def resolve_collection_file(target_path: str) -> str:
         ]
         if csv_candidates:
             csv_candidates.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-            chosen = csv_candidates[0]
-            mtime_str = datetime.datetime.fromtimestamp(chosen.stat().st_mtime).astimezone().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"Auto-detected newest collection CSV in '{search_dir}': {chosen.name} (modified {mtime_str})")
-            return str(chosen.resolve())
+            return str(csv_candidates[0].resolve())
 
     return str(p.resolve() if p.is_absolute() else p)
 
@@ -88,14 +99,16 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
             return str((base_dir / p).resolve())
         return str(p)
 
-    collection_csv = cli_overrides.get("collection_csv") or os.getenv("CYBERPUNK_COLLECTION_CSV") or cfg_data.get("collection_csv")
+    cli_collection = cli_overrides.get("collection_csv")
+    is_explicit = bool(cli_collection and Path(cli_collection).is_file())
+    collection_csv = cli_collection or os.getenv("CYBERPUNK_COLLECTION_CSV") or cfg_data.get("collection_csv")
     database_path = cli_overrides.get("database_path") or os.getenv("CYBERPUNK_DATABASE_PATH") or cfg_data.get("database_path")
     price_cache_dir = cli_overrides.get("price_cache_dir") or os.getenv("CYBERPUNK_PRICE_CACHE_DIR") or cfg_data.get("price_cache_dir")
     output_report = cli_overrides.get("output_report") or os.getenv("CYBERPUNK_OUTPUT_REPORT") or cfg_data.get("output_report")
     backup_dir = cli_overrides.get("backup_dir") or os.getenv("CYBERPUNK_BACKUP_DIR") or cfg_data.get("backup_dir")
 
     return TrackerConfig(
-        collection_csv=resolve_collection_file(resolve(collection_csv, "data/active_collection.csv")),
+        collection_csv=resolve_collection_file(resolve(collection_csv, "data"), is_explicit_file=is_explicit),
         database_path=resolve(database_path, "data/price_history.db"),
         price_cache_dir=resolve(price_cache_dir, "prices"),
         output_report=resolve(output_report, "LATEST_PORTFOLIO_SUMMARY.md"),
