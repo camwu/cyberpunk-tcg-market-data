@@ -37,12 +37,14 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
     try:
         with open(csv_path, "r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
-            fieldnames = reader.fieldnames
-
-            if not fieldnames:
+            if reader.fieldnames is None:
                 return False, ["CSV file is empty or missing header row."], []
 
-            headers = set(fieldnames)
+            reader.fieldnames = [h.strip() for h in reader.fieldnames if h is not None]
+            if not reader.fieldnames or not any(reader.fieldnames):
+                return False, ["CSV file is empty or missing header row."], []
+
+            headers = set(reader.fieldnames)
             missing = REQUIRED_COLUMNS - headers
             if missing:
                 errors.append(f"Missing required columns: {sorted(missing)} (required: {sorted(REQUIRED_COLUMNS)})")

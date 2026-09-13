@@ -48,6 +48,23 @@ Jackie Welles,Promos,005,Foil,1,120.50
         self.assertEqual(rows[1]["totalQtyOwned"], 1)
         self.assertEqual(rows[1]["price"], 120.5)
 
+    def test_whitespace_in_headers(self):
+        csv_content = """  name  , expansion , printNumber ,  finish  , totalQtyOwned , price 
+V - Corporate Exile,Box Toppers,006,Standard,2,45.00
+"""
+        path = self._create_csv("whitespace_headers.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["name"], "V - Corporate Exile")
+        self.assertEqual(rows[0]["expansion"], "Box Toppers")
+        self.assertEqual(rows[0]["printNumber"], "006")
+        self.assertEqual(rows[0]["finish"], "Standard")
+        self.assertEqual(rows[0]["totalQtyOwned"], 2)
+        self.assertEqual(rows[0]["price"], 45.0)
+
     def test_finish_normalization(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned
 V,Promo,001,Normal,1
