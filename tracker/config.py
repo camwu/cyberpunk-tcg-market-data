@@ -3,6 +3,7 @@ Configuration loader for Cyberpunk TCG Tracker.
 Decouples file paths from code using config.json, environment variables, or CLI overrides.
 """
 
+import datetime
 from dataclasses import dataclass
 import json
 import os
@@ -17,6 +18,33 @@ class TrackerConfig:
     price_cache_dir: str = "prices"
     output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
     backup_dir: str = "data/backups"
+
+
+def resolve_collection_file(target_path: str) -> str:
+    """
+    Resolves the collection CSV:
+    - Returns target_path if it is an existing file.
+    - If a directory, finds the newest *.csv by mtime (ignoring backups).
+    - If non-existent but parent is a directory, scans parent for newest *.csv.
+    """
+    p = Path(target_path)
+    if p.is_file():
+        return str(p.resolve())
+
+    search_dir = p if p.is_dir() else (p.parent if p.parent.is_dir() else None)
+    if search_dir:
+        csv_candidates = [
+            f for f in search_dir.glob("*.csv")
+            if f.is_file() and "backup" not in f.name.lower() and "backup" not in f.parent.name.lower()
+        ]
+        if csv_candidates:
+            csv_candidates.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+            chosen = csv_candidates[0]
+            mtime_str = datetime.datetime.fromtimestamp(chosen.stat().st_mtime).astimezone().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"Auto-detected newest collection CSV in '{search_dir}': {chosen.name} (modified {mtime_str})")
+            return str(chosen.resolve())
+
+    return str(p.resolve() if p.is_absolute() else p)
 
 
 def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerConfig:
@@ -67,7 +95,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
     backup_dir = cli_overrides.get("backup_dir") or os.getenv("CYBERPUNK_BACKUP_DIR") or cfg_data.get("backup_dir")
 
     return TrackerConfig(
-        collection_csv=resolve(collection_csv, "data/active_collection.csv"),
+        collection_csv=resolve_collection_file(resolve(collection_csv, "data/active_collection.csv")),
         database_path=resolve(database_path, "data/price_history.db"),
         price_cache_dir=resolve(price_cache_dir, "prices"),
         output_report=resolve(output_report, "LATEST_PORTFOLIO_SUMMARY.md"),
