@@ -100,7 +100,7 @@ def main():
         return
 
     # Standard run for today
-    today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
     print(f"\n--- Running Cyberpunk TCG Valuation Pipeline ({today}) ---")
 
     sync_market_prices(price_dir=cfg.price_cache_dir, target_date=today, force=args.force)
