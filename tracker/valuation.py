@@ -141,9 +141,15 @@ def calculate_portfolio_valuation(
     catalog_by_group_pnum = {}
     for p in prods.values():
         g = p.get("groupName", "").strip().lower()
-        ext_num = p.get("extendedData", {}).get("number")
+        pnum = p.get("printNumber")
+        if not pnum and isinstance(p.get("extendedData"), dict):
+            pnum = p.get("extendedData", {}).get("number")
+        elif not pnum and isinstance(p.get("extendedData"), list):
+            for ext in p.get("extendedData", []):
+                if ext.get("name") == "Number":
+                    pnum = ext.get("value")
+                    break
         clean_name = p.get("cleanName", "")
-        pnum = ext_num
         if not pnum:
             for part in clean_name.split():
                 if any(c.isdigit() for c in part) and any(c.isalpha() for c in part):
@@ -156,7 +162,7 @@ def calculate_portfolio_valuation(
                     pnum = part
                     break
         if g and pnum:
-            catalog_by_group_pnum[(g, pnum.strip().lower())] = p
+            catalog_by_group_pnum[(g, str(pnum).strip().lower())] = p
 
     print(f"Calculating portfolio valuation for {date_str} across {len(collection_rows)} collection rows...")
 
