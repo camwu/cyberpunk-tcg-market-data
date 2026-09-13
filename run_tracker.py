@@ -15,22 +15,19 @@ from tracker.config import load_config
 from tracker.sync import sync_market_prices, backfill_market_prices
 from tracker.valuation import calculate_portfolio_valuation
 from tracker.report import generate_portfolio_report
+from tracker.validation import validate_collection_file, CollectionValidationError
 
 
 def import_collection_file(source_path: str, target_path: str, backup_dir: str) -> bool:
-    if not os.path.exists(source_path):
-        print(f"Error: Source collection file not found at '{source_path}'", file=sys.stderr)
+    is_valid, errors = validate_collection_file(source_path)
+    if not is_valid:
+        print(f"Error: Collection file validation failed for '{source_path}':", file=sys.stderr)
+        for err in errors:
+            print(f"  - {err}", file=sys.stderr)
         return False
 
-    required_cols = {"totalQtyOwned", "name", "printNumber", "finish", "expansion"}
     with open(source_path, "r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
-        headers = set(reader.fieldnames or [])
-        missing = required_cols - headers
-        if missing:
-            print(f"Error: Missing required CardNexus columns: {missing}", file=sys.stderr)
-            return False
-
         rows = list(reader)
         total_items = len(rows)
         total_qty = sum(int(r.get("totalQtyOwned", 1)) for r in rows)
@@ -91,13 +88,17 @@ def main():
         date_str = args.backfill_date
         print(f"\n--- Backfilling Cyberpunk TCG Market Data for {date_str} ---")
         backfill_market_prices(date_str, price_dir=cfg.price_cache_dir)
-        calculate_portfolio_valuation(
-            date_str=date_str,
-            collection_path=cfg.collection_csv,
-            cache_dir=cfg.price_cache_dir,
-            db_path=cfg.database_path,
-            force=args.force,
-        )
+        try:
+            calculate_portfolio_valuation(
+                date_str=date_str,
+                collection_path=cfg.collection_csv,
+                cache_dir=cfg.price_cache_dir,
+                db_path=cfg.database_path,
+                force=args.force,
+            )
+        except CollectionValidationError as e:
+            print(f"\nError: {e}", file=sys.stderr)
+            sys.exit(1)
         generate_portfolio_report(db_path=cfg.database_path, output_md=cfg.output_report)
         return
 
@@ -111,15 +112,26 @@ def main():
     else:
         print(f"Collection source: {cfg.collection_csv}")
 
+    is_valid, validation_errors = validate_collection_file(cfg.collection_csv)
+    if not is_valid:
+        print(f"\nError: Collection validation failed for '{cfg.collection_csv}':", file=sys.stderr)
+        for err in validation_errors:
+            print(f"  - {err}", file=sys.stderr)
+        sys.exit(1)
+
     sync_market_prices(price_dir=cfg.price_cache_dir, target_date=today, force=args.force)
 
-    calculate_portfolio_valuation(
-        date_str=today,
-        collection_path=cfg.collection_csv,
-        cache_dir=cfg.price_cache_dir,
-        db_path=cfg.database_path,
-        force=args.force,
-    )
+    try:
+        calculate_portfolio_valuation(
+            date_str=today,
+            collection_path=cfg.collection_csv,
+            cache_dir=cfg.price_cache_dir,
+            db_path=cfg.database_path,
+            force=args.force,
+        )
+    except CollectionValidationError as e:
+        print(f"\nError: {e}", file=sys.stderr)
+        sys.exit(1)
 
     generate_portfolio_report(db_path=cfg.database_path, output_md=cfg.output_report)
 

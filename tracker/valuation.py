@@ -12,6 +12,8 @@ from pathlib import Path
 import sqlite3
 from typing import Dict, Any
 
+from tracker.validation import validate_collection_file, CollectionValidationError
+
 
 def init_database(db_path: str):
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
@@ -79,6 +81,11 @@ def calculate_portfolio_valuation(
     db_path: str,
     force: bool = False
 ) -> Dict[str, Any]:
+    is_valid, validation_errors = validate_collection_file(collection_path)
+    if not is_valid:
+        error_msg = f"Collection validation failed for '{collection_path}':\n" + "\n".join(f" - {err}" for err in validation_errors)
+        raise CollectionValidationError(error_msg, errors=validation_errors)
+
     conn = init_database(db_path)
     cur = conn.cursor()
 
