@@ -59,6 +59,14 @@ Output files are saved under `prices/YYYY-MM-DD.json` and `prices/latest.json`.
 
 ---
 
+### 3. Running Tests
+To execute the automated unit test suite:
+```bash
+python -m unittest discover tests -v
+```
+
+---
+
 ## CLI Options
 
 ```bash
