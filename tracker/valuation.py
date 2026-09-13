@@ -4,13 +4,14 @@ Matches inventory records against TCGplayer market prices, computes rolling metr
 and persists historical daily snapshots into a local SQLite database.
 """
 
-import csv
 import datetime
 import json
 import os
 from pathlib import Path
 import sqlite3
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
+
+from tracker.validation import validate_collection_file, CollectionValidationError
 
 
 def init_database(db_path: str):
@@ -77,8 +78,15 @@ def calculate_portfolio_valuation(
     collection_path: str,
     cache_dir: str,
     db_path: str,
-    force: bool = False
+    force: bool = False,
+    collection_rows: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
+    if collection_rows is None:
+        is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
+        if not is_valid:
+            error_msg = f"Collection validation failed for '{collection_path}':\n" + "\n".join(f" - {err}" for err in validation_errors)
+            raise CollectionValidationError(error_msg, errors=validation_errors)
+
     conn = init_database(db_path)
     cur = conn.cursor()
 
@@ -149,13 +157,6 @@ def calculate_portfolio_valuation(
                     break
         if g and pnum:
             catalog_by_group_pnum[(g, pnum.strip().lower())] = p
-
-    if not os.path.exists(collection_path):
-        raise FileNotFoundError(f"Active collection file not found: {collection_path}")
-
-    with open(collection_path, "r", encoding="utf-8-sig") as cf:
-        reader = csv.DictReader(cf)
-        collection_rows = list(reader)
 
     print(f"Calculating portfolio valuation for {date_str} across {len(collection_rows)} collection rows...")
 
