@@ -30,10 +30,10 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add prices/
+          git add prices/ cards.json
           if git diff --staged --quiet; then
-            echo "No price changes to commit."
+            echo "No price or catalog changes to commit."
           else
-            git commit -m "Auto-update market prices: $(date -u +'%Y-%m-%d')"
+            git commit -m "Auto-update market prices & catalog: $(date -u +'%Y-%m-%d')"
             git push
           fi
