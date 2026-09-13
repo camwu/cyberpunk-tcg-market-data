@@ -14,11 +14,11 @@ if hasattr(sys.stdout, "reconfigure"):
 RARITY_ORDER = ["Common", "Uncommon", "Rare", "Epic", "Secret", "Iconic", "Nova"]
 
 RARITY_ICONS = {
-    "Common": "∧",
-    "Uncommon": "∨",
+    "Common": "△",
+    "Uncommon": "▽",
     "Rare": "◇",
-    "Epic": "◈",
-    "Secret": "◆",
+    "Epic": "🞚",
+    "Secret": "⯁",
     "Iconic": "★",
     "Nova": "▣",
 }
@@ -42,10 +42,11 @@ def normalize_rarity(rarity: str) -> str:
     return r
 
 
-def format_rarity(rarity: str) -> str:
+def format_rarity(rarity: str, bold: bool = False) -> str:
     norm = normalize_rarity(rarity)
     icon = RARITY_ICONS.get(norm)
-    return f"{icon} {norm}" if icon else norm
+    txt = f"{icon} {norm}" if icon else norm
+    return f"**{txt}**" if bold else txt
 
 
 def format_color(color: str) -> str:
@@ -227,7 +228,7 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
 
     for rarity, entries, qty, r_val in rarity_breakdown:
         pct_of_total = (r_val / total_val * 100.0) if total_val > 0 else 0.0
-        r_lbl = format_rarity(rarity)
+        r_lbl = format_rarity(rarity, bold=True)
         md_content += f"| {r_lbl} | {entries} | {qty} | `${r_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
     md_content += """
@@ -255,7 +256,7 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
 """
 
     for name, exp, rarity, color, finish, qty, price, total in high_value_cards:
-        r_str = format_rarity(rarity)
+        r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         md_content += f"| {card_display} | {exp} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
@@ -270,9 +271,9 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
 """
 
     for name, rarity, color, finish, qty, price, base, gain, pct in top_gainers:
-        r_str = format_rarity(rarity)
+        r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
-        card_display = f"{dot} {name}" if dot else name
+        card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     md_content += """
@@ -285,9 +286,9 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
 """
 
     for name, rarity, color, finish, qty, price, base, gain, pct in top_decliners:
-        r_str = format_rarity(rarity)
+        r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
-        card_display = f"{dot} {name}" if dot else name
+        card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     os.makedirs(os.path.dirname(output_md) or ".", exist_ok=True)

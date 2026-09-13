@@ -11,7 +11,7 @@ This repository contains **zero personal collection data** and operates both as 
 - **Daily Cloud Scraper**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:30 UTC, saving price snapshots under `prices/`.
 - **Decoupled Architecture**: Personal collection data, SQLite valuation databases, and portfolio reports remain strictly local and private.
 - **Configurable Storage**: Point the engine to any local directory or CardNexus CSV export via `config.json` or CLI flags.
-- **Rarity & Finish Tracking**: Tracks portfolio distribution across official geometric rarity tiers (`∧ Common`, `∨ Uncommon`, `◇ Rare`, `◈ Epic`, `◆ Secret`, `★ Iconic`, `▣ Nova`) and finishes.
+- **Rarity & Finish Tracking**: Tracks portfolio distribution across official geometric rarity tiers (`△ Common`, `▽ Uncommon`, `◇ Rare`, `🞚 Epic`, `⯁ Secret`, `★ Iconic`, `▣ Nova`) and finishes.
 - **Color Indicators**: Categorizes holdings across all 4 card colors (`🟢 Green`, `🔵 Blue`, `🔴 Red`, `🟡 Yellow`).
 - **Historical Performance**: Computes rolling L7D price deltas and lifetime gain/loss against baseline acquisition prices.
 
