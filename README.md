@@ -1,8 +1,8 @@
 # Cyberpunk TCG Market Data & Portfolio Tracker
 
-Automated daily market price scraper and collection portfolio valuation tracker for the Cyberpunk Trading Card Game (TCGplayer Category 92).
+Automated daily market price scraper and collection portfolio valuation engine for the Cyberpunk Trading Card Game.
 
-This repository contains **zero personal collection data** and operates both as a public market price archive and an open-source valuation engine.
+This repository provides an automated market price archive alongside a local valuation tracker for card collections.
 
 ---
 
@@ -20,7 +20,7 @@ This repository contains **zero personal collection data** and operates both as 
 ## Quick Start
 
 ### 1. Daily Market Price Scraping (Standalone)
-To scrape current TCGplayer market prices for Category 92:
+To scrape current market prices from TCGplayer:
 ```bash
 python scrape.py
 ```
@@ -28,12 +28,10 @@ Output files are saved under `prices/YYYY-MM-DD.json` and `prices/latest.json`.
 
 ---
 
-### 2. Personal Collection Portfolio Tracking
+### 2. Portfolio Valuation
 
-To track your private collection:
-
-1. **Drop your collection CSV**:
-   Place your CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The engine validates that required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) are present and automatically selects the newest file by modification timestamp.
+1. **Add your collection CSV**:
+   Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The engine validates that required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) are present and automatically selects the newest file by modification timestamp.
 
 2. **Run the tracker**:
    - **Windows 1-Click / Drag-and-Drop**: Double-click `update_portfolio.bat`, or drag-and-drop any CSV file onto it.
