@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   scrape:
@@ -26,14 +27,14 @@ jobs:
         run: |
           python scrape.py prices
 
-      - name: Commit and push if prices updated
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add prices/ cards.json
-          if git diff --staged --quiet; then
-            echo "No price or catalog changes to commit."
-          else
-            git commit -m "Auto-update market prices & catalog: $(date -u +'%Y-%m-%d')"
-            git push
-          fi
+      - name: Create Pull Request for market updates
+        uses: peter-evans/create-pull-request@v6
+        with:
+          add-paths: |
+            prices/
+            cards.json
+          commit-message: "Auto-update market prices & catalog"
+          title: "Auto-update market prices & catalog"
+          body: "Automated daily market price scrape and catalog sync via TCGCSV."
+          branch: "data/daily-sync"
+          delete-branch: true
