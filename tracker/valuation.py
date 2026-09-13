@@ -8,6 +8,7 @@ import csv
 import datetime
 import json
 import os
+from pathlib import Path
 import sqlite3
 from typing import Dict, Any
 
@@ -105,7 +106,29 @@ def calculate_portfolio_valuation(
 
     with open(cache_file, "r", encoding="utf-8") as f:
         cache_data = json.load(f)
-    prods = cache_data.get("products", {})
+
+    if "products" in cache_data:
+        prods = cache_data.get("products", {})
+    elif "prices" in cache_data:
+        cards_candidates = [
+            os.path.join(cache_dir, "cards.json"),
+            os.path.join(os.path.dirname(cache_dir), "cards.json"),
+            str(Path(__file__).resolve().parent.parent / "cards.json"),
+        ]
+        cards_file = next((c for c in cards_candidates if os.path.isfile(c)), None)
+        cards_catalog = {}
+        if cards_file:
+            with open(cards_file, "r", encoding="utf-8") as cf:
+                cards_catalog = json.load(cf)
+
+        daily_prices = cache_data.get("prices", {})
+        prods = {}
+        for pid_str, card_meta in cards_catalog.items():
+            card_dict = dict(card_meta)
+            card_dict["prices"] = daily_prices.get(pid_str, {})
+            prods[pid_str] = card_dict
+    else:
+        prods = {}
 
     catalog_by_group_pnum = {}
     for p in prods.values():

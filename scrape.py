@@ -41,6 +41,7 @@ def run_scraper(output_dir: str = "prices"):
     print(f"Discovered {len(groups)} set groups.")
 
     catalog = {}
+    all_prices = {}
     total_products = 0
 
     for grp in groups:
@@ -53,14 +54,13 @@ def run_scraper(output_dir: str = "prices"):
         time.sleep(0.2)
         price_data = fetch_json(f"{CATEGORY_ID}/{group_id}/prices")
 
-        prices_by_product = {}
         if price_data and "results" in price_data:
             for pr in price_data["results"]:
-                pid = pr["productId"]
+                pid_str = str(pr["productId"])
                 sub_type = pr.get("subTypeName", "Normal")
-                if pid not in prices_by_product:
-                    prices_by_product[pid] = {}
-                prices_by_product[pid][sub_type] = {
+                if pid_str not in all_prices:
+                    all_prices[pid_str] = {}
+                all_prices[pid_str][sub_type] = {
                     "marketPrice": pr.get("marketPrice"),
                     "lowPrice": pr.get("lowPrice"),
                     "midPrice": pr.get("midPrice"),
@@ -89,31 +89,43 @@ def run_scraper(output_dir: str = "prices"):
                     "groupName": group_name,
                     "printNumber": print_number,
                     "rarity": rarity,
-                    "prices": prices_by_product.get(pid, {}),
                 }
 
-    output_payload = {
-        "metadata": {
-            "category": "Cyberpunk TCG",
-            "categoryId": CATEGORY_ID,
-            "date": today,
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "groupCount": len(groups),
-            "productCount": total_products,
-        },
-        "products": catalog,
+    # 1. Update static cards.json catalog
+    cards_file = os.path.join(os.path.dirname(os.path.abspath(output_dir)), "cards.json") if output_dir != "." else "cards.json"
+    existing_cards = {}
+    if os.path.exists(cards_file):
+        try:
+            with open(cards_file, "r", encoding="utf-8") as f:
+                existing_cards = json.load(f)
+        except Exception:
+            pass
+
+    existing_cards.update(catalog)
+    with open(cards_file, "w", encoding="utf-8") as f:
+        json.dump(existing_cards, f, indent=2)
+
+    # 2. Write slim daily price snapshots
+    daily_payload = {
+        "date": today,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "category": "Cyberpunk TCG",
+        "categoryId": CATEGORY_ID,
+        "productCount": total_products,
+        "prices": all_prices,
     }
 
     dated_file = os.path.join(output_dir, f"{today}.json")
     latest_file = os.path.join(output_dir, "latest.json")
 
     with open(dated_file, "w", encoding="utf-8") as f:
-        json.dump(output_payload, f, indent=2)
+        json.dump(daily_payload, f, indent=2)
 
     with open(latest_file, "w", encoding="utf-8") as f:
-        json.dump(output_payload, f, indent=2)
+        json.dump(daily_payload, f, indent=2)
 
-    print(f"Scrape completed successfully. Saved {total_products} products to {dated_file} and {latest_file}.")
+    print(f"Scrape completed successfully. Catalog ({len(existing_cards)} cards) saved to {cards_file}.")
+    print(f"Daily price snapshot saved to {dated_file} and {latest_file}.")
     return True
 
 

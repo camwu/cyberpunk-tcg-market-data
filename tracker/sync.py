@@ -19,8 +19,35 @@ import urllib.request
 CATEGORY_ID = 92
 BASE_URL = "https://tcgcsv.com/tcgplayer"
 ARCHIVE_BASE_URL = "https://tcgcsv.com/archive/tcgplayer"
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/camwu/cyberpunk-tcg-market-data/main/prices"
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/camwu/cyberpunk-tcg-market-data/main"
+GITHUB_RAW_URL = f"{GITHUB_RAW_BASE}/prices"
 USER_AGENT = "CyberpunkTCGMarketTracker/1.0"
+
+
+def sync_cards_catalog(target_dir: str = "prices") -> str:
+    """Ensures cards.json catalog is present locally or in repository root."""
+    repo_cards = Path(__file__).resolve().parent.parent / "cards.json"
+    target_cards = os.path.join(target_dir, "cards.json")
+    parent_cards = os.path.join(os.path.dirname(target_dir), "cards.json")
+
+    if os.path.isfile(target_cards):
+        return target_cards
+    if os.path.isfile(parent_cards):
+        return parent_cards
+    if repo_cards.is_file():
+        try:
+            shutil.copy2(str(repo_cards), target_cards)
+            return target_cards
+        except Exception:
+            return str(repo_cards)
+
+    url = f"{GITHUB_RAW_BASE}/cards.json"
+    data = fetch_json(url)
+    if data:
+        with open(target_cards, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        return target_cards
+    return target_cards
 
 
 def find_7z() -> Optional[str]:
@@ -54,6 +81,7 @@ def sync_market_prices(price_dir: str = "prices", target_date: Optional[str] = N
     Checks local directory, repo directory, GitHub raw, then live TCGCSV.
     """
     os.makedirs(price_dir, exist_ok=True)
+    sync_cards_catalog(price_dir)
     today = target_date or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     target_file = os.path.join(price_dir, f"{today}.json")
     latest_file = os.path.join(price_dir, "latest.json")
@@ -81,7 +109,7 @@ def sync_market_prices(price_dir: str = "prices", target_date: Optional[str] = N
     # 2. Check GitHub Raw remote URL
     remote_url = f"{GITHUB_RAW_URL}/{today}.json"
     remote_data = fetch_json(remote_url)
-    if remote_data and remote_data.get("products"):
+    if remote_data and (remote_data.get("products") or remote_data.get("prices")):
         with open(target_file, "w", encoding="utf-8") as f:
             json.dump(remote_data, f, indent=2)
         with open(latest_file, "w", encoding="utf-8") as f:
@@ -95,27 +123,74 @@ def sync_market_prices(price_dir: str = "prices", target_date: Optional[str] = N
     if not groups_data or not groups_data.get("results"):
         raise RuntimeError("Failed to fetch group catalog from TCGCSV.")
 
-    all_products = {}
+    catalog = {}
+    all_prices = {}
     total_groups = len(groups_data["results"])
 
     for idx, group in enumerate(groups_data["results"], start=1):
         gid = group["groupId"]
         gname = group["name"]
         print(f"[{idx}/{total_groups}] Fetching {gname} (ID: {gid})...")
-        prod_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/{gid}/productsAndPrices")
-        if prod_data and prod_data.get("results"):
-            for item in prod_data["results"]:
-                item["groupId"] = gid
-                item["groupName"] = gname
-                pid = item["productId"]
-                all_products[str(pid)] = item
         time.sleep(0.2)
+        prod_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/{gid}/products")
+        time.sleep(0.2)
+        price_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/{gid}/prices")
+
+        if price_data and "results" in price_data:
+            for pr in price_data["results"]:
+                pid_str = str(pr["productId"])
+                sub_type = pr.get("subTypeName", "Normal")
+                if pid_str not in all_prices:
+                    all_prices[pid_str] = {}
+                all_prices[pid_str][sub_type] = {
+                    "marketPrice": pr.get("marketPrice"),
+                    "lowPrice": pr.get("lowPrice"),
+                    "midPrice": pr.get("midPrice"),
+                    "highPrice": pr.get("highPrice"),
+                    "directLowPrice": pr.get("directLowPrice"),
+                }
+
+        if prod_data and "results" in prod_data:
+            for p in prod_data["results"]:
+                pid = p["productId"]
+                print_number = None
+                rarity = None
+                for ext in p.get("extendedData", []):
+                    if ext.get("name") == "Number":
+                        print_number = ext.get("value")
+                    elif ext.get("name") == "Rarity":
+                        rarity = ext.get("value")
+
+                catalog[str(pid)] = {
+                    "productId": pid,
+                    "name": p.get("name"),
+                    "cleanName": p.get("cleanName"),
+                    "groupId": gid,
+                    "groupName": gname,
+                    "printNumber": print_number,
+                    "rarity": rarity,
+                }
+
+    # Update cards.json catalog
+    cards_file = sync_cards_catalog(price_dir)
+    existing_cards = {}
+    if os.path.isfile(cards_file):
+        try:
+            with open(cards_file, "r", encoding="utf-8") as f:
+                existing_cards = json.load(f)
+        except Exception:
+            pass
+    existing_cards.update(catalog)
+    with open(cards_file, "w", encoding="utf-8") as f:
+        json.dump(existing_cards, f, indent=2)
 
     payload = {
         "date": today,
-        "scrapedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "totalProducts": len(all_products),
-        "products": all_products,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "category": "Cyberpunk TCG",
+        "categoryId": CATEGORY_ID,
+        "productCount": len(catalog),
+        "prices": all_prices,
     }
 
     with open(target_file, "w", encoding="utf-8") as f:
@@ -123,7 +198,7 @@ def sync_market_prices(price_dir: str = "prices", target_date: Optional[str] = N
     with open(latest_file, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
 
-    print(f"Saved {len(all_products)} products to {target_file}.")
+    print(f"Saved {len(all_prices)} price mappings to {target_file}.")
     return target_file
 
 
