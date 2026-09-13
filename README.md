@@ -37,6 +37,7 @@ To track your private collection:
 
 2. **Run the tracker**:
    - **Windows 1-Click / Drag-and-Drop**: Double-click `update_portfolio.bat`, or drag-and-drop any CSV file onto it.
+   - **macOS / Linux Launcher**: Run `./update_portfolio.sh` (or pass/drag a CSV file: `./update_portfolio.sh path/to/cards.csv`).
    - **CLI**:
      ```bash
      python run_tracker.py
