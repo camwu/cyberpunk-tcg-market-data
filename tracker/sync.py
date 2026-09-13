@@ -82,7 +82,7 @@ def sync_market_prices(price_dir: str = "prices", target_date: Optional[str] = N
     """
     os.makedirs(price_dir, exist_ok=True)
     sync_cards_catalog(price_dir)
-    today = target_date or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    today = target_date or datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
     target_file = os.path.join(price_dir, f"{today}.json")
     latest_file = os.path.join(price_dir, "latest.json")
 

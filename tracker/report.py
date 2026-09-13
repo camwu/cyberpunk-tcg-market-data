@@ -204,7 +204,7 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
 
 **Snapshot Date**: `{latest_date}`  
-**Last Updated**: `{datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")}`
+**Last Updated**: `{datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")}`
 
 ---
 
