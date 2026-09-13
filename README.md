@@ -32,23 +32,31 @@ Output files are saved under `prices/YYYY-MM-DD.json` and `prices/latest.json`.
 
 To track your private collection:
 
-1. Copy `config.example.json` to `config.json` (gitignored):
+1. **Drop your collection CSV**:
+   Place your CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The engine automatically detects and processes the newest CSV file by modification timestamp.
+
+2. **Run the tracker**:
+   - **Windows 1-Click / Drag-and-Drop**: Double-click `update_portfolio.bat`, or drag-and-drop any CSV file onto it.
+   - **macOS / Linux Launcher**: Run `./update_portfolio.sh` (or pass/drag a CSV file: `./update_portfolio.sh path/to/cards.csv`).
+   - **CLI**:
+     ```bash
+     python run_tracker.py
+     ```
+
+3. **(Optional) Custom Paths via `config.json`**:
+   To customize locations outside the repository, copy `config.example.json` to `config.json` (gitignored):
    ```bash
    cp config.example.json config.json
    ```
-2. Edit `config.json` to point to your collection CSV and SQLite database paths:
+   Set `collection_csv` to a directory (e.g. `"data"`) or an explicit file path:
    ```json
    {
-     "collection_csv": "path/to/active_collection.csv",
-     "database_path": "path/to/price_history.db",
+     "collection_csv": "data",
+     "database_path": "data/price_history.db",
      "price_cache_dir": "prices",
-     "output_report": "path/to/LATEST_PORTFOLIO_SUMMARY.md",
-     "backup_dir": "path/to/backups"
+     "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
+     "backup_dir": "data/backups"
    }
-   ```
-3. Run the tracker:
-   ```bash
-   python run_tracker.py
    ```
 
 ---
@@ -56,8 +64,11 @@ To track your private collection:
 ## CLI Options
 
 ```bash
-# Run standard daily sync, valuation, and report generation
+# Run standard daily sync, valuation, and report generation (auto-detects newest CSV in data/)
 python run_tracker.py
+
+# Pass a specific CSV export or directory directly (supports drag-and-drop)
+python run_tracker.py path/to/my_cards.csv
 
 # Display latest report without syncing or recalculating
 python run_tracker.py --report-only

@@ -51,6 +51,7 @@ def import_collection_file(source_path: str, target_path: str, backup_dir: str) 
 
 def main():
     parser = argparse.ArgumentParser(description="Cyberpunk TCG Portfolio & Market Price Tracker")
+    parser.add_argument("collection_target", nargs="?", default=None, help="Optional direct path to CSV file or directory (supports drag-and-drop)")
     parser.add_argument("--config", dest="config_path", help="Path to custom JSON configuration file")
     parser.add_argument("--collection", dest="collection_csv", help="Path to active collection CSV file")
     parser.add_argument("--db", dest="database_path", help="Path to SQLite historical database")
@@ -64,9 +65,10 @@ def main():
     args = parser.parse_args()
 
     # Load configuration
+    collection_arg = args.collection_target or args.collection_csv
     cfg = load_config(
         config_path=args.config_path,
-        collection_csv=args.collection_csv,
+        collection_csv=collection_arg,
         database_path=args.database_path,
         price_cache_dir=args.price_cache_dir,
         output_report=args.output_report,
@@ -102,6 +104,12 @@ def main():
     # Standard run for today
     today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
     print(f"\n--- Running Cyberpunk TCG Valuation Pipeline ({today}) ---")
+    if os.path.isfile(cfg.collection_csv):
+        mtime_str = datetime.datetime.fromtimestamp(os.path.getmtime(cfg.collection_csv)).astimezone().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"Collection source: {Path(cfg.collection_csv).name} (modified {mtime_str})")
+        print(f"Full path: {cfg.collection_csv}")
+    else:
+        print(f"Collection source: {cfg.collection_csv}")
 
     sync_market_prices(price_dir=cfg.price_cache_dir, target_date=today, force=args.force)
 
