@@ -218,6 +218,9 @@ def calculate_portfolio_valuation(
             existing_color = meta_res[1]
             if (not existing_color or existing_color == "") and color:
                 cur.execute("UPDATE card_metadata SET color = ? WHERE card_key = ?", (color, card_key))
+            if (baseline_price is None or baseline_price <= 0.0) and market_price > 0.0:
+                baseline_price = market_price
+                cur.execute("UPDATE card_metadata SET baseline_market_price = ? WHERE card_key = ?", (baseline_price, card_key))
         else:
             baseline_price = market_price
             cur.execute("""

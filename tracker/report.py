@@ -116,7 +116,7 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
            s.lifetime_gain_dollar, s.lifetime_gain_pct
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ?
+    WHERE s.date = ? AND s.lifetime_gain_dollar > 0
     ORDER BY s.lifetime_gain_dollar DESC
     LIMIT 5
     """, (latest_date,))
@@ -128,7 +128,7 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
            s.lifetime_gain_dollar, s.lifetime_gain_pct
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ?
+    WHERE s.date = ? AND s.lifetime_gain_dollar < 0
     ORDER BY s.lifetime_gain_dollar ASC
     LIMIT 5
     """, (latest_date,))

@@ -78,6 +78,79 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(res["total_value"], 24.00)  # 2 * 12.00
         self.assertEqual(res["lifetime_dollar_gain"], 0.0)
 
+    def test_establish_baseline_on_first_nonzero_price(self):
+        # Day 1: Card has no market prices and fallback acquisition price is 0.00
+        daily_prices_d1 = {
+            "date": "2026-09-11",
+            "prices": {
+                "202": {}
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices_d1, f)
+
+        cards_catalog = {
+            "202": {
+                "productId": 202,
+                "name": "MT0D12 Flathead",
+                "cleanName": "MT0D12 Flathead",
+                "groupId": 2000,
+                "groupName": "The Heist - Beta Starter Deck",
+                "printNumber": "B015",
+                "rarity": "Uncommon",
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        collection_rows = [
+            {
+                "name": "MT0D12 Flathead",
+                "expansion": "The Heist - Beta Starter Deck",
+                "printNumber": "B015",
+                "finish": "Standard",
+                "totalQtyOwned": 2,
+                "price": 0.00,
+            }
+        ]
+
+        # Run day 1 valuation
+        res_d1 = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+        self.assertEqual(res_d1["total_value"], 0.0)
+        self.assertEqual(res_d1["lifetime_dollar_gain"], 0.0)
+
+        # Day 2: First real market price arrives ($4.34)
+        daily_prices_d2 = {
+            "date": "2026-09-13",
+            "prices": {
+                "202": {
+                    "Normal": {"marketPrice": 4.34}
+                }
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-13.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices_d2, f)
+
+        res_d2 = calculate_portfolio_valuation(
+            date_str="2026-09-13",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+        # Total value is 2 * 4.34 = 8.68
+        self.assertEqual(res_d2["total_value"], 8.68)
+        # Lifetime gain should establish baseline at 4.34 and remain 0.00, NOT +8.68 pure profit
+        self.assertEqual(res_d2["lifetime_dollar_gain"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
