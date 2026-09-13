@@ -14,8 +14,8 @@ if hasattr(sys.stdout, "reconfigure"):
 RARITY_ORDER = ["Common", "Uncommon", "Rare", "Epic", "Secret", "Iconic", "Nova"]
 
 RARITY_ICONS = {
-    "Common": "△",
-    "Uncommon": "▽",
+    "Common": "▽",
+    "Uncommon": "△",
     "Rare": "◇",
     "Epic": "🞚",
     "Secret": "⯁",

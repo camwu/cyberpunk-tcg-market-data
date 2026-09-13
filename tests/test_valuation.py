@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from tracker.valuation import calculate_portfolio_valuation, init_database
+from tracker.report import format_rarity, RARITY_ICONS
 
 
 class TestPortfolioValuation(unittest.TestCase):
@@ -150,6 +151,24 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(res_d2["total_value"], 8.68)
         # Lifetime gain should establish baseline at 4.34 and remain 0.00, NOT +8.68 pure profit
         self.assertEqual(res_d2["lifetime_dollar_gain"], 0.0)
+
+
+class TestReportFormatting(unittest.TestCase):
+
+    def test_rarity_icons_canon(self):
+        self.assertEqual(RARITY_ICONS["Common"], "▽")
+        self.assertEqual(RARITY_ICONS["Uncommon"], "△")
+        self.assertEqual(RARITY_ICONS["Rare"], "◇")
+        self.assertEqual(RARITY_ICONS["Epic"], "🞚")
+        self.assertEqual(RARITY_ICONS["Secret"], "⯁")
+        self.assertEqual(RARITY_ICONS["Iconic"], "★")
+        self.assertEqual(RARITY_ICONS["Nova"], "▣")
+
+    def test_format_rarity(self):
+        self.assertEqual(format_rarity("Common"), "▽ Common")
+        self.assertEqual(format_rarity("Uncommon"), "△ Uncommon")
+        self.assertEqual(format_rarity("Common", bold=True), "**▽ Common**")
+        self.assertEqual(format_rarity("Uncommon", bold=True), "**△ Uncommon**")
 
 
 if __name__ == "__main__":
