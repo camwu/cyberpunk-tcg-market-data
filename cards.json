@@ -1,0 +1,3800 @@
+{
+  "715194": {
+    "productId": 715194,
+    "name": "V - Corporate Exile",
+    "cleanName": "V Corporate Exile",
+    "groupId": 24857,
+    "groupName": "Box Toppers - Retail",
+    "printNumber": "006",
+    "rarity": "Nova Rare"
+  },
+  "715195": {
+    "productId": 715195,
+    "name": "Jackie Welles - Pour One Out For Me",
+    "cleanName": "Jackie Welles Pour One Out For Me",
+    "groupId": 24857,
+    "groupName": "Box Toppers - Retail",
+    "printNumber": "005",
+    "rarity": "Nova Rare"
+  },
+  "715196": {
+    "productId": 715196,
+    "name": "Saburo Arasaka - Stubborn Patriarch",
+    "cleanName": "Saburo Arasaka Stubborn Patriarch",
+    "groupId": 24857,
+    "groupName": "Box Toppers - Retail",
+    "printNumber": "004",
+    "rarity": "Nova Rare"
+  },
+  "715197": {
+    "productId": 715197,
+    "name": "Goro Takemura - Hands Unclean",
+    "cleanName": "Goro Takemura Hands Unclean",
+    "groupId": 24857,
+    "groupName": "Box Toppers - Retail",
+    "printNumber": "003",
+    "rarity": "Nova Rare"
+  },
+  "715198": {
+    "productId": 715198,
+    "name": "Viktor Vektor - Sit Down and Relax",
+    "cleanName": "Viktor Vektor Sit Down and Relax",
+    "groupId": 24857,
+    "groupName": "Box Toppers - Retail",
+    "printNumber": "002",
+    "rarity": "Nova Rare"
+  },
+  "715199": {
+    "productId": 715199,
+    "name": "Yorinobu Arasaka - Embracing Destruction",
+    "cleanName": "Yorinobu Arasaka Embracing Destruction",
+    "groupId": 24857,
+    "groupName": "Box Toppers - Retail",
+    "printNumber": "001",
+    "rarity": "Nova Rare"
+  },
+  "714497": {
+    "productId": 714497,
+    "name": "Starter Deck Display: Embracing Power - Retail",
+    "cleanName": "Starter Deck Display Embracing Power Retail",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714498": {
+    "productId": 714498,
+    "name": "Starter Deck: Embracing Power - Retail",
+    "cleanName": "Starter Deck Embracing Power Retail",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": null,
+    "rarity": null
+  },
+  "715219": {
+    "productId": 715219,
+    "name": "Yorinobu Arasaka - Embracing Destruction",
+    "cleanName": "Yorinobu Arasaka Embracing Destruction",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "001",
+    "rarity": "Epic"
+  },
+  "715220": {
+    "productId": 715220,
+    "name": "Chrome Fang",
+    "cleanName": "Chrome Fang",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "002",
+    "rarity": "Common"
+  },
+  "715221": {
+    "productId": 715221,
+    "name": "Minotaur",
+    "cleanName": "Minotaur",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "003",
+    "rarity": "Uncommon"
+  },
+  "715222": {
+    "productId": 715222,
+    "name": "Ruthless Lowlife",
+    "cleanName": "Ruthless Lowlife",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "004",
+    "rarity": "Common"
+  },
+  "715223": {
+    "productId": 715223,
+    "name": "Swordwise Huscle",
+    "cleanName": "Swordwise Huscle",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "005",
+    "rarity": "Common"
+  },
+  "715224": {
+    "productId": 715224,
+    "name": "Arasaka Emergency Radioport",
+    "cleanName": "Arasaka Emergency Radioport",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "006",
+    "rarity": "Common"
+  },
+  "715225": {
+    "productId": 715225,
+    "name": "Mantis Blades",
+    "cleanName": "Mantis Blades",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "007",
+    "rarity": "Uncommon"
+  },
+  "715226": {
+    "productId": 715226,
+    "name": "Satori - Sword of Saburo",
+    "cleanName": "Satori Sword of Saburo",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "008",
+    "rarity": "Uncommon"
+  },
+  "715227": {
+    "productId": 715227,
+    "name": "Industrial Assembly",
+    "cleanName": "Industrial Assembly",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "009",
+    "rarity": "Uncommon"
+  },
+  "715228": {
+    "productId": 715228,
+    "name": "Over the Edge",
+    "cleanName": "Over the Edge",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "010",
+    "rarity": "Common"
+  },
+  "715229": {
+    "productId": 715229,
+    "name": "Shattered Memories",
+    "cleanName": "Shattered Memories",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "011",
+    "rarity": "Rare"
+  },
+  "715230": {
+    "productId": 715230,
+    "name": "Goro Takemura - Hands Unclean",
+    "cleanName": "Goro Takemura Hands Unclean",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "012",
+    "rarity": "Epic"
+  },
+  "715231": {
+    "productId": 715231,
+    "name": "Saburo Arasaka - Stubborn Patriarch",
+    "cleanName": "Saburo Arasaka Stubborn Patriarch",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "013",
+    "rarity": "Epic"
+  },
+  "715232": {
+    "productId": 715232,
+    "name": "Corpo Security",
+    "cleanName": "Corpo Security",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "014",
+    "rarity": "Common"
+  },
+  "715233": {
+    "productId": 715233,
+    "name": "Emergency Atlus",
+    "cleanName": "Emergency Atlus",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "015",
+    "rarity": "Common"
+  },
+  "715234": {
+    "productId": 715234,
+    "name": "Field Operator",
+    "cleanName": "Field Operator",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "016",
+    "rarity": "Common"
+  },
+  "715235": {
+    "productId": 715235,
+    "name": "Goro Takemura - Losing His Way",
+    "cleanName": "Goro Takemura Losing His Way",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "017",
+    "rarity": "Uncommon"
+  },
+  "715236": {
+    "productId": 715236,
+    "name": "MaxTac AV",
+    "cleanName": "MaxTac AV",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "018",
+    "rarity": "Common"
+  },
+  "715237": {
+    "productId": 715237,
+    "name": "Sandevistan",
+    "cleanName": "Sandevistan",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "019",
+    "rarity": "Uncommon"
+  },
+  "715238": {
+    "productId": 715238,
+    "name": "Corporate Surveillance",
+    "cleanName": "Corporate Surveillance",
+    "groupId": 24858,
+    "groupName": "Embracing Power - Retail Starter Deck",
+    "printNumber": "020",
+    "rarity": "Uncommon"
+  },
+  "715247": {
+    "productId": 715247,
+    "name": "Adam Smasher - Ender of Legends",
+    "cleanName": "Adam Smasher Ender of Legends",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "008",
+    "rarity": "Nova Rare"
+  },
+  "715251": {
+    "productId": 715251,
+    "name": "Rebecca - Having A Moment",
+    "cleanName": "Rebecca Having A Moment",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "005",
+    "rarity": "Nova Rare"
+  },
+  "715255": {
+    "productId": 715255,
+    "name": "Rebecca - Having A Moment (007)",
+    "cleanName": "Rebecca Having A Moment 007",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "007",
+    "rarity": "Nova Rare"
+  },
+  "714499": {
+    "productId": 714499,
+    "name": "Starter Deck: The Heist - Retail",
+    "cleanName": "Starter Deck The Heist Retail",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714500": {
+    "productId": 714500,
+    "name": "Starter Deck Display: The Heist - Retail",
+    "cleanName": "Starter Deck Display The Heist Retail",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": null,
+    "rarity": null
+  },
+  "715265": {
+    "productId": 715265,
+    "name": "Viktor Vektor - Sit Down and Relax",
+    "cleanName": "Viktor Vektor Sit Down and Relax",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "001",
+    "rarity": "Epic"
+  },
+  "715266": {
+    "productId": 715266,
+    "name": "Dexter DeShawn - One Last Chance",
+    "cleanName": "Dexter DeShawn One Last Chance",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "002",
+    "rarity": "Uncommon"
+  },
+  "715267": {
+    "productId": 715267,
+    "name": "Heywood Ripperdoc",
+    "cleanName": "Heywood Ripperdoc",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "003",
+    "rarity": "Uncommon"
+  },
+  "715268": {
+    "productId": 715268,
+    "name": "Offduty Malfini",
+    "cleanName": "Offduty Malfini",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "004",
+    "rarity": "Common"
+  },
+  "715269": {
+    "productId": 715269,
+    "name": "Secondhand Bombus",
+    "cleanName": "Secondhand Bombus",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "005",
+    "rarity": "Common"
+  },
+  "715270": {
+    "productId": 715270,
+    "name": "T-Bug - Amateur Philosopher",
+    "cleanName": "T Bug Amateur Philosopher",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "006",
+    "rarity": "Uncommon"
+  },
+  "715271": {
+    "productId": 715271,
+    "name": "Kiroshi Optics",
+    "cleanName": "Kiroshi Optics",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "007",
+    "rarity": "Common"
+  },
+  "715272": {
+    "productId": 715272,
+    "name": "Mandibular Upgrade",
+    "cleanName": "Mandibular Upgrade",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "008",
+    "rarity": "Common"
+  },
+  "715273": {
+    "productId": 715273,
+    "name": "Zetatech Faceplate",
+    "cleanName": "Zetatech Faceplate",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "009",
+    "rarity": "Uncommon"
+  },
+  "715274": {
+    "productId": 715274,
+    "name": "Afterparty at Lizzie's",
+    "cleanName": "Afterparty at Lizzies",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "010",
+    "rarity": "Common"
+  },
+  "715275": {
+    "productId": 715275,
+    "name": "Jackie Welles - Pour One Out For Me",
+    "cleanName": "Jackie Welles Pour One Out For Me",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "011",
+    "rarity": "Epic"
+  },
+  "715276": {
+    "productId": 715276,
+    "name": "V - Corporate Exile",
+    "cleanName": "V Corporate Exile",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "012",
+    "rarity": "Epic"
+  },
+  "715277": {
+    "productId": 715277,
+    "name": "Delamain Cab",
+    "cleanName": "Delamain Cab",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "013",
+    "rarity": "Common"
+  },
+  "715278": {
+    "productId": 715278,
+    "name": "Evelyn Parker - Scheming Siren",
+    "cleanName": "Evelyn Parker Scheming Siren",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "014",
+    "rarity": "Uncommon"
+  },
+  "715279": {
+    "productId": 715279,
+    "name": "MT0D12 Flathead",
+    "cleanName": "MT0D12 Flathead",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "015",
+    "rarity": "Uncommon"
+  },
+  "715280": {
+    "productId": 715280,
+    "name": "Psycho Squad",
+    "cleanName": "Psycho Squad",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "016",
+    "rarity": "Common"
+  },
+  "715281": {
+    "productId": 715281,
+    "name": "Dying Night - V's Pistol",
+    "cleanName": "Dying Night Vs Pistol",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "017",
+    "rarity": "Rare"
+  },
+  "715282": {
+    "productId": 715282,
+    "name": "Tetratonic Rippler",
+    "cleanName": "Tetratonic Rippler",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "018",
+    "rarity": "Common"
+  },
+  "715283": {
+    "productId": 715283,
+    "name": "Floor It",
+    "cleanName": "Floor It",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "019",
+    "rarity": "Common"
+  },
+  "715284": {
+    "productId": 715284,
+    "name": "Reboot Optics",
+    "cleanName": "Reboot Optics",
+    "groupId": 24859,
+    "groupName": "The Heist - Retail Starter Deck",
+    "printNumber": "020",
+    "rarity": "Common"
+  },
+  "714494": {
+    "productId": 714494,
+    "name": "Welcome to Night City - Retail Booster Box Case",
+    "cleanName": "Welcome to Night City Retail Booster Box Case",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714495": {
+    "productId": 714495,
+    "name": "Welcome to Night City - Retail Booster Box",
+    "cleanName": "Welcome to Night City Retail Booster Box",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714496": {
+    "productId": 714496,
+    "name": "Welcome to Night City - Retail Booster Pack",
+    "cleanName": "Welcome to Night City Retail Booster Pack",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": null,
+    "rarity": null
+  },
+  "715005": {
+    "productId": 715005,
+    "name": "(Don't Fear) The Reaper",
+    "cleanName": "Dont Fear The Reaper",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "098",
+    "rarity": null
+  },
+  "715006": {
+    "productId": 715006,
+    "name": "6th Street Recruits",
+    "cleanName": "6th Street Recruits",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "006",
+    "rarity": null
+  },
+  "715007": {
+    "productId": 715007,
+    "name": "Adam Smasher - Ender of Legends (Epic)",
+    "cleanName": "Adam Smasher Ender of Legends Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "001",
+    "rarity": null
+  },
+  "715008": {
+    "productId": 715008,
+    "name": "Adam Smasher - Metal Over Meat (Epic)",
+    "cleanName": "Adam Smasher Metal Over Meat Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "041",
+    "rarity": null
+  },
+  "715009": {
+    "productId": 715009,
+    "name": "Adrenaline Converter",
+    "cleanName": "Adrenaline Converter",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "059",
+    "rarity": null
+  },
+  "715010": {
+    "productId": 715010,
+    "name": "Afterparty at Lizzie's",
+    "cleanName": "Afterparty at Lizzies",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "065",
+    "rarity": null
+  },
+  "715011": {
+    "productId": 715011,
+    "name": "All is Lost",
+    "cleanName": "All is Lost",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "027",
+    "rarity": null
+  },
+  "715012": {
+    "productId": 715012,
+    "name": "Alt Cunningham - Mother of Daemons (Rare)",
+    "cleanName": "Alt Cunningham Mother of Daemons Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "042",
+    "rarity": null
+  },
+  "715013": {
+    "productId": 715013,
+    "name": "Alt Cunningham - Soulkiller Architect (Rare)",
+    "cleanName": "Alt Cunningham Soulkiller Architect Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "106",
+    "rarity": null
+  },
+  "715014": {
+    "productId": 715014,
+    "name": "Animals Wrecker",
+    "cleanName": "Animals Wrecker",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "007",
+    "rarity": null
+  },
+  "715015": {
+    "productId": 715015,
+    "name": "Appetite for Destruction",
+    "cleanName": "Appetite for Destruction",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "028",
+    "rarity": null
+  },
+  "715016": {
+    "productId": 715016,
+    "name": "Arasaka Emergency Radioport",
+    "cleanName": "Arasaka Emergency Radioport",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "023",
+    "rarity": null
+  },
+  "715017": {
+    "productId": 715017,
+    "name": "Augmented Negotiators",
+    "cleanName": "Augmented Negotiators",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "043",
+    "rarity": null
+  },
+  "715018": {
+    "productId": 715018,
+    "name": "Bonnie and Clyde",
+    "cleanName": "Bonnie and Clyde",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "029",
+    "rarity": null
+  },
+  "715019": {
+    "productId": 715019,
+    "name": "Bootleg Black Sapphire Show",
+    "cleanName": "Bootleg Black Sapphire Show",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "066",
+    "rarity": null
+  },
+  "715020": {
+    "productId": 715020,
+    "name": "Caliber - Totentanz's Top Dog",
+    "cleanName": "Caliber Totentanzs Top Dog",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "044",
+    "rarity": null
+  },
+  "715021": {
+    "productId": 715021,
+    "name": "Carnage at the Colosseum",
+    "cleanName": "Carnage at the Colosseum",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "030",
+    "rarity": null
+  },
+  "715022": {
+    "productId": 715022,
+    "name": "Chrome Fang",
+    "cleanName": "Chrome Fang",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "008",
+    "rarity": null
+  },
+  "715023": {
+    "productId": 715023,
+    "name": "Chrome Reverie",
+    "cleanName": "Chrome Reverie",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "131",
+    "rarity": null
+  },
+  "715024": {
+    "productId": 715024,
+    "name": "Corpo Security",
+    "cleanName": "Corpo Security",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "076",
+    "rarity": null
+  },
+  "715025": {
+    "productId": 715025,
+    "name": "Corporate Surveillance",
+    "cleanName": "Corporate Surveillance",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "097",
+    "rarity": null
+  },
+  "715026": {
+    "productId": 715026,
+    "name": "Cyberpsychosis",
+    "cleanName": "Cyberpsychosis",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "067",
+    "rarity": null
+  },
+  "715027": {
+    "productId": 715027,
+    "name": "Deadman Transmitter",
+    "cleanName": "Deadman Transmitter",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "024",
+    "rarity": null
+  },
+  "715028": {
+    "productId": 715028,
+    "name": "Delamain - Rideshare AI",
+    "cleanName": "Delamain Rideshare AI",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "111",
+    "rarity": null
+  },
+  "715029": {
+    "productId": 715029,
+    "name": "Delamain Cab",
+    "cleanName": "Delamain Cab",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "112",
+    "rarity": null
+  },
+  "715030": {
+    "productId": 715030,
+    "name": "Detonate",
+    "cleanName": "Detonate",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "031",
+    "rarity": null
+  },
+  "715031": {
+    "productId": 715031,
+    "name": "Dexter DeShawn - Off the Grid (Rare)",
+    "cleanName": "Dexter DeShawn Off the Grid Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "002",
+    "rarity": null
+  },
+  "715032": {
+    "productId": 715032,
+    "name": "Dum Dum - Maelstrom Triggerman (Rare)",
+    "cleanName": "Dum Dum Maelstrom Triggerman Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "036",
+    "rarity": null
+  },
+  "715033": {
+    "productId": 715033,
+    "name": "Dying Night - V's Pistol",
+    "cleanName": "Dying Night Vs Pistol",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "128",
+    "rarity": null
+  },
+  "715034": {
+    "productId": 715034,
+    "name": "El Sombreron - La Venganza Lenta",
+    "cleanName": "El Sombreron La Venganza Lenta",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "009",
+    "rarity": null
+  },
+  "715035": {
+    "productId": 715035,
+    "name": "Emergency Atlus",
+    "cleanName": "Emergency Atlus",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "077",
+    "rarity": null
+  },
+  "715036": {
+    "productId": 715036,
+    "name": "Evelyn Parker - Beautiful Enigma (Rare)",
+    "cleanName": "Evelyn Parker Beautiful Enigma Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "107",
+    "rarity": null
+  },
+  "715037": {
+    "productId": 715037,
+    "name": "Evelyn Parker - Scheming Siren",
+    "cleanName": "Evelyn Parker Scheming Siren",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "113",
+    "rarity": null
+  },
+  "715038": {
+    "productId": 715038,
+    "name": "Field Operator",
+    "cleanName": "Field Operator",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "078",
+    "rarity": null
+  },
+  "715039": {
+    "productId": 715039,
+    "name": "Floor It",
+    "cleanName": "Floor It",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "132",
+    "rarity": null
+  },
+  "715040": {
+    "productId": 715040,
+    "name": "Fool on the Hill",
+    "cleanName": "Fool on the Hill",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "099",
+    "rarity": null
+  },
+  "715041": {
+    "productId": 715041,
+    "name": "Gilded Maton",
+    "cleanName": "Gilded Maton",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "045",
+    "rarity": null
+  },
+  "715042": {
+    "productId": 715042,
+    "name": "Gorilla Arms",
+    "cleanName": "Gorilla Arms",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "060",
+    "rarity": null
+  },
+  "715043": {
+    "productId": 715043,
+    "name": "Goro Takemura - Vengeful Bodyguard (Rare)",
+    "cleanName": "Goro Takemura Vengeful Bodyguard Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "071",
+    "rarity": null
+  },
+  "715044": {
+    "productId": 715044,
+    "name": "Gunpoint Diplomacy",
+    "cleanName": "Gunpoint Diplomacy",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "032",
+    "rarity": null
+  },
+  "715045": {
+    "productId": 715045,
+    "name": "Hacked Corpo",
+    "cleanName": "Hacked Corpo",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "114",
+    "rarity": null
+  },
+  "715046": {
+    "productId": 715046,
+    "name": "Hanako Arasaka - Daughter of the Emperor (Rare)",
+    "cleanName": "Hanako Arasaka Daughter of the Emperor Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "072",
+    "rarity": null
+  },
+  "715047": {
+    "productId": 715047,
+    "name": "Hanako Arasaka - In a Gilded Cage (Rare)",
+    "cleanName": "Hanako Arasaka In a Gilded Cage Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "046",
+    "rarity": null
+  },
+  "715048": {
+    "productId": 715048,
+    "name": "Heywood Ripperdoc",
+    "cleanName": "Heywood Ripperdoc",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "047",
+    "rarity": null
+  },
+  "715049": {
+    "productId": 715049,
+    "name": "Industrial Assembly",
+    "cleanName": "Industrial Assembly",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "033",
+    "rarity": null
+  },
+  "715050": {
+    "productId": 715050,
+    "name": "Jacked-In Voodoo Boy",
+    "cleanName": "Jacked In Voodoo Boy",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "115",
+    "rarity": null
+  },
+  "715051": {
+    "productId": 715051,
+    "name": "Jackie Welles - Mama's Favorite (Rare)",
+    "cleanName": "Jackie Welles Mamas Favorite Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "073",
+    "rarity": null
+  },
+  "715052": {
+    "productId": 715052,
+    "name": "Jackie Welles - Ride or Die Choom",
+    "cleanName": "Jackie Welles Ride or Die Choom",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "048",
+    "rarity": null
+  },
+  "715053": {
+    "productId": 715053,
+    "name": "Japantown Jonin",
+    "cleanName": "Japantown Jonin",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "010",
+    "rarity": null
+  },
+  "715054": {
+    "productId": 715054,
+    "name": "Johnny Silverhand - Never Stop Fighting (Epic)",
+    "cleanName": "Johnny Silverhand Never Stop Fighting Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "011",
+    "rarity": null
+  },
+  "715055": {
+    "productId": 715055,
+    "name": "Johnny Silverhand - Rocking Renegade (Secret)",
+    "cleanName": "Johnny Silverhand Rocking Renegade Secret",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "003",
+    "rarity": null
+  },
+  "715056": {
+    "productId": 715056,
+    "name": "Judy Alvarez - Braindance Maestro (Epic)",
+    "cleanName": "Judy Alvarez Braindance Maestro Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "108",
+    "rarity": null
+  },
+  "715057": {
+    "productId": 715057,
+    "name": "Judy Alvarez - Nothing to Doubt (Secret)",
+    "cleanName": "Judy Alvarez Nothing to Doubt Secret",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "116",
+    "rarity": null
+  },
+  "715058": {
+    "productId": 715058,
+    "name": "Kerry Eurodyne - Axe, Attitude, Audience (Rare)",
+    "cleanName": "Kerry Eurodyne Axe Attitude Audience Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "037",
+    "rarity": null
+  },
+  "715059": {
+    "productId": 715059,
+    "name": "Kerry Eurodyne - The Last Rockerboy",
+    "cleanName": "Kerry Eurodyne The Last Rockerboy",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "012",
+    "rarity": null
+  },
+  "715060": {
+    "productId": 715060,
+    "name": "Kiroshi Optics",
+    "cleanName": "Kiroshi Optics",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "061",
+    "rarity": null
+  },
+  "715061": {
+    "productId": 715061,
+    "name": "La Llorona - Ghost of the Past",
+    "cleanName": "La Llorona Ghost of the Past",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "013",
+    "rarity": null
+  },
+  "715062": {
+    "productId": 715062,
+    "name": "Les Elemens",
+    "cleanName": "Les Elemens",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "133",
+    "rarity": null
+  },
+  "715063": {
+    "productId": 715063,
+    "name": "Live with the Aftermath",
+    "cleanName": "Live with the Aftermath",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "068",
+    "rarity": null
+  },
+  "715064": {
+    "productId": 715064,
+    "name": "Lizzy Wizzy - Delicate Weapon",
+    "cleanName": "Lizzy Wizzy Delicate Weapon",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "117",
+    "rarity": null
+  },
+  "715065": {
+    "productId": 715065,
+    "name": "Maelstrom Goons",
+    "cleanName": "Maelstrom Goons",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "049",
+    "rarity": null
+  },
+  "715066": {
+    "productId": 715066,
+    "name": "Maelstrom Zealots",
+    "cleanName": "Maelstrom Zealots",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "079",
+    "rarity": null
+  },
+  "715067": {
+    "productId": 715067,
+    "name": "Maman Brigitte - Spirit of Death",
+    "cleanName": "Maman Brigitte Spirit of Death",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "118",
+    "rarity": null
+  },
+  "715068": {
+    "productId": 715068,
+    "name": "Mandibular Upgrade",
+    "cleanName": "Mandibular Upgrade",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "062",
+    "rarity": null
+  },
+  "715069": {
+    "productId": 715069,
+    "name": "Mantis Blades",
+    "cleanName": "Mantis Blades",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "025",
+    "rarity": null
+  },
+  "715070": {
+    "productId": 715070,
+    "name": "MaxTac AV",
+    "cleanName": "MaxTac AV",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "080",
+    "rarity": null
+  },
+  "715071": {
+    "productId": 715071,
+    "name": "MaxTac Heavy",
+    "cleanName": "MaxTac Heavy",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "081",
+    "rarity": null
+  },
+  "715072": {
+    "productId": 715072,
+    "name": "MaxTac Squadron",
+    "cleanName": "MaxTac Squadron",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "082",
+    "rarity": null
+  },
+  "715073": {
+    "productId": 715073,
+    "name": "MaxTac Suppression Team",
+    "cleanName": "MaxTac Suppression Team",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "050",
+    "rarity": null
+  },
+  "715074": {
+    "productId": 715074,
+    "name": "Memory Relapse",
+    "cleanName": "Memory Relapse",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "100",
+    "rarity": null
+  },
+  "715075": {
+    "productId": 715075,
+    "name": "Meredith Stout - Stone Cold Corpo",
+    "cleanName": "Meredith Stout Stone Cold Corpo",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "014",
+    "rarity": null
+  },
+  "715076": {
+    "productId": 715076,
+    "name": "Misty Olszewski - Mender of Broken Spirits",
+    "cleanName": "Misty Olszewski Mender of Broken Spirits",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "119",
+    "rarity": null
+  },
+  "715077": {
+    "productId": 715077,
+    "name": "Modded Kusanagi",
+    "cleanName": "Modded Kusanagi",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "120",
+    "rarity": null
+  },
+  "715078": {
+    "productId": 715078,
+    "name": "Modded Muramasa",
+    "cleanName": "Modded Muramasa",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "121",
+    "rarity": null
+  },
+  "715079": {
+    "productId": 715079,
+    "name": "Mox Inciters",
+    "cleanName": "Mox Inciters",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "122",
+    "rarity": null
+  },
+  "715080": {
+    "productId": 715080,
+    "name": "Muamar Reyes - El Capitan (Rare)",
+    "cleanName": "Muamar Reyes El Capitan Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "038",
+    "rarity": null
+  },
+  "715081": {
+    "productId": 715081,
+    "name": "Nadia - Fighting Through Grief",
+    "cleanName": "Nadia Fighting Through Grief",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "083",
+    "rarity": null
+  },
+  "715082": {
+    "productId": 715082,
+    "name": "NetWatch Netdriver",
+    "cleanName": "NetWatch Netdriver",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "129",
+    "rarity": null
+  },
+  "715083": {
+    "productId": 715083,
+    "name": "Nocturne OP55 N1",
+    "cleanName": "Nocturne OP55 N1",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "134",
+    "rarity": null
+  },
+  "715084": {
+    "productId": 715084,
+    "name": "Octant",
+    "cleanName": "Octant",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "015",
+    "rarity": null
+  },
+  "715085": {
+    "productId": 715085,
+    "name": "Offduty Malfini",
+    "cleanName": "Offduty Malfini",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "051",
+    "rarity": null
+  },
+  "715086": {
+    "productId": 715086,
+    "name": "Over the Edge",
+    "cleanName": "Over the Edge",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "034",
+    "rarity": null
+  },
+  "715087": {
+    "productId": 715087,
+    "name": "Overwatch - Panam's Gift (Epic)",
+    "cleanName": "Overwatch Panams Gift Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "093",
+    "rarity": null
+  },
+  "715088": {
+    "productId": 715088,
+    "name": "Pacifica Netrunner",
+    "cleanName": "Pacifica Netrunner",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "084",
+    "rarity": null
+  },
+  "715089": {
+    "productId": 715089,
+    "name": "Padre - Man of the Cross (Rare)",
+    "cleanName": "Padre Man of the Cross Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "074",
+    "rarity": null
+  },
+  "715090": {
+    "productId": 715090,
+    "name": "Panam Palmer - Nomad Cavalry (Epic)",
+    "cleanName": "Panam Palmer Nomad Cavalry Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "075",
+    "rarity": null
+  },
+  "715091": {
+    "productId": 715091,
+    "name": "Panam Palmer - Strength Through Family (Secret)",
+    "cleanName": "Panam Palmer Strength Through Family Secret",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "085",
+    "rarity": null
+  },
+  "715092": {
+    "productId": 715092,
+    "name": "Peace Offering",
+    "cleanName": "Peace Offering",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "101",
+    "rarity": null
+  },
+  "715093": {
+    "productId": 715093,
+    "name": "Pepe Najarro - Working Doubles",
+    "cleanName": "Pepe Najarro Working Doubles",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "086",
+    "rarity": null
+  },
+  "715094": {
+    "productId": 715094,
+    "name": "Placide - Voodoo Sentinel",
+    "cleanName": "Placide Voodoo Sentinel",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "123",
+    "rarity": null
+  },
+  "715095": {
+    "productId": 715095,
+    "name": "Psycho Squad",
+    "cleanName": "Psycho Squad",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "124",
+    "rarity": null
+  },
+  "715096": {
+    "productId": 715096,
+    "name": "Pyramid Song",
+    "cleanName": "Pyramid Song",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "135",
+    "rarity": null
+  },
+  "715097": {
+    "productId": 715097,
+    "name": "Reboot Optics",
+    "cleanName": "Reboot Optics",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "136",
+    "rarity": null
+  },
+  "715098": {
+    "productId": 715098,
+    "name": "Riding Nomad",
+    "cleanName": "Riding Nomad",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "087",
+    "rarity": null
+  },
+  "715099": {
+    "productId": 715099,
+    "name": "Riot Shield",
+    "cleanName": "Riot Shield",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "094",
+    "rarity": null
+  },
+  "715100": {
+    "productId": 715100,
+    "name": "Rita Wheeler - No Stupid Questions",
+    "cleanName": "Rita Wheeler No Stupid Questions",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "125",
+    "rarity": null
+  },
+  "715101": {
+    "productId": 715101,
+    "name": "River Ward - Detective on the Hunt (Rare)",
+    "cleanName": "River Ward Detective on the Hunt Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "039",
+    "rarity": null
+  },
+  "715102": {
+    "productId": 715102,
+    "name": "Rockn' Rockerboy",
+    "cleanName": "Rockn Rockerboy",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "052",
+    "rarity": null
+  },
+  "715103": {
+    "productId": 715103,
+    "name": "Rogue Amendiares - Preem Solo (Rare)",
+    "cleanName": "Rogue Amendiares Preem Solo Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "040",
+    "rarity": null
+  },
+  "715104": {
+    "productId": 715104,
+    "name": "Rogue Amendiares - Queen of the Afterlife (Epic)",
+    "cleanName": "Rogue Amendiares Queen of the Afterlife Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "126",
+    "rarity": null
+  },
+  "715105": {
+    "productId": 715105,
+    "name": "Royce - Don't Call Me Simon",
+    "cleanName": "Royce Dont Call Me Simon",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "016",
+    "rarity": null
+  },
+  "715106": {
+    "productId": 715106,
+    "name": "Royce - Psycho on the Edge (Rare)",
+    "cleanName": "Royce Psycho on the Edge Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "004",
+    "rarity": null
+  },
+  "715107": {
+    "productId": 715107,
+    "name": "Ruthless Lowlife",
+    "cleanName": "Ruthless Lowlife",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "017",
+    "rarity": null
+  },
+  "715108": {
+    "productId": 715108,
+    "name": "Safety Override",
+    "cleanName": "Safety Override",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "069",
+    "rarity": null
+  },
+  "715109": {
+    "productId": 715109,
+    "name": "Sandayu Oda - Hanako's Guardian (Rare)",
+    "cleanName": "Sandayu Oda Hanakos Guardian Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "088",
+    "rarity": null
+  },
+  "715110": {
+    "productId": 715110,
+    "name": "Sandevistan",
+    "cleanName": "Sandevistan",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "095",
+    "rarity": null
+  },
+  "715111": {
+    "productId": 715111,
+    "name": "Sasha Yakovleva - Won't Let You Down (Secret)",
+    "cleanName": "Sasha Yakovleva Wont Let You Down Secret",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "109",
+    "rarity": null
+  },
+  "715112": {
+    "productId": 715112,
+    "name": "Satori - Sword of Saburo",
+    "cleanName": "Satori Sword of Saburo",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "026",
+    "rarity": null
+  },
+  "715113": {
+    "productId": 715113,
+    "name": "Saul Bright - Stormrider",
+    "cleanName": "Saul Bright Stormrider",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "089",
+    "rarity": null
+  },
+  "715114": {
+    "productId": 715114,
+    "name": "Screw - Lovelorn Fool",
+    "cleanName": "Screw Lovelorn Fool",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "018",
+    "rarity": null
+  },
+  "715115": {
+    "productId": 715115,
+    "name": "Secondhand Bombus",
+    "cleanName": "Secondhand Bombus",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "053",
+    "rarity": null
+  },
+  "715116": {
+    "productId": 715116,
+    "name": "Shattered Memories",
+    "cleanName": "Shattered Memories",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "035",
+    "rarity": null
+  },
+  "715117": {
+    "productId": 715117,
+    "name": "Sketchy Ripper",
+    "cleanName": "Sketchy Ripper",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "054",
+    "rarity": null
+  },
+  "715118": {
+    "productId": 715118,
+    "name": "Swordwise Huscle",
+    "cleanName": "Swordwise Huscle",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "019",
+    "rarity": null
+  },
+  "715119": {
+    "productId": 715119,
+    "name": "Synapse Burnout",
+    "cleanName": "Synapse Burnout",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "102",
+    "rarity": null
+  },
+  "715120": {
+    "productId": 715120,
+    "name": "T-Bug - Amateur Philosopher",
+    "cleanName": "T Bug Amateur Philosopher",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "055",
+    "rarity": null
+  },
+  "715121": {
+    "productId": 715121,
+    "name": "Take Control",
+    "cleanName": "Take Control",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "103",
+    "rarity": null
+  },
+  "715122": {
+    "productId": 715122,
+    "name": "Tetratronic Rippler",
+    "cleanName": "Tetratronic Rippler",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "130",
+    "rarity": null
+  },
+  "715123": {
+    "productId": 715123,
+    "name": "The Heist",
+    "cleanName": "The Heist",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "070",
+    "rarity": null
+  },
+  "715124": {
+    "productId": 715124,
+    "name": "The Relic - Experimental Biochip (Epic)",
+    "cleanName": "The Relic Experimental Biochip Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "063",
+    "rarity": null
+  },
+  "715125": {
+    "productId": 715125,
+    "name": "Three Mouths, One Desire",
+    "cleanName": "Three Mouths One Desire",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "137",
+    "rarity": null
+  },
+  "715126": {
+    "productId": 715126,
+    "name": "Towerfall (Epic)",
+    "cleanName": "Towerfall Epic",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "138",
+    "rarity": null
+  },
+  "715128": {
+    "productId": 715128,
+    "name": "Trauma Team Operatives",
+    "cleanName": "Trauma Team Operatives",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "056",
+    "rarity": null
+  },
+  "715129": {
+    "productId": 715129,
+    "name": "Trust No One",
+    "cleanName": "Trust No One",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "139",
+    "rarity": null
+  },
+  "715130": {
+    "productId": 715130,
+    "name": "Tyger's Whisper",
+    "cleanName": "Tygers Whisper",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "090",
+    "rarity": null
+  },
+  "715131": {
+    "productId": 715131,
+    "name": "Unlikely Bond",
+    "cleanName": "Unlikely Bond",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "140",
+    "rarity": null
+  },
+  "715132": {
+    "productId": 715132,
+    "name": "V - Roamer of the Badlands",
+    "cleanName": "V Roamer of the Badlands",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "020",
+    "rarity": null
+  },
+  "715133": {
+    "productId": 715133,
+    "name": "V - Streetkid (a)",
+    "cleanName": "V Streetkid a",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "005a",
+    "rarity": null
+  },
+  "715134": {
+    "productId": 715134,
+    "name": "V - Streetkid (b)",
+    "cleanName": "V Streetkid b",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "005",
+    "rarity": null
+  },
+  "715135": {
+    "productId": 715135,
+    "name": "Valentino Guerrera",
+    "cleanName": "Valentino Guerrera",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "021",
+    "rarity": null
+  },
+  "715136": {
+    "productId": 715136,
+    "name": "Valentino Street Racer",
+    "cleanName": "Valentino Street Racer",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "091",
+    "rarity": null
+  },
+  "715137": {
+    "productId": 715137,
+    "name": "Viktor Vektor - Drop Your Illusions",
+    "cleanName": "Viktor Vektor Drop Your Illusions",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "057",
+    "rarity": null
+  },
+  "715138": {
+    "productId": 715138,
+    "name": "Viktor Vektor - You Might Feel a Little Pinch",
+    "cleanName": "Viktor Vektor You Might Feel a Little Pinch",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "058",
+    "rarity": null
+  },
+  "715139": {
+    "productId": 715139,
+    "name": "Wakako Okada - Peace and Harmony (Rare)",
+    "cleanName": "Wakako Okada Peace and Harmony Rare",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "110",
+    "rarity": null
+  },
+  "715140": {
+    "productId": 715140,
+    "name": "We Gotta Live Together",
+    "cleanName": "We Gotta Live Together",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "104",
+    "rarity": null
+  },
+  "715141": {
+    "productId": 715141,
+    "name": "Westbrook Netrunner",
+    "cleanName": "Westbrook Netrunner",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "127",
+    "rarity": null
+  },
+  "715142": {
+    "productId": 715142,
+    "name": "Wild in the Streets",
+    "cleanName": "Wild in the Streets",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "105",
+    "rarity": null
+  },
+  "715143": {
+    "productId": 715143,
+    "name": "Wraith Marauders",
+    "cleanName": "Wraith Marauders",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "092",
+    "rarity": null
+  },
+  "715144": {
+    "productId": 715144,
+    "name": "Yorinobu Arasaka - Steel Dragon",
+    "cleanName": "Yorinobu Arasaka Steel Dragon",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "022",
+    "rarity": null
+  },
+  "715145": {
+    "productId": 715145,
+    "name": "Zetatech Berserk",
+    "cleanName": "Zetatech Berserk",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "096",
+    "rarity": null
+  },
+  "715146": {
+    "productId": 715146,
+    "name": "Zetatech Faceplate",
+    "cleanName": "Zetatech Faceplate",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "064",
+    "rarity": null
+  },
+  "715166": {
+    "productId": 715166,
+    "name": "V - Corporate Exile",
+    "cleanName": "V Corporate Exile",
+    "groupId": 24848,
+    "groupName": "Box Toppers - Beta",
+    "printNumber": "B006",
+    "rarity": "Nova Rare"
+  },
+  "715170": {
+    "productId": 715170,
+    "name": "Jackie Welles - Pour One Out For Me",
+    "cleanName": "Jackie Welles Pour One Out For Me",
+    "groupId": 24848,
+    "groupName": "Box Toppers - Beta",
+    "printNumber": "B005",
+    "rarity": "Nova Rare"
+  },
+  "715174": {
+    "productId": 715174,
+    "name": "Saburo Arasaka - Stubborn Patriarch",
+    "cleanName": "Saburo Arasaka Stubborn Patriarch",
+    "groupId": 24848,
+    "groupName": "Box Toppers - Beta",
+    "printNumber": "B004",
+    "rarity": "Nova Rare"
+  },
+  "715179": {
+    "productId": 715179,
+    "name": "Goro Takemura - Hands Unclean",
+    "cleanName": "Goro Takemura Hands Unclean",
+    "groupId": 24848,
+    "groupName": "Box Toppers - Beta",
+    "printNumber": "B003",
+    "rarity": "Nova Rare"
+  },
+  "715181": {
+    "productId": 715181,
+    "name": "Viktor Vektor - Sit Down and Relax",
+    "cleanName": "Viktor Vektor Sit Down and Relax",
+    "groupId": 24848,
+    "groupName": "Box Toppers - Beta",
+    "printNumber": "B002",
+    "rarity": "Nova Rare"
+  },
+  "715185": {
+    "productId": 715185,
+    "name": "Yorinobu Arasaka - Embracing Destruction",
+    "cleanName": "Yorinobu Arasaka Embracing Destruction",
+    "groupId": 24848,
+    "groupName": "Box Toppers - Beta",
+    "printNumber": "B001",
+    "rarity": "Nova Rare"
+  },
+  "714119": {
+    "productId": 714119,
+    "name": "Yorinobu Arasaka - Embracing Destruction",
+    "cleanName": "Yorinobu Arasaka Embracing Destruction",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B001",
+    "rarity": "Epic"
+  },
+  "714120": {
+    "productId": 714120,
+    "name": "Chrome Fang",
+    "cleanName": "Chrome Fang",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B002",
+    "rarity": "Common"
+  },
+  "714121": {
+    "productId": 714121,
+    "name": "Minotaur",
+    "cleanName": "Minotaur",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B003",
+    "rarity": "Uncommon"
+  },
+  "714122": {
+    "productId": 714122,
+    "name": "Ruthless Lowlife",
+    "cleanName": "Ruthless Lowlife",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B004",
+    "rarity": "Common"
+  },
+  "714123": {
+    "productId": 714123,
+    "name": "Swordwise Huscle",
+    "cleanName": "Swordwise Huscle",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B005",
+    "rarity": "Common"
+  },
+  "714124": {
+    "productId": 714124,
+    "name": "Arasaka Emergency Radioport",
+    "cleanName": "Arasaka Emergency Radioport",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B006",
+    "rarity": "Common"
+  },
+  "714125": {
+    "productId": 714125,
+    "name": "Mantis Blades",
+    "cleanName": "Mantis Blades",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B007",
+    "rarity": "Uncommon"
+  },
+  "714126": {
+    "productId": 714126,
+    "name": "Satori - Sword of Saburo",
+    "cleanName": "Satori Sword of Saburo",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B008",
+    "rarity": "Uncommon"
+  },
+  "714127": {
+    "productId": 714127,
+    "name": "Industrial Assembly",
+    "cleanName": "Industrial Assembly",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B009",
+    "rarity": "Uncommon"
+  },
+  "714128": {
+    "productId": 714128,
+    "name": "Over the Edge",
+    "cleanName": "Over the Edge",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B010",
+    "rarity": "Common"
+  },
+  "714129": {
+    "productId": 714129,
+    "name": "Shattered Memories",
+    "cleanName": "Shattered Memories",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B011",
+    "rarity": "Rare"
+  },
+  "714130": {
+    "productId": 714130,
+    "name": "Goro Takemura - Hands Unclean",
+    "cleanName": "Goro Takemura Hands Unclean",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B012",
+    "rarity": "Epic"
+  },
+  "714131": {
+    "productId": 714131,
+    "name": "Saburo Arasaka - Stubborn Patriarch",
+    "cleanName": "Saburo Arasaka Stubborn Patriarch",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B013",
+    "rarity": "Epic"
+  },
+  "714132": {
+    "productId": 714132,
+    "name": "Corpo Security",
+    "cleanName": "Corpo Security",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B014",
+    "rarity": "Common"
+  },
+  "714133": {
+    "productId": 714133,
+    "name": "Emergency Atlus",
+    "cleanName": "Emergency Atlus",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B015",
+    "rarity": "Common"
+  },
+  "714134": {
+    "productId": 714134,
+    "name": "Field Operator",
+    "cleanName": "Field Operator",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B016",
+    "rarity": "Common"
+  },
+  "714135": {
+    "productId": 714135,
+    "name": "Goro Takemura - Losing His Way",
+    "cleanName": "Goro Takemura Losing His Way",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B017",
+    "rarity": "Uncommon"
+  },
+  "714136": {
+    "productId": 714136,
+    "name": "MaxTac AV",
+    "cleanName": "MaxTac AV",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B018",
+    "rarity": "Common"
+  },
+  "714137": {
+    "productId": 714137,
+    "name": "Sandevistan",
+    "cleanName": "Sandevistan",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B019",
+    "rarity": "Uncommon"
+  },
+  "714138": {
+    "productId": 714138,
+    "name": "Corporate Surveillance",
+    "cleanName": "Corporate Surveillance",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": "B020",
+    "rarity": "Uncommon"
+  },
+  "714344": {
+    "productId": 714344,
+    "name": "Starter Deck: Embracing Power - Beta",
+    "cleanName": "Starter Deck Embracing Power Beta",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714417": {
+    "productId": 714417,
+    "name": "Starter Deck Display: Embracing Power - Beta",
+    "cleanName": "Starter Deck Display Embracing Power Beta",
+    "groupId": 24846,
+    "groupName": "Embracing Power - Beta Starter Deck",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714140": {
+    "productId": 714140,
+    "name": "Viktor Vektor - Sit Down and Relax",
+    "cleanName": "Viktor Vektor Sit Down and Relax",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B001",
+    "rarity": "Epic"
+  },
+  "714141": {
+    "productId": 714141,
+    "name": "Dexter DeShawn - One Last Chance",
+    "cleanName": "Dexter DeShawn One Last Chance",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B002",
+    "rarity": "Uncommon"
+  },
+  "714142": {
+    "productId": 714142,
+    "name": "Heywood Ripperdoc",
+    "cleanName": "Heywood Ripperdoc",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B003",
+    "rarity": "Uncommon"
+  },
+  "714143": {
+    "productId": 714143,
+    "name": "Offduty Malfini",
+    "cleanName": "Offduty Malfini",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B004",
+    "rarity": "Common"
+  },
+  "714144": {
+    "productId": 714144,
+    "name": "Secondhand Bombus",
+    "cleanName": "Secondhand Bombus",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B005",
+    "rarity": "Common"
+  },
+  "714145": {
+    "productId": 714145,
+    "name": "T-Bug - Amateur Philosopher",
+    "cleanName": "T Bug Amateur Philosopher",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B006",
+    "rarity": "Uncommon"
+  },
+  "714146": {
+    "productId": 714146,
+    "name": "Kiroshi Optics",
+    "cleanName": "Kiroshi Optics",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B007",
+    "rarity": "Common"
+  },
+  "714147": {
+    "productId": 714147,
+    "name": "Mandibular Upgrade",
+    "cleanName": "Mandibular Upgrade",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B008",
+    "rarity": "Common"
+  },
+  "714148": {
+    "productId": 714148,
+    "name": "Zetatech Faceplate",
+    "cleanName": "Zetatech Faceplate",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B009",
+    "rarity": "Uncommon"
+  },
+  "714149": {
+    "productId": 714149,
+    "name": "Afterparty at Lizzie's",
+    "cleanName": "Afterparty at Lizzies",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B010",
+    "rarity": "Common"
+  },
+  "714150": {
+    "productId": 714150,
+    "name": "Jackie Welles - Pour One Out For Me",
+    "cleanName": "Jackie Welles Pour One Out For Me",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B011",
+    "rarity": "Epic"
+  },
+  "714151": {
+    "productId": 714151,
+    "name": "V - Corporate Exile",
+    "cleanName": "V Corporate Exile",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B012",
+    "rarity": "Epic"
+  },
+  "714152": {
+    "productId": 714152,
+    "name": "Delamain Cab",
+    "cleanName": "Delamain Cab",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B013",
+    "rarity": "Common"
+  },
+  "714153": {
+    "productId": 714153,
+    "name": "Evelyn Parker - Scheming Siren",
+    "cleanName": "Evelyn Parker Scheming Siren",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B014",
+    "rarity": "Uncommon"
+  },
+  "714154": {
+    "productId": 714154,
+    "name": "MT0D12 Flathead",
+    "cleanName": "MT0D12 Flathead",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B015",
+    "rarity": "Uncommon"
+  },
+  "714155": {
+    "productId": 714155,
+    "name": "Psycho Squad",
+    "cleanName": "Psycho Squad",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B016",
+    "rarity": "Common"
+  },
+  "714156": {
+    "productId": 714156,
+    "name": "Dying Night - V's Pistol",
+    "cleanName": "Dying Night Vs Pistol",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B017",
+    "rarity": "Rare"
+  },
+  "714157": {
+    "productId": 714157,
+    "name": "Tetratonic Rippler",
+    "cleanName": "Tetratonic Rippler",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B018",
+    "rarity": "Common"
+  },
+  "714158": {
+    "productId": 714158,
+    "name": "Floor It",
+    "cleanName": "Floor It",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B019",
+    "rarity": "Common"
+  },
+  "714159": {
+    "productId": 714159,
+    "name": "Reboot Optics",
+    "cleanName": "Reboot Optics",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": "B020",
+    "rarity": "Common"
+  },
+  "714345": {
+    "productId": 714345,
+    "name": "Starter Deck: The Heist - Beta",
+    "cleanName": "Starter Deck The Heist Beta",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714418": {
+    "productId": 714418,
+    "name": "Starter Deck Display: The Heist - Beta",
+    "cleanName": "Starter Deck Display The Heist Beta",
+    "groupId": 24847,
+    "groupName": "The Heist - Beta Starter Deck",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714162": {
+    "productId": 714162,
+    "name": "Adam Smasher - Ender of Legends (Epic)",
+    "cleanName": "Adam Smasher Ender of Legends Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B001",
+    "rarity": "Epic"
+  },
+  "714163": {
+    "productId": 714163,
+    "name": "Dexter DeShawn - Off the Grid (Rare)",
+    "cleanName": "Dexter DeShawn Off the Grid Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B002",
+    "rarity": "Rare"
+  },
+  "714164": {
+    "productId": 714164,
+    "name": "Johnny Silverhand - Rocking Renegade (Secret)",
+    "cleanName": "Johnny Silverhand Rocking Renegade Secret",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B003",
+    "rarity": "Secret"
+  },
+  "714165": {
+    "productId": 714165,
+    "name": "Royce - Psycho on the Edge (Rare)",
+    "cleanName": "Royce Psycho on the Edge Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B004",
+    "rarity": "Rare"
+  },
+  "714166": {
+    "productId": 714166,
+    "name": "V - Streetkid (a)",
+    "cleanName": "V Streetkid a",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B005a",
+    "rarity": "Rare"
+  },
+  "714167": {
+    "productId": 714167,
+    "name": "V - Streetkid (b)",
+    "cleanName": "V Streetkid b",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B005b",
+    "rarity": "Rare"
+  },
+  "714168": {
+    "productId": 714168,
+    "name": "6th Street Recruits",
+    "cleanName": "6th Street Recruits",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B006",
+    "rarity": "Common"
+  },
+  "714169": {
+    "productId": 714169,
+    "name": "Animals Wrecker",
+    "cleanName": "Animals Wrecker",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B007",
+    "rarity": "Common"
+  },
+  "714170": {
+    "productId": 714170,
+    "name": "Chrome Fang",
+    "cleanName": "Chrome Fang",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B008",
+    "rarity": "Common"
+  },
+  "714171": {
+    "productId": 714171,
+    "name": "El Sombreron - La Venganza Lenta",
+    "cleanName": "El Sombreron La Venganza Lenta",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B009",
+    "rarity": "Rare"
+  },
+  "714172": {
+    "productId": 714172,
+    "name": "Japantown Jonin",
+    "cleanName": "Japantown Jonin",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B010",
+    "rarity": "Common"
+  },
+  "714173": {
+    "productId": 714173,
+    "name": "Johnny Silverhand - Never Stop Fighting (Epic)",
+    "cleanName": "Johnny Silverhand Never Stop Fighting Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B011",
+    "rarity": "Epic"
+  },
+  "714174": {
+    "productId": 714174,
+    "name": "Kerry Eurodyne - The Last Rockerboy",
+    "cleanName": "Kerry Eurodyne The Last Rockerboy",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B012",
+    "rarity": "Uncommon"
+  },
+  "714175": {
+    "productId": 714175,
+    "name": "La Llorona - Ghost of the Past",
+    "cleanName": "La Llorona Ghost of the Past",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B013",
+    "rarity": "Uncommon"
+  },
+  "714176": {
+    "productId": 714176,
+    "name": "Meredith Stout - Stone Cold Corpo",
+    "cleanName": "Meredith Stout Stone Cold Corpo",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B014",
+    "rarity": "Rare"
+  },
+  "714177": {
+    "productId": 714177,
+    "name": "Octant",
+    "cleanName": "Octant",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B015",
+    "rarity": "Common"
+  },
+  "714178": {
+    "productId": 714178,
+    "name": "Royce - Don't Call Me Simon",
+    "cleanName": "Royce Dont Call Me Simon",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B016",
+    "rarity": "Uncommon"
+  },
+  "714179": {
+    "productId": 714179,
+    "name": "Ruthless Lowlife",
+    "cleanName": "Ruthless Lowlife",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B017",
+    "rarity": "Common"
+  },
+  "714180": {
+    "productId": 714180,
+    "name": "Screw - Lovelorn Fool",
+    "cleanName": "Screw Lovelorn Fool",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B018",
+    "rarity": "Common"
+  },
+  "714181": {
+    "productId": 714181,
+    "name": "Swordwise Huscle",
+    "cleanName": "Swordwise Huscle",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B019",
+    "rarity": "Common"
+  },
+  "714182": {
+    "productId": 714182,
+    "name": "V - Roamer of the Badlands",
+    "cleanName": "V Roamer of the Badlands",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B020",
+    "rarity": "Epic"
+  },
+  "714183": {
+    "productId": 714183,
+    "name": "Valentino Guerrera",
+    "cleanName": "Valentino Guerrera",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B021",
+    "rarity": "Common"
+  },
+  "714184": {
+    "productId": 714184,
+    "name": "Yorinobu Arasaka - Steel Dragon",
+    "cleanName": "Yorinobu Arasaka Steel Dragon",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B022",
+    "rarity": "Rare"
+  },
+  "714185": {
+    "productId": 714185,
+    "name": "Arasaka Emergency Radioport",
+    "cleanName": "Arasaka Emergency Radioport",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B023",
+    "rarity": "Common"
+  },
+  "714186": {
+    "productId": 714186,
+    "name": "Deadman Transmitter",
+    "cleanName": "Deadman Transmitter",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B024",
+    "rarity": "Uncommon"
+  },
+  "714187": {
+    "productId": 714187,
+    "name": "Mantis Blades",
+    "cleanName": "Mantis Blades",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B025",
+    "rarity": "Common"
+  },
+  "714188": {
+    "productId": 714188,
+    "name": "Satori - Sword of Saburo",
+    "cleanName": "Satori Sword of Saburo",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B026",
+    "rarity": "Uncommon"
+  },
+  "714189": {
+    "productId": 714189,
+    "name": "All is Lost",
+    "cleanName": "All is Lost",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B027",
+    "rarity": "Common"
+  },
+  "714190": {
+    "productId": 714190,
+    "name": "Appetite for Destruction",
+    "cleanName": "Appetite for Destruction",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B028",
+    "rarity": "Uncommon"
+  },
+  "714191": {
+    "productId": 714191,
+    "name": "Bonnie and Clyde",
+    "cleanName": "Bonnie and Clyde",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B029",
+    "rarity": "Uncommon"
+  },
+  "714192": {
+    "productId": 714192,
+    "name": "Carnage at the Colosseum",
+    "cleanName": "Carnage at the Colosseum",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B030",
+    "rarity": "Common"
+  },
+  "714193": {
+    "productId": 714193,
+    "name": "Detonate",
+    "cleanName": "Detonate",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B031",
+    "rarity": "Common"
+  },
+  "714194": {
+    "productId": 714194,
+    "name": "Gunpoint Diplomacy",
+    "cleanName": "Gunpoint Diplomacy",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B032",
+    "rarity": "Uncommon"
+  },
+  "714195": {
+    "productId": 714195,
+    "name": "Industrial Assembly",
+    "cleanName": "Industrial Assembly",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B033",
+    "rarity": "Uncommon"
+  },
+  "714196": {
+    "productId": 714196,
+    "name": "Over the Edge",
+    "cleanName": "Over the Edge",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B034",
+    "rarity": "Common"
+  },
+  "714197": {
+    "productId": 714197,
+    "name": "Shattered Memories",
+    "cleanName": "Shattered Memories",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B035",
+    "rarity": "Rare"
+  },
+  "714198": {
+    "productId": 714198,
+    "name": "Dum Dum - Maelstrom Triggerman (Rare)",
+    "cleanName": "Dum Dum Maelstrom Triggerman Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B036",
+    "rarity": "Rare"
+  },
+  "714199": {
+    "productId": 714199,
+    "name": "Kerry Eurodyne - Axe, Attitude, Audience (Rare)",
+    "cleanName": "Kerry Eurodyne Axe Attitude Audience Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B037",
+    "rarity": "Rare"
+  },
+  "714200": {
+    "productId": 714200,
+    "name": "Muamar Reyes - El Capitan (Rare)",
+    "cleanName": "Muamar Reyes El Capitan Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B038",
+    "rarity": "Rare"
+  },
+  "714201": {
+    "productId": 714201,
+    "name": "River Ward - Detective on the Hunt (Rare)",
+    "cleanName": "River Ward Detective on the Hunt Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B039",
+    "rarity": "Rare"
+  },
+  "714202": {
+    "productId": 714202,
+    "name": "Rogue Amendiares - Preem Solo (Rare)",
+    "cleanName": "Rogue Amendiares Preem Solo Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B040",
+    "rarity": "Rare"
+  },
+  "714203": {
+    "productId": 714203,
+    "name": "Adam Smasher - Metal Over Meat (Epic)",
+    "cleanName": "Adam Smasher Metal Over Meat Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B041",
+    "rarity": "Epic"
+  },
+  "714204": {
+    "productId": 714204,
+    "name": "Alt Cunningham - Mother of Daemons (Rare)",
+    "cleanName": "Alt Cunningham Mother of Daemons Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B042",
+    "rarity": "Rare"
+  },
+  "714205": {
+    "productId": 714205,
+    "name": "Augmented Negotiators",
+    "cleanName": "Augmented Negotiators",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B043",
+    "rarity": "Common"
+  },
+  "714206": {
+    "productId": 714206,
+    "name": "Caliber - Totentanz's Top Dog",
+    "cleanName": "Caliber Totentanzs Top Dog",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B044",
+    "rarity": "Rare"
+  },
+  "714207": {
+    "productId": 714207,
+    "name": "Gilded Maton",
+    "cleanName": "Gilded Maton",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B045",
+    "rarity": "Common"
+  },
+  "714208": {
+    "productId": 714208,
+    "name": "Hanako Arasaka - In a Gilded Cage (Rare)",
+    "cleanName": "Hanako Arasaka In a Gilded Cage Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B046",
+    "rarity": "Rare"
+  },
+  "714209": {
+    "productId": 714209,
+    "name": "Heywood Ripperdoc",
+    "cleanName": "Heywood Ripperdoc",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B047",
+    "rarity": "Uncommon"
+  },
+  "714210": {
+    "productId": 714210,
+    "name": "Jackie Welles - Ride or Die Choom",
+    "cleanName": "Jackie Welles Ride or Die Choom",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B048",
+    "rarity": "Epic"
+  },
+  "714211": {
+    "productId": 714211,
+    "name": "Maelstrom Goons",
+    "cleanName": "Maelstrom Goons",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B049",
+    "rarity": "Common"
+  },
+  "714212": {
+    "productId": 714212,
+    "name": "MaxTac Suppression Team",
+    "cleanName": "MaxTac Suppression Team",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B050",
+    "rarity": "Common"
+  },
+  "714213": {
+    "productId": 714213,
+    "name": "Offduty Malfini",
+    "cleanName": "Offduty Malfini",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B051",
+    "rarity": "Common"
+  },
+  "714214": {
+    "productId": 714214,
+    "name": "Rockn' Rockerboy",
+    "cleanName": "Rockn Rockerboy",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B052",
+    "rarity": "Common"
+  },
+  "714215": {
+    "productId": 714215,
+    "name": "Secondhand Bombus",
+    "cleanName": "Secondhand Bombus",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B053",
+    "rarity": "Common"
+  },
+  "714216": {
+    "productId": 714216,
+    "name": "Sketchy Ripper",
+    "cleanName": "Sketchy Ripper",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B054",
+    "rarity": "Common"
+  },
+  "714217": {
+    "productId": 714217,
+    "name": "T-Bug - Amateur Philosopher",
+    "cleanName": "T Bug Amateur Philosopher",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B055",
+    "rarity": "Uncommon"
+  },
+  "714218": {
+    "productId": 714218,
+    "name": "Trauma Team Operatives",
+    "cleanName": "Trauma Team Operatives",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B056",
+    "rarity": "Common"
+  },
+  "714219": {
+    "productId": 714219,
+    "name": "Viktor Vektor - Drop Your Illusions",
+    "cleanName": "Viktor Vektor Drop Your Illusions",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B057",
+    "rarity": "Epic"
+  },
+  "714220": {
+    "productId": 714220,
+    "name": "Viktor Vektor - You Might Feel a Little Pinch",
+    "cleanName": "Viktor Vektor You Might Feel a Little Pinch",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B058",
+    "rarity": "Uncommon"
+  },
+  "714221": {
+    "productId": 714221,
+    "name": "Adrenaline Converter",
+    "cleanName": "Adrenaline Converter",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B059",
+    "rarity": "Common"
+  },
+  "714222": {
+    "productId": 714222,
+    "name": "Gorilla Arms",
+    "cleanName": "Gorilla Arms",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B060",
+    "rarity": "Common"
+  },
+  "714223": {
+    "productId": 714223,
+    "name": "Kiroshi Optics",
+    "cleanName": "Kiroshi Optics",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B061",
+    "rarity": "Common"
+  },
+  "714224": {
+    "productId": 714224,
+    "name": "Mandibular Upgrade",
+    "cleanName": "Mandibular Upgrade",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B062",
+    "rarity": "Common"
+  },
+  "714225": {
+    "productId": 714225,
+    "name": "The Relic - Experimental Biochip (Epic)",
+    "cleanName": "The Relic Experimental Biochip Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B063",
+    "rarity": "Epic"
+  },
+  "714226": {
+    "productId": 714226,
+    "name": "Zetatech Faceplate",
+    "cleanName": "Zetatech Faceplate",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B064",
+    "rarity": "Uncommon"
+  },
+  "714227": {
+    "productId": 714227,
+    "name": "Afterparty at Lizzie's",
+    "cleanName": "Afterparty at Lizzies",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B065",
+    "rarity": "Common"
+  },
+  "714228": {
+    "productId": 714228,
+    "name": "Bootleg Black Sapphire Show",
+    "cleanName": "Bootleg Black Sapphire Show",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B066",
+    "rarity": "Uncommon"
+  },
+  "714229": {
+    "productId": 714229,
+    "name": "Cyberpsychosis",
+    "cleanName": "Cyberpsychosis",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B067",
+    "rarity": "Uncommon"
+  },
+  "714230": {
+    "productId": 714230,
+    "name": "Live with the Aftermath",
+    "cleanName": "Live with the Aftermath",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B068",
+    "rarity": "Common"
+  },
+  "714231": {
+    "productId": 714231,
+    "name": "Safety Override",
+    "cleanName": "Safety Override",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B069",
+    "rarity": "Common"
+  },
+  "714232": {
+    "productId": 714232,
+    "name": "The Heist",
+    "cleanName": "The Heist",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B070",
+    "rarity": "Uncommon"
+  },
+  "714233": {
+    "productId": 714233,
+    "name": "Goro Takemura - Vengeful Bodyguard (Rare)",
+    "cleanName": "Goro Takemura Vengeful Bodyguard Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B071",
+    "rarity": "Rare"
+  },
+  "714234": {
+    "productId": 714234,
+    "name": "Hanako Arasaka - Daughter of the Emperor (Rare)",
+    "cleanName": "Hanako Arasaka Daughter of the Emperor Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B072",
+    "rarity": "Rare"
+  },
+  "714235": {
+    "productId": 714235,
+    "name": "Jackie Welles - Mama's Favorite (Rare)",
+    "cleanName": "Jackie Welles Mamas Favorite Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B073",
+    "rarity": "Rare"
+  },
+  "714236": {
+    "productId": 714236,
+    "name": "Padre - Man of the Cross (Rare)",
+    "cleanName": "Padre Man of the Cross Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B074",
+    "rarity": "Rare"
+  },
+  "714237": {
+    "productId": 714237,
+    "name": "Panam Palmer - Nomad Cavalry (Epic)",
+    "cleanName": "Panam Palmer Nomad Cavalry Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B075",
+    "rarity": "Epic"
+  },
+  "714238": {
+    "productId": 714238,
+    "name": "Corpo Security",
+    "cleanName": "Corpo Security",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B076",
+    "rarity": "Common"
+  },
+  "714239": {
+    "productId": 714239,
+    "name": "Emergency Atlus",
+    "cleanName": "Emergency Atlus",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B077",
+    "rarity": "Common"
+  },
+  "714240": {
+    "productId": 714240,
+    "name": "Field Operator",
+    "cleanName": "Field Operator",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B078",
+    "rarity": "Common"
+  },
+  "714241": {
+    "productId": 714241,
+    "name": "Maelstrom Zealots",
+    "cleanName": "Maelstrom Zealots",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B079",
+    "rarity": "Common"
+  },
+  "714242": {
+    "productId": 714242,
+    "name": "MaxTac AV",
+    "cleanName": "MaxTac AV",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B080",
+    "rarity": "Common"
+  },
+  "714243": {
+    "productId": 714243,
+    "name": "MaxTac Heavy",
+    "cleanName": "MaxTac Heavy",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B081",
+    "rarity": "Uncommon"
+  },
+  "714244": {
+    "productId": 714244,
+    "name": "MaxTac Squadron",
+    "cleanName": "MaxTac Squadron",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B082",
+    "rarity": "Common"
+  },
+  "714245": {
+    "productId": 714245,
+    "name": "Nadia - Fighting Through Grief",
+    "cleanName": "Nadia Fighting Through Grief",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B083",
+    "rarity": "Uncommon"
+  },
+  "714246": {
+    "productId": 714246,
+    "name": "Pacifica Netrunner",
+    "cleanName": "Pacifica Netrunner",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B084",
+    "rarity": "Common"
+  },
+  "714247": {
+    "productId": 714247,
+    "name": "Panam Palmer - Strength Through Family (Secret)",
+    "cleanName": "Panam Palmer Strength Through Family Secret",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B085",
+    "rarity": "Secret"
+  },
+  "714248": {
+    "productId": 714248,
+    "name": "Pepe Najarro - Working Doubles",
+    "cleanName": "Pepe Najarro Working Doubles",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B086",
+    "rarity": "Uncommon"
+  },
+  "714249": {
+    "productId": 714249,
+    "name": "Riding Nomad",
+    "cleanName": "Riding Nomad",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B087",
+    "rarity": "Common"
+  },
+  "714250": {
+    "productId": 714250,
+    "name": "Sandayu Oda - Hanako's Guardian (Rare)",
+    "cleanName": "Sandayu Oda Hanakos Guardian Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B088",
+    "rarity": "Rare"
+  },
+  "714251": {
+    "productId": 714251,
+    "name": "Saul Bright - Stormrider",
+    "cleanName": "Saul Bright Stormrider",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B089",
+    "rarity": "Rare"
+  },
+  "714252": {
+    "productId": 714252,
+    "name": "Tyger's Whisper",
+    "cleanName": "Tygers Whisper",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B090",
+    "rarity": "Common"
+  },
+  "714253": {
+    "productId": 714253,
+    "name": "Valentino Street Racer",
+    "cleanName": "Valentino Street Racer",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B091",
+    "rarity": "Common"
+  },
+  "714254": {
+    "productId": 714254,
+    "name": "Wraith Marauders",
+    "cleanName": "Wraith Marauders",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B092",
+    "rarity": "Uncommon"
+  },
+  "714255": {
+    "productId": 714255,
+    "name": "Overwatch - Panam's Gift (Epic)",
+    "cleanName": "Overwatch Panams Gift Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B093",
+    "rarity": "Epic"
+  },
+  "714256": {
+    "productId": 714256,
+    "name": "Riot Shield",
+    "cleanName": "Riot Shield",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B094",
+    "rarity": "Uncommon"
+  },
+  "714257": {
+    "productId": 714257,
+    "name": "Sandevistan",
+    "cleanName": "Sandevistan",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B095",
+    "rarity": "Uncommon"
+  },
+  "714258": {
+    "productId": 714258,
+    "name": "Zetatech Berserk",
+    "cleanName": "Zetatech Berserk",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B096",
+    "rarity": "Common"
+  },
+  "714259": {
+    "productId": 714259,
+    "name": "Corporate Surveillance",
+    "cleanName": "Corporate Surveillance",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B097",
+    "rarity": "Uncommon"
+  },
+  "714260": {
+    "productId": 714260,
+    "name": "(Don't Fear) The Reaper",
+    "cleanName": "Dont Fear The Reaper",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B098",
+    "rarity": "Rare"
+  },
+  "714261": {
+    "productId": 714261,
+    "name": "Fool on the Hill",
+    "cleanName": "Fool on the Hill",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B099",
+    "rarity": "Rare"
+  },
+  "714262": {
+    "productId": 714262,
+    "name": "Memory Relapse",
+    "cleanName": "Memory Relapse",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B100",
+    "rarity": "Uncommon"
+  },
+  "714263": {
+    "productId": 714263,
+    "name": "Peace Offering",
+    "cleanName": "Peace Offering",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B101",
+    "rarity": "Common"
+  },
+  "714264": {
+    "productId": 714264,
+    "name": "Synapse Burnout",
+    "cleanName": "Synapse Burnout",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B102",
+    "rarity": "Uncommon"
+  },
+  "714265": {
+    "productId": 714265,
+    "name": "Take Control",
+    "cleanName": "Take Control",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B103",
+    "rarity": "Uncommon"
+  },
+  "714266": {
+    "productId": 714266,
+    "name": "We Gotta Live Together",
+    "cleanName": "We Gotta Live Together",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B104",
+    "rarity": "Uncommon"
+  },
+  "714267": {
+    "productId": 714267,
+    "name": "Wild in the Streets",
+    "cleanName": "Wild in the Streets",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B105",
+    "rarity": "Common"
+  },
+  "714268": {
+    "productId": 714268,
+    "name": "Alt Cunningham - Soulkiller Architect (Rare)",
+    "cleanName": "Alt Cunningham Soulkiller Architect Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B106",
+    "rarity": "Rare"
+  },
+  "714269": {
+    "productId": 714269,
+    "name": "Evelyn Parker - Beautiful Enigma (Rare)",
+    "cleanName": "Evelyn Parker Beautiful Enigma Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B107",
+    "rarity": "Rare"
+  },
+  "714270": {
+    "productId": 714270,
+    "name": "Judy Alvarez - Braindance Maestro (Epic)",
+    "cleanName": "Judy Alvarez Braindance Maestro Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B108",
+    "rarity": "Epic"
+  },
+  "714271": {
+    "productId": 714271,
+    "name": "Sasha Yakovleva - Won't Let You Down (Secret)",
+    "cleanName": "Sasha Yakovleva Wont Let You Down Secret",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B109",
+    "rarity": "Secret"
+  },
+  "714272": {
+    "productId": 714272,
+    "name": "Wakako Okada - Peace and Harmony (Rare)",
+    "cleanName": "Wakako Okada Peace and Harmony Rare",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B110",
+    "rarity": "Rare"
+  },
+  "714273": {
+    "productId": 714273,
+    "name": "Delamain - Rideshare AI",
+    "cleanName": "Delamain Rideshare AI",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B111",
+    "rarity": "Uncommon"
+  },
+  "714274": {
+    "productId": 714274,
+    "name": "Delamain Cab",
+    "cleanName": "Delamain Cab",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B112",
+    "rarity": "Common"
+  },
+  "714275": {
+    "productId": 714275,
+    "name": "Evelyn Parker - Scheming Siren",
+    "cleanName": "Evelyn Parker Scheming Siren",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B113",
+    "rarity": "Uncommon"
+  },
+  "714276": {
+    "productId": 714276,
+    "name": "Hacked Corpo",
+    "cleanName": "Hacked Corpo",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B114",
+    "rarity": "Common"
+  },
+  "714277": {
+    "productId": 714277,
+    "name": "Jacked-In Voodoo Boy",
+    "cleanName": "Jacked In Voodoo Boy",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B115",
+    "rarity": "Common"
+  },
+  "714278": {
+    "productId": 714278,
+    "name": "Judy Alvarez - Nothing to Doubt (Secret)",
+    "cleanName": "Judy Alvarez Nothing to Doubt Secret",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B116",
+    "rarity": "Secret"
+  },
+  "714279": {
+    "productId": 714279,
+    "name": "Lizzy Wizzy - Delicate Weapon",
+    "cleanName": "Lizzy Wizzy Delicate Weapon",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B117",
+    "rarity": "Rare"
+  },
+  "714280": {
+    "productId": 714280,
+    "name": "Maman Brigitte - Spirit of Death",
+    "cleanName": "Maman Brigitte Spirit of Death",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B118",
+    "rarity": "Uncommon"
+  },
+  "714281": {
+    "productId": 714281,
+    "name": "Misty Olszewski - Mender of Broken Spirits",
+    "cleanName": "Misty Olszewski Mender of Broken Spirits",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B119",
+    "rarity": "Rare"
+  },
+  "714282": {
+    "productId": 714282,
+    "name": "Modded Kusanagi",
+    "cleanName": "Modded Kusanagi",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B120",
+    "rarity": "Common"
+  },
+  "714283": {
+    "productId": 714283,
+    "name": "Modded Muramasa",
+    "cleanName": "Modded Muramasa",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B121",
+    "rarity": "Common"
+  },
+  "714284": {
+    "productId": 714284,
+    "name": "Mox Inciters",
+    "cleanName": "Mox Inciters",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B122",
+    "rarity": "Common"
+  },
+  "714285": {
+    "productId": 714285,
+    "name": "Placide - Voodoo Sentinel",
+    "cleanName": "Placide Voodoo Sentinel",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B123",
+    "rarity": "Rare"
+  },
+  "714286": {
+    "productId": 714286,
+    "name": "Psycho Squad",
+    "cleanName": "Psycho Squad",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B124",
+    "rarity": "Common"
+  },
+  "714287": {
+    "productId": 714287,
+    "name": "Rita Wheeler - No Stupid Questions",
+    "cleanName": "Rita Wheeler No Stupid Questions",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B125",
+    "rarity": "Common"
+  },
+  "714288": {
+    "productId": 714288,
+    "name": "Rogue Amendiares - Queen of the Afterlife (Epic)",
+    "cleanName": "Rogue Amendiares Queen of the Afterlife Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B126",
+    "rarity": "Epic"
+  },
+  "714289": {
+    "productId": 714289,
+    "name": "Westbrook Netrunner",
+    "cleanName": "Westbrook Netrunner",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B127",
+    "rarity": "Common"
+  },
+  "714290": {
+    "productId": 714290,
+    "name": "Dying Night - V's Pistol",
+    "cleanName": "Dying Night Vs Pistol",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B128",
+    "rarity": "Rare"
+  },
+  "714291": {
+    "productId": 714291,
+    "name": "NetWatch Netdriver",
+    "cleanName": "NetWatch Netdriver",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B129",
+    "rarity": "Uncommon"
+  },
+  "714292": {
+    "productId": 714292,
+    "name": "Tetratronic Rippler",
+    "cleanName": "Tetratronic Rippler",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B130",
+    "rarity": "Common"
+  },
+  "714293": {
+    "productId": 714293,
+    "name": "Chrome Reverie",
+    "cleanName": "Chrome Reverie",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B131",
+    "rarity": "Common"
+  },
+  "714294": {
+    "productId": 714294,
+    "name": "Floor It",
+    "cleanName": "Floor It",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B132",
+    "rarity": "Common"
+  },
+  "714295": {
+    "productId": 714295,
+    "name": "Les Elemens",
+    "cleanName": "Les Elemens",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B133",
+    "rarity": "Uncommon"
+  },
+  "714296": {
+    "productId": 714296,
+    "name": "Nocturne OP55 N1",
+    "cleanName": "Nocturne OP55 N1",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B134",
+    "rarity": "Rare"
+  },
+  "714297": {
+    "productId": 714297,
+    "name": "Pyramid Song",
+    "cleanName": "Pyramid Song",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B135",
+    "rarity": "Rare"
+  },
+  "714298": {
+    "productId": 714298,
+    "name": "Reboot Optics",
+    "cleanName": "Reboot Optics",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B136",
+    "rarity": "Common"
+  },
+  "714299": {
+    "productId": 714299,
+    "name": "Three Mouths, One Desire",
+    "cleanName": "Three Mouths One Desire",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B137",
+    "rarity": "Common"
+  },
+  "714300": {
+    "productId": 714300,
+    "name": "Towerfall (Epic)",
+    "cleanName": "Towerfall Epic",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B138",
+    "rarity": "Epic"
+  },
+  "714301": {
+    "productId": 714301,
+    "name": "Trust No One",
+    "cleanName": "Trust No One",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B139",
+    "rarity": "Common"
+  },
+  "714302": {
+    "productId": 714302,
+    "name": "Unlikely Bond",
+    "cleanName": "Unlikely Bond",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B140",
+    "rarity": "Common"
+  },
+  "714303": {
+    "productId": 714303,
+    "name": "Adam Smasher - Ender of Legends (ILegend)",
+    "cleanName": "Adam Smasher Ender of Legends ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B141",
+    "rarity": "Iconic Legend"
+  },
+  "714304": {
+    "productId": 714304,
+    "name": "Dexter DeShawn - Off the Grid (ILegend)",
+    "cleanName": "Dexter DeShawn Off the Grid ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B142",
+    "rarity": "Iconic Legend"
+  },
+  "714305": {
+    "productId": 714305,
+    "name": "Royce - Psycho on the Edge (ILegend)",
+    "cleanName": "Royce Psycho on the Edge ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B143",
+    "rarity": "Iconic Legend"
+  },
+  "714306": {
+    "productId": 714306,
+    "name": "V - Streetkid (ILegend)",
+    "cleanName": "V Streetkid ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B144",
+    "rarity": "Iconic Legend"
+  },
+  "714307": {
+    "productId": 714307,
+    "name": "Dum Dum - Maelstrom Triggerman (ILegend)",
+    "cleanName": "Dum Dum Maelstrom Triggerman ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B145",
+    "rarity": "Iconic Legend"
+  },
+  "714308": {
+    "productId": 714308,
+    "name": "Kerry Eurodyne - Axe, Attitude, Audience (ILegend)",
+    "cleanName": "Kerry Eurodyne Axe Attitude Audience ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B146",
+    "rarity": "Iconic Legend"
+  },
+  "714309": {
+    "productId": 714309,
+    "name": "Muamar Reyes - El Capitan (ILegend)",
+    "cleanName": "Muamar Reyes El Capitan ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B147",
+    "rarity": "Iconic Legend"
+  },
+  "714310": {
+    "productId": 714310,
+    "name": "River Ward - Detective on the Hunt (ILegend)",
+    "cleanName": "River Ward Detective on the Hunt ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B148",
+    "rarity": "Iconic Legend"
+  },
+  "714311": {
+    "productId": 714311,
+    "name": "Rogue Amendiares - Preem Solo (ILegend)",
+    "cleanName": "Rogue Amendiares Preem Solo ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B149",
+    "rarity": "Iconic Legend"
+  },
+  "714312": {
+    "productId": 714312,
+    "name": "Goro Takemura - Vengeful Bodyguard (ILegend)",
+    "cleanName": "Goro Takemura Vengeful Bodyguard ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B150",
+    "rarity": "Iconic Legend"
+  },
+  "714313": {
+    "productId": 714313,
+    "name": "Hanako Arasaka - Daughter of the Emperor (ILegend)",
+    "cleanName": "Hanako Arasaka Daughter of the Emperor ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B151",
+    "rarity": "Iconic Legend"
+  },
+  "714314": {
+    "productId": 714314,
+    "name": "Jackie Welles - Mama's Favorite (ILegend)",
+    "cleanName": "Jackie Welles Mamas Favorite ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B152",
+    "rarity": "Iconic Legend"
+  },
+  "714315": {
+    "productId": 714315,
+    "name": "Padre - Man of the Cross (ILegend)",
+    "cleanName": "Padre Man of the Cross ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B153",
+    "rarity": "Iconic Legend"
+  },
+  "714316": {
+    "productId": 714316,
+    "name": "Panam Palmer - Nomad Cavalry (ILegend)",
+    "cleanName": "Panam Palmer Nomad Cavalry ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B154",
+    "rarity": "Iconic Legend"
+  },
+  "714317": {
+    "productId": 714317,
+    "name": "Alt Cunningham - Soulkiller Architect (ILegend)",
+    "cleanName": "Alt Cunningham Soulkiller Architect ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B155",
+    "rarity": "Iconic Legend"
+  },
+  "714318": {
+    "productId": 714318,
+    "name": "Evelyn Parker - Beautiful Enigma (ILegend)",
+    "cleanName": "Evelyn Parker Beautiful Enigma ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B156",
+    "rarity": "Iconic Legend"
+  },
+  "714319": {
+    "productId": 714319,
+    "name": "Judy Alvarez - Braindance Maestro (ILegend)",
+    "cleanName": "Judy Alvarez Braindance Maestro ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B157",
+    "rarity": "Iconic Legend"
+  },
+  "714320": {
+    "productId": 714320,
+    "name": "Wakako Okada - Peace and Harmony (ILegend)",
+    "cleanName": "Wakako Okada Peace and Harmony ILegend",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B158",
+    "rarity": "Iconic Legend"
+  },
+  "714321": {
+    "productId": 714321,
+    "name": "Johnny Silverhand - Never Stop Fighting (IO)",
+    "cleanName": "Johnny Silverhand Never Stop Fighting IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B159",
+    "rarity": "Iconic Other"
+  },
+  "714322": {
+    "productId": 714322,
+    "name": "Adam Smasher - Metal Over Meat (IO)",
+    "cleanName": "Adam Smasher Metal Over Meat IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B160",
+    "rarity": "Iconic Other"
+  },
+  "714323": {
+    "productId": 714323,
+    "name": "Alt Cunningham - Mother of Daemons (IO)",
+    "cleanName": "Alt Cunningham Mother of Daemons IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B161",
+    "rarity": "Iconic Other"
+  },
+  "714324": {
+    "productId": 714324,
+    "name": "Hanako Arasaka - In a Gilded Cage (IO)",
+    "cleanName": "Hanako Arasaka In a Gilded Cage IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B162",
+    "rarity": "Iconic Other"
+  },
+  "714325": {
+    "productId": 714325,
+    "name": "The Relic - Experimental Biochip (IO)",
+    "cleanName": "The Relic Experimental Biochip IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B163",
+    "rarity": "Iconic Other"
+  },
+  "714326": {
+    "productId": 714326,
+    "name": "Sandayu Oda - Hanako's Guardian (IO)",
+    "cleanName": "Sandayu Oda Hanakos Guardian IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B164",
+    "rarity": "Iconic Other"
+  },
+  "714327": {
+    "productId": 714327,
+    "name": "Overwatch - Panam's Gift (IO)",
+    "cleanName": "Overwatch Panams Gift IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B165",
+    "rarity": "Iconic Other"
+  },
+  "714328": {
+    "productId": 714328,
+    "name": "Rogue Amendiares - Queen of the Afterlife (IO)",
+    "cleanName": "Rogue Amendiares Queen of the Afterlife IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B166",
+    "rarity": "Iconic Other"
+  },
+  "714329": {
+    "productId": 714329,
+    "name": "Towerfall (IO)",
+    "cleanName": "Towerfall IO",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B167",
+    "rarity": "Iconic Other"
+  },
+  "714330": {
+    "productId": 714330,
+    "name": "Johnny Silverhand - Rocking Renegade (ISecret)",
+    "cleanName": "Johnny Silverhand Rocking Renegade ISecret",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B168",
+    "rarity": "Iconic Secret"
+  },
+  "714331": {
+    "productId": 714331,
+    "name": "Sasha Yakovleva - Won't Let You Down (ISecret)",
+    "cleanName": "Sasha Yakovleva Wont Let You Down ISecret",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B169",
+    "rarity": "Iconic Secret"
+  },
+  "714332": {
+    "productId": 714332,
+    "name": "Panam Palmer - Strength Through Family (ISecret)",
+    "cleanName": "Panam Palmer Strength Through Family ISecret",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B170",
+    "rarity": "Iconic Secret"
+  },
+  "714333": {
+    "productId": 714333,
+    "name": "Judy Alvarez - Nothing to Doubt (ISecret)",
+    "cleanName": "Judy Alvarez Nothing to Doubt ISecret",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": "B171",
+    "rarity": "Iconic Secret"
+  },
+  "714346": {
+    "productId": 714346,
+    "name": "Welcome to Night City - Beta Booster Box",
+    "cleanName": "Welcome to Night City Beta Booster Box",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714347": {
+    "productId": 714347,
+    "name": "Welcome to Night City - Beta Booster Pack",
+    "cleanName": "Welcome to Night City Beta Booster Pack",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "714493": {
+    "productId": 714493,
+    "name": "Welcome to Night City - Beta Booster Box Case",
+    "cleanName": "Welcome to Night City Beta Booster Box Case",
+    "groupId": 24845,
+    "groupName": "Welcome to Night City - Beta",
+    "printNumber": null,
+    "rarity": null
+  }
+}
