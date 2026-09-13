@@ -19,18 +19,15 @@ from tracker.validation import validate_collection_file, CollectionValidationErr
 
 
 def import_collection_file(source_path: str, target_path: str, backup_dir: str) -> bool:
-    is_valid, errors = validate_collection_file(source_path)
+    is_valid, errors, rows = validate_collection_file(source_path)
     if not is_valid:
         print(f"Error: Collection file validation failed for '{source_path}':", file=sys.stderr)
         for err in errors:
             print(f"  - {err}", file=sys.stderr)
         return False
 
-    with open(source_path, "r", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-        total_items = len(rows)
-        total_qty = sum(int(r.get("totalQtyOwned", 1)) for r in rows)
+    total_items = len(rows)
+    total_qty = sum(int(r.get("totalQtyOwned", 1)) for r in rows)
 
     os.makedirs(backup_dir, exist_ok=True)
     os.makedirs(os.path.dirname(target_path) or ".", exist_ok=True)
@@ -112,7 +109,7 @@ def main():
     else:
         print(f"Collection source: {cfg.collection_csv}")
 
-    is_valid, validation_errors = validate_collection_file(cfg.collection_csv)
+    is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)
     if not is_valid:
         print(f"\nError: Collection validation failed for '{cfg.collection_csv}':", file=sys.stderr)
         for err in validation_errors:
@@ -128,6 +125,7 @@ def main():
             cache_dir=cfg.price_cache_dir,
             db_path=cfg.database_path,
             force=args.force,
+            collection_rows=collection_rows,
         )
     except CollectionValidationError as e:
         print(f"\nError: {e}", file=sys.stderr)
