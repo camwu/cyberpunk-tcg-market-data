@@ -5,7 +5,6 @@ Ensures structural correctness before database ingestion.
 
 import csv
 import os
-from pathlib import Path
 from typing import List, Tuple
 
 REQUIRED_COLUMNS = {"name", "expansion", "printNumber", "finish", "totalQtyOwned"}

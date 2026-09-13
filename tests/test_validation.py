@@ -2,18 +2,11 @@
 Automated unit tests for collection CSV schema and data integrity validation.
 """
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
 
-from tracker.validation import (
-    validate_collection_file,
-    CollectionValidationError,
-    REQUIRED_COLUMNS,
-    VALID_FINISHES,
-    FINISH_ALIASES,
-)
+from tracker.validation import validate_collection_file
 
 
 class TestCollectionValidation(unittest.TestCase):

@@ -4,7 +4,6 @@ Matches inventory records against TCGplayer market prices, computes rolling metr
 and persists historical daily snapshots into a local SQLite database.
 """
 
-import csv
 import datetime
 import json
 import os

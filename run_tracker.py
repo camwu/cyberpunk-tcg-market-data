@@ -84,6 +84,13 @@ def main():
     if args.backfill_date:
         date_str = args.backfill_date
         print(f"\n--- Backfilling Cyberpunk TCG Market Data for {date_str} ---")
+        is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)
+        if not is_valid:
+            print(f"\nError: Collection validation failed for '{cfg.collection_csv}':", file=sys.stderr)
+            for err in validation_errors:
+                print(f"  - {err}", file=sys.stderr)
+            sys.exit(1)
+
         backfill_market_prices(date_str, price_dir=cfg.price_cache_dir)
         try:
             calculate_portfolio_valuation(
@@ -92,6 +99,7 @@ def main():
                 cache_dir=cfg.price_cache_dir,
                 db_path=cfg.database_path,
                 force=args.force,
+                collection_rows=collection_rows,
             )
         except CollectionValidationError as e:
             print(f"\nError: {e}", file=sys.stderr)
