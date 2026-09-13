@@ -29,7 +29,7 @@ def fetch_json(endpoint: str):
 
 def run_scraper(output_dir: str = "prices"):
     os.makedirs(output_dir, exist_ok=True)
-    today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
     print(f"Starting TCGCSV scrape for Cyberpunk TCG (Category {CATEGORY_ID}) on {today}...")
 
     groups_data = fetch_json(f"{CATEGORY_ID}/groups")
