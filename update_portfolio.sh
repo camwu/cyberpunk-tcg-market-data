@@ -11,7 +11,7 @@ fi
 
 if [ -f "$REPORT" ]; then
     if command -v code >/dev/null 2>&1; then
-        code "$REPORT"
+        code -r "$REPORT"
     elif command -v open >/dev/null 2>&1; then
         open "$REPORT"
     elif command -v xdg-open >/dev/null 2>&1; then
