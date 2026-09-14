@@ -121,25 +121,25 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
     """, (latest_date,))
     sealed_products = cur.fetchall()
 
-    # Get top 5 gainers
+    # Get top 5 gainers (cards only)
     cur.execute("""
     SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
            s.lifetime_gain_dollar, s.lifetime_gain_pct
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.lifetime_gain_dollar > 0
+    WHERE s.date = ? AND s.lifetime_gain_dollar > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
     ORDER BY s.lifetime_gain_dollar DESC
     LIMIT 5
     """, (latest_date,))
     top_gainers = cur.fetchall()
 
-    # Get top 5 decliners
+    # Get top 5 decliners (cards only)
     cur.execute("""
     SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
            s.lifetime_gain_dollar, s.lifetime_gain_pct
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.lifetime_gain_dollar < 0
+    WHERE s.date = ? AND s.lifetime_gain_dollar < 0 AND COALESCE(m.item_type, 'Card') = 'Card'
     ORDER BY s.lifetime_gain_dollar ASC
     LIMIT 5
     """, (latest_date,))

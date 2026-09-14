@@ -113,6 +113,11 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("Johnny Silverhand", singles_section)
         self.assertNotIn("Booster Box", singles_section)
 
+        # Top Lifetime Gainers does NOT contain the booster box
+        gainers_section = content.split("## 📈 Top Lifetime Gainers")[1].split("## 📉")[0]
+        self.assertIn("Johnny Silverhand", gainers_section)
+        self.assertNotIn("Booster Box", gainers_section)
+
 
 if __name__ == "__main__":
     unittest.main()
