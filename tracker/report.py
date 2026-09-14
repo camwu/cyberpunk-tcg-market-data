@@ -72,15 +72,15 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
 
     cur.execute("""
     SELECT total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
-           lifetime_dollar_gain, lifetime_pct_gain
+           lifetime_dollar_gain, lifetime_pct_gain, COALESCE(total_sealed, 0)
     FROM portfolio_daily_summary
     WHERE date = ?
     """, (latest_date,))
     summary = cur.fetchone()
 
-    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct = summary
+    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed = summary
 
-    # Get breakdown by rarity (collapsed into 7 tiers)
+    # Get breakdown by rarity (cards only, collapsed into 7 tiers)
     cur.execute("""
     SELECT CASE 
                WHEN m.rarity LIKE 'Iconic%' THEN 'Iconic'
@@ -92,61 +92,89 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
            SUM(s.line_total)
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ?
+    WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
     GROUP BY clean_rarity
     """, (latest_date,))
     rarity_rows = cur.fetchall()
     rarity_order_map = {name: i for i, name in enumerate(RARITY_ORDER)}
     rarity_breakdown = sorted(rarity_rows, key=lambda x: rarity_order_map.get(x[0], 99))
 
-    # Get breakdown by color
+    # Get breakdown by color (cards only)
     cur.execute("""
     SELECT COALESCE(m.color, 'Unknown'), COUNT(*), SUM(s.quantity), SUM(s.line_total)
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ?
+    WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
     GROUP BY m.color
     ORDER BY SUM(s.line_total) DESC
     """, (latest_date,))
     color_breakdown = cur.fetchall()
 
-    # Get top 5 gainers
+    # Get sealed products
+    cur.execute("""
+    SELECT m.name, m.expansion, s.quantity, s.unit_market_price, s.line_total,
+           s.baseline_price, s.lifetime_gain_dollar, s.lifetime_gain_pct,
+           COALESCE(m.first_seen_date, '') AS acq_date
+    FROM daily_snapshots s
+    JOIN card_metadata m ON s.card_key = m.card_key
+    WHERE s.date = ? AND m.item_type = 'Sealed'
+    ORDER BY s.line_total DESC
+    """, (latest_date,))
+    sealed_products = cur.fetchall()
+
+    # Get top 5 gainers (cards only)
     cur.execute("""
     SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
            s.lifetime_gain_dollar, s.lifetime_gain_pct
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.lifetime_gain_dollar > 0
+    WHERE s.date = ? AND s.lifetime_gain_dollar > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
     ORDER BY s.lifetime_gain_dollar DESC
     LIMIT 5
     """, (latest_date,))
     top_gainers = cur.fetchall()
 
-    # Get top 5 decliners
+    # Get top 5 decliners (cards only)
     cur.execute("""
     SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
            s.lifetime_gain_dollar, s.lifetime_gain_pct
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.lifetime_gain_dollar < 0
+    WHERE s.date = ? AND s.lifetime_gain_dollar < 0 AND COALESCE(m.item_type, 'Card') = 'Card'
     ORDER BY s.lifetime_gain_dollar ASC
     LIMIT 5
     """, (latest_date,))
     top_decliners = cur.fetchall()
 
-    # Get high-value cards (>= $10.00)
+    # Get high-value singles (>= $10.00, cards only)
     cur.execute("""
     SELECT m.name, m.expansion, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.line_total
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.unit_market_price >= 10.0
+    WHERE s.date = ? AND s.unit_market_price >= 10.0 AND COALESCE(m.item_type, 'Card') = 'Card'
     ORDER BY s.unit_market_price DESC
     """, (latest_date,))
     high_value_cards = cur.fetchall()
-
     conn.close()
 
-    print(f"\nPortfolio valuation report generated for {latest_date}: ${total_val:,.2f} across {total_cards} cards.")
+    sealed_summary_line = f"\n| **Total Sealed Items** | **{total_sealed}** {'unit' if total_sealed == 1 else 'units'} |" if total_sealed > 0 else ""
+
+    print(f"\nPortfolio valuation report generated for {latest_date}: ${total_val:,.2f} across {total_cards} cards and {total_sealed} sealed items.")
+
+    sealed_section = ""
+    if sealed_products:
+        sealed_section = """
+---
+
+## 📦 Sealed Product Inventory
+
+| Product Name | Expansion | Acquired | Qty | Unit Price | Total Value | Baseline Price | Lifetime Gain |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+"""
+        for name, exp, qty, u_price, total, base, gain, pct, acq_date in sealed_products:
+            gain_str = f"**{'+' if gain >= 0 else ''}${gain:,.2f}** ({'+' if pct >= 0 else ''}{pct:.1f}%)"
+            acq_display = f"`{acq_date}`" if acq_date else "—"
+            sealed_section += f"| **{name}** | {exp} | {acq_display} | {qty} | `${u_price:,.2f}` | `${total:,.2f}` | `${base:,.2f}` | {gain_str} |\n"
 
     # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
@@ -161,11 +189,11 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
 | Metric | Value |
 | :--- | :--- |
 | **Total Portfolio Market Value** | **`${total_val:,.2f}`** |
-| **Total Physical Cards** | **{total_cards}** copies |
-| **Unique Card Entries** | **{unique_items}** entries |
+| **Total Physical Cards** | **{total_cards}** copies |{sealed_summary_line}
+| **Unique Inventory Entries** | **{unique_items}** entries |
 | **Rolling L7D Performance** | **{'+' if l7d_dollar >= 0 else ''}${l7d_dollar:,.2f}** ({'+' if l7d_pct >= 0 else ''}{l7d_pct:.2f}%) |
 | **Lifetime Gain / Loss** | **{'+' if life_dollar >= 0 else ''}${life_dollar:,.2f}** ({'+' if life_pct >= 0 else ''}{life_pct:.2f}%) |
-
+{sealed_section}
 ---
 
 ## 💎 Portfolio Breakdown by Rarity

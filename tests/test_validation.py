@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tracker.validation import validate_collection_file
+from tracker.validation import validate_collection_file, validate_sealed_file
 
 
 class TestCollectionValidation(unittest.TestCase):
@@ -144,6 +144,69 @@ Jackie,Promo,002,Standard,1,expensive
         is_valid_dir, errors_dir, rows_dir = validate_collection_file(str(self.test_dir))
         self.assertFalse(is_valid_dir)
         self.assertTrue(any("found a directory" in err for err in errors_dir))
+
+    def test_valid_sealed_csv(self):
+        csv_content = """productId,name,expansion,totalQtyOwned,price,acquisitionDate
+714346,Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,1,216.08,2026-09-11
+"""
+        path = self._create_csv("valid_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["productId"], 714346)
+        self.assertEqual(rows[0]["name"], "Welcome to Night City - Beta Booster Box")
+        self.assertEqual(rows[0]["expansion"], "Welcome to Night City - Beta")
+        self.assertEqual(rows[0]["totalQtyOwned"], 1)
+        self.assertEqual(rows[0]["price"], 216.08)
+        self.assertEqual(rows[0]["acquisitionDate"], "2026-09-11")
+        self.assertEqual(rows[0]["item_type"], "Sealed")
+
+    def test_missing_sealed_columns(self):
+        csv_content = """productId,name,expansion,totalQtyOwned,price
+714346,Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,1,216.08
+"""
+        path = self._create_csv("missing_cols_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertTrue(any("acquisitionDate" in err for err in errors))
+
+    def test_invalid_sealed_fields(self):
+        csv_content = """productId,name,expansion,totalQtyOwned,price,acquisitionDate
+invalid_id,,Welcome to Night City,0,-5.00,not-a-date
+"""
+        path = self._create_csv("invalid_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertTrue(any("must be an integer" in err for err in errors))
+        self.assertTrue(any("'name' is empty" in err for err in errors))
+        self.assertTrue(any("must be at least 1" in err for err in errors))
+        self.assertTrue(any("must be non-negative" in err for err in errors))
+        self.assertTrue(any("YYYY-MM-DD" in err for err in errors))
+
+    def test_duplicate_sealed_lot_rejected(self):
+        csv_content = """productId,name,expansion,totalQtyOwned,price,acquisitionDate
+714346,Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,1,216.08,2026-09-11
+714346,Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,1,220.00,2026-09-11
+"""
+        path = self._create_csv("duplicate_lot_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertTrue(any("Duplicate sealed lot" in err for err in errors))
+
+    def test_empty_sealed_csv_with_headers_is_valid(self):
+        csv_content = """productId,name,expansion,totalQtyOwned,price,acquisitionDate\n"""
+        path = self._create_csv("empty_sealed_headers.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 0)
 
 
 if __name__ == "__main__":

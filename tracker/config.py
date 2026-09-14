@@ -18,6 +18,7 @@ class TrackerConfig:
     price_cache_dir: str = "prices"
     output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
     backup_dir: str = "data/backups"
+    sealed_csv: Optional[str] = None
 
 
 def resolve_collection_file(target_path: str, is_explicit_file: bool = False) -> str:
@@ -49,7 +50,10 @@ def resolve_collection_file(target_path: str, is_explicit_file: bool = False) ->
     if search_dir:
         csv_candidates = [
             f for f in search_dir.glob("*.csv")
-            if f.is_file() and "backup" not in f.name.lower() and "backup" not in f.parent.name.lower()
+            if f.is_file()
+            and "backup" not in f.name.lower()
+            and "backup" not in f.parent.name.lower()
+            and "sealed" not in f.name.lower()
         ]
         if csv_candidates:
             csv_candidates.sort(key=lambda f: f.stat().st_mtime, reverse=True)
@@ -107,10 +111,21 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
     output_report = cli_overrides.get("output_report") or os.getenv("CYBERPUNK_OUTPUT_REPORT") or cfg_data.get("output_report")
     backup_dir = cli_overrides.get("backup_dir") or os.getenv("CYBERPUNK_BACKUP_DIR") or cfg_data.get("backup_dir")
 
+    resolved_collection = resolve_collection_file(resolve(collection_csv, "data"), is_explicit_file=is_explicit)
+
+    cli_sealed = cli_overrides.get("sealed_csv")
+    sealed_csv_val = cli_sealed or os.getenv("CYBERPUNK_SEALED_CSV") or cfg_data.get("sealed_csv")
+    if sealed_csv_val:
+        resolved_sealed = resolve(sealed_csv_val, "data/sealed_inventory.csv")
+    else:
+        adjacent_sealed = Path(resolved_collection).parent / "sealed_inventory.csv"
+        resolved_sealed = str(adjacent_sealed.resolve()) if adjacent_sealed.is_file() else None
+
     return TrackerConfig(
-        collection_csv=resolve_collection_file(resolve(collection_csv, "data"), is_explicit_file=is_explicit),
+        collection_csv=resolved_collection,
         database_path=resolve(database_path, "data/price_history.db"),
         price_cache_dir=resolve(price_cache_dir, "prices"),
         output_report=resolve(output_report, "LATEST_PORTFOLIO_SUMMARY.md"),
         backup_dir=resolve(backup_dir, "data/backups"),
+        sealed_csv=resolved_sealed,
     )
