@@ -70,13 +70,13 @@ class TestReportGeneration(unittest.TestCase):
         cur.execute("""
         INSERT INTO card_metadata VALUES
         ('Exp::001::Standard', 101, 'Johnny Silverhand', '001', 'Welcome to Night City - Beta', 'Standard', 'Iconic', 'Red', '2026-09-11', 15.00, 'Card'),
-        ('SEALED::Welcome to Night City - Beta::714346', 714346, 'Welcome to Night City - Beta Booster Box', NULL, 'Welcome to Night City - Beta', 'Standard', 'Sealed', NULL, '2026-09-11', 216.08, 'Sealed')
+        ('SEALED::Welcome to Night City - Beta::714346::2026-09-11', 714346, 'Welcome to Night City - Beta Booster Box', NULL, 'Welcome to Night City - Beta', 'Standard', 'Sealed', NULL, '2026-09-11', 216.08, 'Sealed')
         """)
 
         cur.execute("""
         INSERT INTO daily_snapshots VALUES
         ('2026-09-14', 'Exp::001::Standard', 1, 20.00, 18.00, 20.00, 25.00, 20.00, 15.00, 5.00, 33.33),
-        ('2026-09-14', 'SEALED::Welcome to Night City - Beta::714346', 1, 235.17, 230.00, 235.00, 250.00, 235.17, 216.08, 19.09, 8.83)
+        ('2026-09-14', 'SEALED::Welcome to Night City - Beta::714346::2026-09-11', 1, 235.17, 230.00, 235.00, 250.00, 235.17, 216.08, 19.09, 8.83)
         """)
 
         cur.execute("""
@@ -100,9 +100,10 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("**Total Sealed Items** | **1** unit", content)
         self.assertIn("**Total Physical Cards** | **1** copies", content)
 
-        # Dedicated sealed section exists
+        # Dedicated sealed section exists with Acquired column
         self.assertIn("## 📦 Sealed Product Inventory", content)
         self.assertIn("Welcome to Night City - Beta Booster Box", content)
+        self.assertIn("`2026-09-11`", content)
         self.assertIn("$235.17", content)
 
         # Rarity breakdown does NOT include "Sealed"

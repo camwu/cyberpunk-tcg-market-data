@@ -41,6 +41,16 @@ def init_database(db_path: str):
     if "item_type" not in cols:
         cur.execute("ALTER TABLE card_metadata ADD COLUMN item_type TEXT DEFAULT 'Card'")
 
+    # Migrate legacy 3-part sealed keys (SEALED::{expansion}::{productId}) to lot keys with acquisitionDate
+    cur.execute("SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed'")
+    for old_key, first_seen in cur.fetchall():
+        parts = old_key.split("::")
+        if len(parts) == 3:
+            migrated_date = first_seen or "2026-09-11"
+            new_key = f"{old_key}::{migrated_date}"
+            cur.execute("UPDATE card_metadata SET card_key = ? WHERE card_key = ?", (new_key, old_key))
+            cur.execute("UPDATE daily_snapshots SET card_key = ? WHERE card_key = ?", (new_key, old_key))
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS daily_snapshots (
         date TEXT,
@@ -153,6 +163,12 @@ def calculate_portfolio_valuation(
             card_dict = dict(card_meta)
             card_dict["prices"] = daily_prices.get(pid_str, {})
             prods[pid_str] = card_dict
+        for pid_str, p_data in daily_prices.items():
+            if pid_str not in prods:
+                prods[pid_str] = {
+                    "productId": int(pid_str) if pid_str.isdigit() else pid_str,
+                    "prices": p_data,
+                }
     else:
         prods = {}
 
@@ -220,7 +236,8 @@ def calculate_portfolio_valuation(
         rarity = prod.get("rarity") if prod else row.get("rarity")
 
         if item_type == "Sealed":
-            card_key = f"SEALED::{expansion}::{prod_id or name}"
+            acq_date = (row.get("acquisitionDate") or "").strip()
+            card_key = f"SEALED::{expansion}::{prod_id or name}::{acq_date}" if acq_date else f"SEALED::{expansion}::{prod_id or name}"
             rarity = "Sealed"
         else:
             card_key = f"{expansion}::{print_number}::{finish}"
@@ -280,10 +297,11 @@ def calculate_portfolio_valuation(
                 baseline_price = fallback_price
             else:
                 baseline_price = market_price
+            first_seen = acq_date if (item_type == "Sealed" and acq_date) else date_str
             cur.execute("""
             INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (card_key, prod_id, name, print_number, expansion, finish, rarity, color, date_str, baseline_price, item_type))
+            """, (card_key, prod_id, name, print_number, expansion, finish, rarity, color, first_seen, baseline_price, item_type))
 
         card_gain_dollar = round((market_price - baseline_price) * qty, 2)
         card_gain_pct = round(((market_price - baseline_price) / baseline_price) * 100.0, 2) if baseline_price > 0 else 0.0

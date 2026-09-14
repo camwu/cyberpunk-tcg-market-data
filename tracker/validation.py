@@ -4,11 +4,12 @@ Ensures structural correctness before database ingestion.
 """
 
 import csv
+import datetime
 import os
 from typing import List, Tuple
 
 REQUIRED_COLUMNS = {"name", "expansion", "printNumber", "finish", "totalQtyOwned"}
-REQUIRED_SEALED_COLUMNS = {"productId", "name", "expansion", "totalQtyOwned"}
+REQUIRED_SEALED_COLUMNS = {"productId", "name", "expansion", "totalQtyOwned", "acquisitionDate"}
 VALID_FINISHES = {"standard", "foil"}
 FINISH_ALIASES = {"normal": "Standard"}
 
@@ -167,6 +168,7 @@ def validate_sealed_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, 
 
             row_count = 0
             row_errors = 0
+            seen_lots = set()
             for row_idx, row in enumerate(reader, start=2):
                 row_count += 1
                 if missing:
@@ -178,6 +180,7 @@ def validate_sealed_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, 
                 qty_raw = (row.get("totalQtyOwned") or "").strip()
                 price_raw = (row.get("price") or "").strip()
                 finish = (row.get("finish") or "Standard").strip()
+                acq_date_raw = (row.get("acquisitionDate") or "").strip()
 
                 prod_id = None
                 try:
@@ -195,6 +198,24 @@ def validate_sealed_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, 
                 if not expansion:
                     errors.append(f"Row {row_idx}: 'expansion' is empty.")
                     row_errors += 1
+
+                if not acq_date_raw:
+                    errors.append(f"Row {row_idx}: 'acquisitionDate' is required.")
+                    row_errors += 1
+                else:
+                    try:
+                        datetime.date.fromisoformat(acq_date_raw)
+                    except ValueError:
+                        errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format (got '{acq_date_raw}').")
+                        row_errors += 1
+
+                if prod_id and acq_date_raw:
+                    lot_key = (prod_id, acq_date_raw)
+                    if lot_key in seen_lots:
+                        errors.append(f"Row {row_idx}: Duplicate sealed lot for productId {prod_id} and acquisitionDate '{acq_date_raw}'. Combine quantities using 'totalQtyOwned'.")
+                        row_errors += 1
+                    else:
+                        seen_lots.add(lot_key)
 
                 qty = 0
                 try:
@@ -228,6 +249,7 @@ def validate_sealed_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, 
                 row_copy["finish"] = finish or "Standard"
                 row_copy["totalQtyOwned"] = qty
                 row_copy["price"] = price
+                row_copy["acquisitionDate"] = acq_date_raw
                 row_copy["item_type"] = "Sealed"
                 validated_rows.append(row_copy)
 

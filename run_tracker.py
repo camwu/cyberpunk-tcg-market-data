@@ -84,7 +84,7 @@ def main():
             sys.exit(1)
 
     sealed_rows = []
-    if cfg.sealed_csv and os.path.exists(cfg.sealed_csv):
+    if cfg.sealed_csv:
         is_sealed_valid, sealed_errors, sealed_rows = validate_sealed_file(cfg.sealed_csv)
         if not is_sealed_valid:
             print(f"\nError: Sealed inventory validation failed for '{cfg.sealed_csv}':", file=sys.stderr)
@@ -129,7 +129,7 @@ def main():
     else:
         print(f"Collection source: {cfg.collection_csv}")
 
-    if cfg.sealed_csv and os.path.exists(cfg.sealed_csv):
+    if cfg.sealed_csv:
         print(f"Sealed source: {Path(cfg.sealed_csv).name} ({len(sealed_rows)} items)")
 
     is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)

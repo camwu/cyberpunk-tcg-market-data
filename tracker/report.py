@@ -113,7 +113,8 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
     # Get sealed products
     cur.execute("""
     SELECT m.name, m.expansion, s.quantity, s.unit_market_price, s.line_total,
-           s.baseline_price, s.lifetime_gain_dollar, s.lifetime_gain_pct
+           s.baseline_price, s.lifetime_gain_dollar, s.lifetime_gain_pct,
+           COALESCE(m.first_seen_date, '') AS acq_date
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND m.item_type = 'Sealed'
@@ -167,12 +168,13 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
 
 ## 📦 Sealed Product Inventory
 
-| Product Name | Expansion | Qty | Unit Price | Total Value | Baseline Price | Lifetime Gain |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| Product Name | Expansion | Acquired | Qty | Unit Price | Total Value | Baseline Price | Lifetime Gain |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-        for name, exp, qty, u_price, total, base, gain, pct in sealed_products:
+        for name, exp, qty, u_price, total, base, gain, pct, acq_date in sealed_products:
             gain_str = f"**{'+' if gain >= 0 else ''}${gain:,.2f}** ({'+' if pct >= 0 else ''}{pct:.1f}%)"
-            sealed_section += f"| **{name}** | {exp} | {qty} | `${u_price:,.2f}` | `${total:,.2f}` | `${base:,.2f}` | {gain_str} |\n"
+            acq_display = f"`{acq_date}`" if acq_date else "—"
+            sealed_section += f"| **{name}** | {exp} | {acq_display} | {qty} | `${u_price:,.2f}` | `${total:,.2f}` | `${base:,.2f}` | {gain_str} |\n"
 
     # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
