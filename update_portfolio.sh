@@ -5,13 +5,14 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
 python3 "$DIR/run_tracker.py" "$@"
 
 REPORT=""
-CONFIG_REPORT=$(python3 -c "from tracker.config import load_config; print(load_config().output_report)" 2>/dev/null || true)
-if [ -n "$CONFIG_REPORT" ] && [ -f "$CONFIG_REPORT" ]; then
-    REPORT="$CONFIG_REPORT"
-elif [ -f "LATEST_PORTFOLIO_SUMMARY.md" ]; then
+if [ -f "$DIR/.latest_report" ]; then
+    REPORT=$(cat "$DIR/.latest_report")
+fi
+if [ -z "$REPORT" ] || [ ! -f "$REPORT" ]; then
     REPORT="LATEST_PORTFOLIO_SUMMARY.md"
-elif [ -f "$DIR/LATEST_PORTFOLIO_SUMMARY.md" ]; then
-    REPORT="$DIR/LATEST_PORTFOLIO_SUMMARY.md"
+    if [ ! -f "$REPORT" ] && [ -f "$DIR/LATEST_PORTFOLIO_SUMMARY.md" ]; then
+        REPORT="$DIR/LATEST_PORTFOLIO_SUMMARY.md"
+    fi
 fi
 
 if [ -n "$REPORT" ] && [ -f "$REPORT" ]; then

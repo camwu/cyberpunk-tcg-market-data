@@ -243,4 +243,11 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
     with open(output_md, "w", encoding="utf-8") as f:
         f.write(md_content)
 
+    pointer_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".latest_report")
+    try:
+        with open(pointer_file, "w", encoding="utf-8") as f:
+            f.write(os.path.abspath(output_md))
+    except Exception:
+        pass
+
     print(f"Markdown portfolio summary saved to {output_md}.")
