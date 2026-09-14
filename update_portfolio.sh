@@ -4,10 +4,16 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
 python3 "$DIR/run_tracker.py" "$@"
 
-if [ -f "$DIR/LATEST_PORTFOLIO_SUMMARY.md" ]; then
+REPORT="LATEST_PORTFOLIO_SUMMARY.md"
+if [ ! -f "$REPORT" ] && [ -f "$DIR/LATEST_PORTFOLIO_SUMMARY.md" ]; then
+    REPORT="$DIR/LATEST_PORTFOLIO_SUMMARY.md"
+fi
+
+if [ -f "$REPORT" ]; then
     if command -v open >/dev/null 2>&1; then
-        open "$DIR/LATEST_PORTFOLIO_SUMMARY.md"
+        open "$REPORT"
     elif command -v xdg-open >/dev/null 2>&1; then
-        xdg-open "$DIR/LATEST_PORTFOLIO_SUMMARY.md"
+        xdg-open "$REPORT"
     fi
 fi
+
