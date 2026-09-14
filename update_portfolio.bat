@@ -10,6 +10,7 @@ if %ERRORLEVEL% equ 0 (
     ) else if exist "%~dp0LATEST_PORTFOLIO_SUMMARY.md" (
         start "" "%~dp0LATEST_PORTFOLIO_SUMMARY.md"
     )
+) else (
+    echo.
+    pause
 )
-echo.
-pause
