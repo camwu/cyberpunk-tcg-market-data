@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tracker.validation import validate_collection_file
+from tracker.validation import validate_collection_file, validate_sealed_file
 
 
 class TestCollectionValidation(unittest.TestCase):
@@ -144,6 +144,47 @@ Jackie,Promo,002,Standard,1,expensive
         is_valid_dir, errors_dir, rows_dir = validate_collection_file(str(self.test_dir))
         self.assertFalse(is_valid_dir)
         self.assertTrue(any("found a directory" in err for err in errors_dir))
+
+    def test_valid_sealed_csv(self):
+        csv_content = """productId,name,expansion,totalQtyOwned,price
+714346,Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,1,216.08
+"""
+        path = self._create_csv("valid_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["productId"], 714346)
+        self.assertEqual(rows[0]["name"], "Welcome to Night City - Beta Booster Box")
+        self.assertEqual(rows[0]["expansion"], "Welcome to Night City - Beta")
+        self.assertEqual(rows[0]["totalQtyOwned"], 1)
+        self.assertEqual(rows[0]["price"], 216.08)
+        self.assertEqual(rows[0]["item_type"], "Sealed")
+
+    def test_missing_sealed_columns(self):
+        csv_content = """productId,name
+714346,Welcome to Night City - Beta Booster Box
+"""
+        path = self._create_csv("missing_cols_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertTrue(any("Missing required columns" in err for err in errors))
+
+    def test_invalid_sealed_fields(self):
+        csv_content = """productId,name,expansion,totalQtyOwned,price
+invalid_id,,Welcome to Night City,0,-5.00
+"""
+        path = self._create_csv("invalid_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertTrue(any("must be an integer" in err for err in errors))
+        self.assertTrue(any("'name' is empty" in err for err in errors))
+        self.assertTrue(any("must be at least 1" in err for err in errors))
+        self.assertTrue(any("must be non-negative" in err for err in errors))
 
 
 if __name__ == "__main__":
