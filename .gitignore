@@ -21,6 +21,7 @@ logs/
 
 # Local portfolio report artifacts
 LATEST_PORTFOLIO_SUMMARY.md
+.latest_report
 
 # Local agent instructions
 AGENTS.md

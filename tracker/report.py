@@ -146,59 +146,7 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
 
     conn.close()
 
-    # Format Console Output
-    console_lines = [
-        "",
-        "=================================================================",
-        f"  CYBERPUNK TCG PORTFOLIO VALUATION REPORT ({latest_date})",
-        "=================================================================",
-        f"  Total Portfolio Value:   ${total_val:,.2f}",
-        f"  Total Physical Cards:    {total_cards} cards across {unique_items} unique items",
-        f"  Rolling L7D Change:      {'+' if l7d_dollar >= 0 else ''}${l7d_dollar:,.2f} ({'+' if l7d_pct >= 0 else ''}{l7d_pct:.2f}%)",
-        f"  Lifetime Gain / Loss:    {'+' if life_dollar >= 0 else ''}${life_dollar:,.2f} ({'+' if life_pct >= 0 else ''}{life_pct:.2f}%)",
-        "-----------------------------------------------------------------",
-        "  Portfolio Breakdown by Rarity:",
-    ]
-
-    for rarity, entries, qty, r_val in rarity_breakdown:
-        pct_of_total = (r_val / total_val * 100.0) if total_val > 0 else 0.0
-        lbl = format_rarity(rarity)
-        console_lines.append(f"   * {lbl:<14} {qty:>3} cards ({entries:>2} items): ${r_val:>7.2f} ({pct_of_total:>5.1f}%)")
-
-    console_lines.append("-----------------------------------------------------------------")
-    console_lines.append("  Portfolio Breakdown by Color:")
-    for color, entries, qty, c_val in color_breakdown:
-        pct_of_total = (c_val / total_val * 100.0) if total_val > 0 else 0.0
-        lbl = format_color(color)
-        console_lines.append(f"   * {lbl:<14} {qty:>3} cards ({entries:>2} items): ${c_val:>7.2f} ({pct_of_total:>5.1f}%)")
-
-    console_lines.append("-----------------------------------------------------------------")
-    console_lines.append("  Top High-Value Singles (>= $10.00):")
-
-    for name, exp, rarity, color, finish, qty, price, total in high_value_cards[:8]:
-        r_str = format_rarity(rarity)
-        dot = COLOR_DOTS.get(color, " ")
-        display_name = f"{dot} {name}" if dot.strip() else name
-        tag = f"{r_str} | {finish}"
-        console_lines.append(f"   * {display_name:<34} [{tag:<20}] {qty}x @ ${price:6.2f} = ${total:7.2f}")
-
-    console_lines.append("-----------------------------------------------------------------")
-    console_lines.append("  Top Movers (Lifetime Gain/Loss):")
-    for name, rarity, color, finish, qty, price, base, gain, pct in top_gainers[:3]:
-        if gain != 0:
-            dot = COLOR_DOTS.get(color, " ")
-            display_name = f"{dot} {name}" if dot.strip() else name
-            tag = f"{format_rarity(rarity)} | {finish}"
-            console_lines.append(f"   [+] {display_name:<32} [{tag:<20}] {'+' if gain >= 0 else ''}${gain:5.2f} ({'+' if pct >= 0 else ''}{pct:.1f}%)")
-    for name, rarity, color, finish, qty, price, base, gain, pct in top_decliners[:3]:
-        if gain != 0:
-            dot = COLOR_DOTS.get(color, " ")
-            display_name = f"{dot} {name}" if dot.strip() else name
-            tag = f"{format_rarity(rarity)} | {finish}"
-            console_lines.append(f"   [-] {display_name:<32} [{tag:<20}] {'+' if gain >= 0 else ''}${gain:5.2f} ({'+' if pct >= 0 else ''}{pct:.1f}%)")
-
-    console_lines.append("=================================================================\n")
-    print("\n".join(console_lines))
+    print(f"\nPortfolio valuation report generated for {latest_date}: ${total_val:,.2f} across {total_cards} cards.")
 
     # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
@@ -294,5 +242,12 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
     os.makedirs(os.path.dirname(output_md) or ".", exist_ok=True)
     with open(output_md, "w", encoding="utf-8") as f:
         f.write(md_content)
+
+    pointer_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".latest_report")
+    try:
+        with open(pointer_file, "w", encoding="utf-8") as f:
+            f.write(os.path.abspath(output_md))
+    except Exception:
+        pass
 
     print(f"Markdown portfolio summary saved to {output_md}.")
