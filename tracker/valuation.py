@@ -11,7 +11,7 @@ from pathlib import Path
 import sqlite3
 from typing import Dict, Any, List, Optional
 
-from tracker.validation import validate_collection_file, CollectionValidationError
+from tracker.validation import validate_collection_file, validate_sealed_file, CollectionValidationError
 
 
 def init_database(db_path: str):
@@ -38,6 +38,8 @@ def init_database(db_path: str):
     cols = [col[1] for col in cur.fetchall()]
     if "color" not in cols:
         cur.execute("ALTER TABLE card_metadata ADD COLUMN color TEXT")
+    if "item_type" not in cols:
+        cur.execute("ALTER TABLE card_metadata ADD COLUMN item_type TEXT DEFAULT 'Card'")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS daily_snapshots (
@@ -65,9 +67,15 @@ def init_database(db_path: str):
         l7d_dollar_delta REAL,
         l7d_pct_delta REAL,
         lifetime_dollar_gain REAL,
-        lifetime_pct_gain REAL
+        lifetime_pct_gain REAL,
+        total_sealed INTEGER DEFAULT 0
     )
     """)
+
+    cur.execute("PRAGMA table_info(portfolio_daily_summary)")
+    sum_cols = [col[1] for col in cur.fetchall()]
+    if "total_sealed" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN total_sealed INTEGER DEFAULT 0")
 
     conn.commit()
     return conn
@@ -80,12 +88,20 @@ def calculate_portfolio_valuation(
     db_path: str,
     force: bool = False,
     collection_rows: Optional[List[Dict[str, Any]]] = None,
+    sealed_path: Optional[str] = None,
+    sealed_rows: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     if collection_rows is None:
         is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
         if not is_valid:
             error_msg = f"Collection validation failed for '{collection_path}':\n" + "\n".join(f" - {err}" for err in validation_errors)
             raise CollectionValidationError(error_msg, errors=validation_errors)
+
+    if sealed_rows is None and sealed_path and os.path.exists(sealed_path):
+        is_valid_sealed, sealed_errors, sealed_rows = validate_sealed_file(sealed_path)
+        if not is_valid_sealed:
+            error_msg = f"Sealed inventory validation failed for '{sealed_path}':\n" + "\n".join(f" - {err}" for err in sealed_errors)
+            raise CollectionValidationError(error_msg, errors=sealed_errors)
 
     conn = init_database(db_path)
     cur = conn.cursor()
@@ -95,7 +111,8 @@ def calculate_portfolio_valuation(
         if cur.fetchone()[0] > 0:
             print(f"Snapshot for {date_str} already exists in database. Use force=True to overwrite.")
             cur.execute("""
-            SELECT total_value, total_cards, unique_items, lifetime_dollar_gain, lifetime_pct_gain
+            SELECT total_value, total_cards, unique_items, lifetime_dollar_gain, lifetime_pct_gain,
+                   COALESCE(total_sealed, 0)
             FROM portfolio_daily_summary WHERE date = ?
             """, (date_str,))
             row = cur.fetchone()
@@ -106,6 +123,7 @@ def calculate_portfolio_valuation(
                 "unique_items": row[2],
                 "lifetime_dollar_gain": row[3],
                 "lifetime_pct_gain": row[4],
+                "total_sealed": row[5] if len(row) > 5 else 0,
             }
 
     cache_file = os.path.join(cache_dir, f"{date_str}.json")
@@ -139,7 +157,12 @@ def calculate_portfolio_valuation(
         prods = {}
 
     catalog_by_group_pnum = {}
+    catalog_by_pid = {}
     for p in prods.values():
+        pid = p.get("productId")
+        if pid:
+            catalog_by_pid[int(pid)] = p
+            catalog_by_pid[str(pid)] = p
         g = p.get("groupName", "").strip().lower()
         pnum = p.get("printNumber")
         if not pnum and isinstance(p.get("extendedData"), dict):
@@ -164,27 +187,43 @@ def calculate_portfolio_valuation(
         if g and pnum:
             catalog_by_group_pnum[(g, str(pnum).strip().lower())] = p
 
-    print(f"Calculating portfolio valuation for {date_str} across {len(collection_rows)} collection rows...")
+    card_items = list(collection_rows or [])
+    sealed_items = list(sealed_rows or [])
+    all_items = card_items + sealed_items
+
+    print(f"Calculating portfolio valuation for {date_str} across {len(card_items)} card rows and {len(sealed_items)} sealed items...")
 
     total_value = 0.0
     total_cards = 0
-    unique_items = len(collection_rows)
+    total_sealed = 0
+    unique_items = len(all_items)
     total_lifetime_gain = 0.0
 
-    for row in collection_rows:
+    for row in all_items:
+        item_type = row.get("item_type") or "Card"
         name = row["name"].strip()
         expansion = row["expansion"].strip()
-        print_number = row["printNumber"].strip()
-        finish = row["finish"].strip()
-        color = row.get("color", "").strip()
+        print_number = (row.get("printNumber") or "").strip() or None
+        finish = (row.get("finish") or "Standard").strip()
+        color = (row.get("color") or "").strip()
         qty = int(row.get("totalQtyOwned", 1))
         fallback_price = float(row.get("price") or 0.0)
+        row_pid = row.get("productId")
 
-        card_key = f"{expansion}::{print_number}::{finish}"
+        prod = None
+        if row_pid:
+            prod = catalog_by_pid.get(int(row_pid)) or catalog_by_pid.get(str(row_pid))
+        if not prod and print_number:
+            prod = catalog_by_group_pnum.get((expansion.lower(), print_number.lower()))
 
-        prod = catalog_by_group_pnum.get((expansion.lower(), print_number.lower()))
-        prod_id = prod["productId"] if prod else None
+        prod_id = prod["productId"] if prod else (int(row_pid) if row_pid else None)
         rarity = prod.get("rarity") if prod else row.get("rarity")
+
+        if item_type == "Sealed":
+            card_key = f"SEALED::{expansion}::{prod_id or name}"
+            rarity = "Sealed"
+        else:
+            card_key = f"{expansion}::{print_number}::{finish}"
 
         sub_type = "Foil" if finish.lower() == "foil" else "Normal"
         prices = prod.get("prices", {}).get(sub_type, {}) if prod else {}
@@ -209,24 +248,30 @@ def calculate_portfolio_valuation(
 
         line_total = round(qty * market_price, 2)
         total_value += line_total
-        total_cards += qty
+        if item_type == "Sealed":
+            total_sealed += qty
+        else:
+            total_cards += qty
 
-        cur.execute("SELECT baseline_market_price, color FROM card_metadata WHERE card_key = ?", (card_key,))
+        cur.execute("SELECT baseline_market_price, color, item_type FROM card_metadata WHERE card_key = ?", (card_key,))
         meta_res = cur.fetchone()
         if meta_res:
             baseline_price = meta_res[0]
             existing_color = meta_res[1]
+            existing_item_type = meta_res[2] if len(meta_res) > 2 else "Card"
             if (not existing_color or existing_color == "") and color:
                 cur.execute("UPDATE card_metadata SET color = ? WHERE card_key = ?", (color, card_key))
+            if not existing_item_type or existing_item_type != item_type:
+                cur.execute("UPDATE card_metadata SET item_type = ? WHERE card_key = ?", (item_type, card_key))
             if (baseline_price is None or baseline_price <= 0.0) and market_price > 0.0:
                 baseline_price = market_price
                 cur.execute("UPDATE card_metadata SET baseline_market_price = ? WHERE card_key = ?", (baseline_price, card_key))
         else:
             baseline_price = market_price
             cur.execute("""
-            INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (card_key, prod_id, name, print_number, expansion, finish, rarity, color, date_str, baseline_price))
+            INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (card_key, prod_id, name, print_number, expansion, finish, rarity, color, date_str, baseline_price, item_type))
 
         card_gain_dollar = round((market_price - baseline_price) * qty, 2)
         card_gain_pct = round(((market_price - baseline_price) / baseline_price) * 100.0, 2) if baseline_price > 0 else 0.0
@@ -267,20 +312,23 @@ def calculate_portfolio_valuation(
     cur.execute("""
     INSERT OR REPLACE INTO portfolio_daily_summary (
         date, total_value, total_cards, unique_items,
-        l7d_dollar_delta, l7d_pct_delta, lifetime_dollar_gain, lifetime_pct_gain
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        l7d_dollar_delta, l7d_pct_delta, lifetime_dollar_gain, lifetime_pct_gain,
+        total_sealed
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         date_str, total_value, total_cards, unique_items,
-        l7d_dollar_delta, l7d_pct_delta, total_lifetime_gain, lifetime_pct_gain
+        l7d_dollar_delta, l7d_pct_delta, total_lifetime_gain, lifetime_pct_gain,
+        total_sealed
     ))
 
     conn.commit()
     conn.close()
 
-    print(f"Valuation complete: Total Value: ${total_value:,.2f} | Cards: {total_cards} | Lifetime Gain: {'+' if total_lifetime_gain >= 0 else ''}${total_lifetime_gain:,.2f} ({'+' if lifetime_pct_gain >= 0 else ''}{lifetime_pct_gain:.2f}%)")
+    print(f"Valuation complete: Total Value: ${total_value:,.2f} | Cards: {total_cards} | Sealed: {total_sealed} | Lifetime Gain: {'+' if total_lifetime_gain >= 0 else ''}${total_lifetime_gain:,.2f} ({'+' if lifetime_pct_gain >= 0 else ''}{lifetime_pct_gain:.2f}%)")
     return {
         "total_value": total_value,
         "total_cards": total_cards,
+        "total_sealed": total_sealed,
         "unique_items": unique_items,
         "lifetime_dollar_gain": total_lifetime_gain,
         "lifetime_pct_gain": lifetime_pct_gain,

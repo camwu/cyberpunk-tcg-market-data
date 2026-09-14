@@ -152,6 +152,93 @@ class TestPortfolioValuation(unittest.TestCase):
         # Lifetime gain should establish baseline at 4.34 and remain 0.00, NOT +8.68 pure profit
         self.assertEqual(res_d2["lifetime_dollar_gain"], 0.0)
 
+    def test_sealed_product_valuation(self):
+        # Daily price cache with both card and booster box
+        daily_prices = {
+            "date": "2026-09-11",
+            "prices": {
+                "101": {"Normal": {"marketPrice": 2.50}},
+                "714346": {"Normal": {"marketPrice": 216.08}},
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        cards_catalog = {
+            "101": {
+                "productId": 101,
+                "name": "V - Corporate Exile",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "rarity": "Nova",
+            },
+            "714346": {
+                "productId": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": None,
+                "rarity": None,
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        collection_rows = [
+            {
+                "name": "V - Corporate Exile",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "finish": "Standard",
+                "totalQtyOwned": 2,
+                "price": 0.0,
+                "item_type": "Card",
+            }
+        ]
+
+        sealed_rows = [
+            {
+                "productId": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 0.0,
+                "item_type": "Sealed",
+            }
+        ]
+
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+            sealed_rows=sealed_rows,
+        )
+
+        self.assertEqual(res["total_cards"], 2)
+        self.assertEqual(res["total_sealed"], 1)
+        self.assertEqual(res["unique_items"], 2)
+        # 2 * 2.50 + 1 * 216.08 = 221.08
+        self.assertEqual(res["total_value"], 221.08)
+
+        # Verify database records
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT item_type FROM card_metadata WHERE product_id = 714346")
+        self.assertEqual(cur.fetchone()[0], "Sealed")
+
+        cur.execute("SELECT item_type FROM card_metadata WHERE product_id = 101")
+        self.assertEqual(cur.fetchone()[0], "Card")
+
+        cur.execute("SELECT total_sealed, total_cards FROM portfolio_daily_summary WHERE date = '2026-09-11'")
+        summary_row = cur.fetchone()
+        self.assertEqual(summary_row[0], 1)
+        self.assertEqual(summary_row[1], 2)
+        conn.close()
+
 
 class TestReportFormatting(unittest.TestCase):
 
