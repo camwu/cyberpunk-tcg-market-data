@@ -10,7 +10,7 @@ if %ERRORLEVEL% equ 0 (
     if not defined REPORT if exist "%~dp0LATEST_PORTFOLIO_SUMMARY.md" set "REPORT=%~dp0LATEST_PORTFOLIO_SUMMARY.md"
     if defined REPORT (
         where code >nul 2>&1 && (
-            call code -r "%REPORT%"
+            start "" code -r "%REPORT%"
         ) || (
             start "" "%REPORT%"
         )
