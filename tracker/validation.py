@@ -231,9 +231,6 @@ def validate_sealed_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, 
                 row_copy["item_type"] = "Sealed"
                 validated_rows.append(row_copy)
 
-            if row_count == 0 and not errors:
-                errors.append("Sealed CSV contains 0 product rows.")
-
     except UnicodeDecodeError as e:
         return False, [f"Unable to decode sealed CSV as UTF-8: {e}"], []
     except Exception as e:

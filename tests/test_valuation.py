@@ -239,6 +239,99 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(summary_row[1], 2)
         conn.close()
 
+    def test_sealed_product_honors_explicit_purchase_price(self):
+        daily_prices = {
+            "date": "2026-09-11",
+            "prices": {
+                "714346": {"Normal": {"marketPrice": 216.08}},
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        cards_catalog = {
+            "714346": {
+                "productId": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "groupName": "Welcome to Night City - Beta",
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        # User bought for $180.00 (below market price of 216.08)
+        sealed_rows = [
+            {
+                "productId": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 180.00,
+                "item_type": "Sealed",
+            }
+        ]
+
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=[],
+            sealed_rows=sealed_rows,
+        )
+
+        self.assertEqual(res["total_value"], 216.08)
+        # Gain should be 216.08 - 180.00 = +36.08
+        self.assertEqual(res["lifetime_dollar_gain"], 36.08)
+
+    def test_sealed_product_subtype_iteration_fallback(self):
+        # Product listed under non-standard subtype "Unopened"
+        daily_prices = {
+            "date": "2026-09-11",
+            "prices": {
+                "714346": {"Unopened": {"marketPrice": 220.00}},
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        cards_catalog = {
+            "714346": {
+                "productId": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "groupName": "Welcome to Night City - Beta",
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        sealed_rows = [
+            {
+                "productId": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 0.0,
+                "item_type": "Sealed",
+            }
+        ]
+
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=[],
+            sealed_rows=sealed_rows,
+        )
+
+        # Discovered 220.00 from "Unopened" key
+        self.assertEqual(res["total_value"], 220.00)
+
 
 class TestReportFormatting(unittest.TestCase):
 

@@ -186,6 +186,15 @@ invalid_id,,Welcome to Night City,0,-5.00
         self.assertTrue(any("must be at least 1" in err for err in errors))
         self.assertTrue(any("must be non-negative" in err for err in errors))
 
+    def test_empty_sealed_csv_with_headers_is_valid(self):
+        csv_content = """productId,name,expansion,totalQtyOwned,price\n"""
+        path = self._create_csv("empty_sealed_headers.csv", csv_content)
+        is_valid, errors, rows = validate_sealed_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

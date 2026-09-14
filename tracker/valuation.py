@@ -238,6 +238,12 @@ def calculate_portfolio_valuation(
             other_sub = "Normal" if sub_type == "Foil" else "Foil"
             other_prices = prod.get("prices", {}).get(other_sub, {})
             market_price = other_prices.get("marketPrice") or other_prices.get("midPrice") or other_prices.get("lowPrice")
+            if market_price is None:
+                for p_dict in prod.get("prices", {}).values():
+                    if isinstance(p_dict, dict):
+                        market_price = p_dict.get("marketPrice") or p_dict.get("midPrice") or p_dict.get("lowPrice")
+                        if market_price is not None:
+                            break
 
         if market_price is None:
             market_price = fallback_price
@@ -263,11 +269,17 @@ def calculate_portfolio_valuation(
                 cur.execute("UPDATE card_metadata SET color = ? WHERE card_key = ?", (color, card_key))
             if not existing_item_type or existing_item_type != item_type:
                 cur.execute("UPDATE card_metadata SET item_type = ? WHERE card_key = ?", (item_type, card_key))
-            if (baseline_price is None or baseline_price <= 0.0) and market_price > 0.0:
+            if item_type == "Sealed" and fallback_price > 0.0 and baseline_price != fallback_price:
+                baseline_price = fallback_price
+                cur.execute("UPDATE card_metadata SET baseline_market_price = ? WHERE card_key = ?", (baseline_price, card_key))
+            elif (baseline_price is None or baseline_price <= 0.0) and market_price > 0.0:
                 baseline_price = market_price
                 cur.execute("UPDATE card_metadata SET baseline_market_price = ? WHERE card_key = ?", (baseline_price, card_key))
         else:
-            baseline_price = market_price
+            if item_type == "Sealed" and fallback_price > 0.0:
+                baseline_price = fallback_price
+            else:
+                baseline_price = market_price
             cur.execute("""
             INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
