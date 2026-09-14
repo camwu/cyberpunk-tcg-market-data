@@ -16,12 +16,12 @@ if [ -z "$REPORT" ] || [ ! -f "$REPORT" ]; then
 fi
 
 if [ -n "$REPORT" ] && [ -f "$REPORT" ]; then
-    if command -v code >/dev/null 2>&1; then
-        code -r "$REPORT" &
-    elif command -v open >/dev/null 2>&1; then
+    if command -v open >/dev/null 2>&1; then
         open "$REPORT"
     elif command -v xdg-open >/dev/null 2>&1; then
         xdg-open "$REPORT"
+    elif command -v code >/dev/null 2>&1; then
+        code -r "$REPORT" &
     fi
 fi
 
