@@ -2,8 +2,8 @@ name: Daily Market Price Scrape
 
 on:
   schedule:
-    # 20:30 UTC daily (1:30 PM PDT / 4:30 PM EDT)
-    - cron: '30 20 * * *'
+    # 20:17 UTC daily (1:17 PM PDT / 4:17 PM EDT)
+    - cron: '17 20 * * *'
   workflow_dispatch:
 
 permissions:

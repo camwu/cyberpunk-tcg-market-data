@@ -8,7 +8,7 @@ This repository provides an automated market price archive alongside a local val
 
 ## Features
 
-- **Daily Cloud Scraper**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:30 UTC, updating `cards.json` and saving slim price snapshots under `prices/`.
+- **Daily Cloud Scraper**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:17 UTC, updating `cards.json` and saving slim price snapshots under `prices/`.
 - **Decoupled Architecture**: Static card metadata (`cards.json`) is separated from daily price snapshots (`prices/YYYY-MM-DD.json`), reducing snapshot payload size by over 70%.
 - **Configurable Storage**: Point the engine to any local directory or CardNexus CSV export via `config.json` or CLI flags.
 - **Rarity & Finish Tracking**: Tracks portfolio distribution across official geometric rarity tiers (`▽ Common`, `△ Uncommon`, `◇ Rare`, `🞚 Epic`, `⯁ Secret`, `★ Iconic`, `▣ Nova`) and finishes.
