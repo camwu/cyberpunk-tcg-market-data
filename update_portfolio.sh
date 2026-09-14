@@ -10,7 +10,9 @@ if [ ! -f "$REPORT" ] && [ -f "$DIR/LATEST_PORTFOLIO_SUMMARY.md" ]; then
 fi
 
 if [ -f "$REPORT" ]; then
-    if command -v open >/dev/null 2>&1; then
+    if command -v code >/dev/null 2>&1; then
+        code "$REPORT"
+    elif command -v open >/dev/null 2>&1; then
         open "$REPORT"
     elif command -v xdg-open >/dev/null 2>&1; then
         xdg-open "$REPORT"
