@@ -5,10 +5,15 @@ echo   CYBERPUNK TCG - UPDATING PORTFOLIO AND MARKET PRICES
 echo ================================================================
 python "%~dp0run_tracker.py" %*
 if %ERRORLEVEL% equ 0 (
-    if exist "LATEST_PORTFOLIO_SUMMARY.md" (
-        start "" "LATEST_PORTFOLIO_SUMMARY.md"
-    ) else if exist "%~dp0LATEST_PORTFOLIO_SUMMARY.md" (
-        start "" "%~dp0LATEST_PORTFOLIO_SUMMARY.md"
+    set "REPORT="
+    if exist "LATEST_PORTFOLIO_SUMMARY.md" set "REPORT=LATEST_PORTFOLIO_SUMMARY.md"
+    if not defined REPORT if exist "%~dp0LATEST_PORTFOLIO_SUMMARY.md" set "REPORT=%~dp0LATEST_PORTFOLIO_SUMMARY.md"
+    if defined REPORT (
+        where code >nul 2>&1 && (
+            call code "%REPORT%"
+        ) || (
+            start "" "%REPORT%"
+        )
     )
 ) else (
     echo.
