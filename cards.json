@@ -3796,5 +3796,104 @@
     "groupName": "Welcome to Night City - Beta",
     "printNumber": null,
     "rarity": null
+  },
+  "717125": {
+    "productId": 717125,
+    "name": "Adam Smasher - Ender of Legends",
+    "cleanName": "Adam Smasher Ender of Legends",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": "001",
+    "rarity": "Epic"
+  },
+  "717126": {
+    "productId": 717126,
+    "name": "Royce - Psycho on the Edge",
+    "cleanName": "Royce Psycho on the Edge",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": "B004",
+    "rarity": "Rare"
+  },
+  "717127": {
+    "productId": 717127,
+    "name": "Dum Dum - Maelstrom Triggerman",
+    "cleanName": "Dum Dum Maelstrom Triggerman",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "717231": {
+    "productId": 717231,
+    "name": "River Ward - Detective on the Hunt",
+    "cleanName": "River Ward Detective on the Hunt",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": "004",
+    "rarity": "Rare"
+  },
+  "717232": {
+    "productId": 717232,
+    "name": "Rogue Amendiares - Preem Solo",
+    "cleanName": "Rogue Amendiares Preem Solo",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "717233": {
+    "productId": 717233,
+    "name": "Goro Takemura - Vengeful Bodyguard",
+    "cleanName": "Goro Takemura Vengeful Bodyguard",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "717235": {
+    "productId": 717235,
+    "name": "Jackie Welles - Mama's Favorite",
+    "cleanName": "Jackie Welles Mamas Favorite",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "717236": {
+    "productId": 717236,
+    "name": "Panam Palmer - Nomad Cavalry",
+    "cleanName": "Panam Palmer Nomad Cavalry",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "717237": {
+    "productId": 717237,
+    "name": "Alt Cunningham - Soulkiller Architect",
+    "cleanName": "Alt Cunningham Soulkiller Architect",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "717238": {
+    "productId": 717238,
+    "name": "Judy Alvarez - Braindance Maestro",
+    "cleanName": "Judy Alvarez Braindance Maestro",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null
+  },
+  "717239": {
+    "productId": 717239,
+    "name": "Mantis Blades",
+    "cleanName": "Mantis Blades",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null
   }
 }
