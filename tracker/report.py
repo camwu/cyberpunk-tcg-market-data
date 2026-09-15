@@ -87,39 +87,6 @@ def generate_portfolio_report(
         latest_date = latest_row[0]
 
     price_timestamp_display = latest_date
-    candidates = []
-    if price_cache_dir:
-        candidates.append(price_cache_dir)
-    candidates.extend([
-        "prices",
-        str(Path(__file__).resolve().parent.parent / "prices"),
-        os.path.join(os.path.dirname(db_path), "prices"),
-    ])
-
-    for cdir in candidates:
-        if not cdir or not os.path.isdir(cdir):
-            continue
-        pfile = os.path.join(cdir, f"{latest_date}.json")
-        is_fallback_latest = False
-        if not os.path.isfile(pfile) and os.path.isfile(os.path.join(cdir, "latest.json")):
-            pfile = os.path.join(cdir, "latest.json")
-            is_fallback_latest = True
-        if os.path.isfile(pfile):
-            try:
-                with open(pfile, "r", encoding="utf-8") as f:
-                    pdata = json.load(f)
-                if is_fallback_latest and pdata.get("date") and pdata.get("date") != latest_date:
-                    continue
-                ts = pdata.get("timestamp")
-                if ts:
-                    dt = datetime.datetime.fromisoformat(ts)
-                    price_timestamp_display = dt.astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")
-                    break
-                elif pdata.get("date"):
-                    price_timestamp_display = pdata.get("date")
-                    break
-            except Exception:
-                pass
 
     cur.execute("""
     SELECT total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
@@ -227,7 +194,7 @@ def generate_portfolio_report(
             acq_display = f"`{acq_date}`" if acq_date else "—"
             sealed_section += f"| **{name}** | {exp} | {acq_display} | {qty} | `${u_price:,.2f}` | `${total:,.2f}` | `${base:,.2f}` | {gain_str} |\n"
 
-    report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")
+    report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
 
     # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report

@@ -121,53 +121,16 @@ class TestReportGeneration(unittest.TestCase):
         self.assertNotIn("Booster Box", gainers_section)
 
     def test_report_header_timestamps(self):
-        # Verify header labels are properly renamed
+        # Verify header labels and clean formatting
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
         content = Path(self.output_md).read_text(encoding="utf-8")
-        self.assertIn("**Prices Last Updated**:", content)
+        self.assertIn("**Prices Last Updated**: `2026-09-14`", content)
         self.assertIn("**Report Generated**:", content)
         self.assertNotIn("**Snapshot Date**:", content)
         self.assertNotIn("**Last Updated**:", content)
-
-        # When price cache with ISO timestamp is explicitly provided in an isolated dir
-        price_dir = self.test_dir / "custom_prices"
-        price_dir.mkdir(parents=True, exist_ok=True)
-        sample_cache = {
-            "date": "2026-09-14",
-            "timestamp": "2026-09-14T21:50:58.160015+00:00",
-            "prices": {},
-        }
-        (price_dir / "2026-09-14.json").write_text(json.dumps(sample_cache), encoding="utf-8")
-
-        generate_portfolio_report(
-            db_path=self.db_path,
-            output_md=self.output_md,
-            price_cache_dir=str(price_dir),
-        )
-        content_with_cache = Path(self.output_md).read_text(encoding="utf-8")
-        self.assertIn("**Prices Last Updated**:", content_with_cache)
-        self.assertIn("**Report Generated**:", content_with_cache)
-        # Check that it converted ISO into localized datetime string containing date and PM
-        self.assertIn("2026-09-14", content_with_cache.split("**Prices Last Updated**:")[1].split("\n")[0])
-        self.assertIn("PM", content_with_cache.split("**Prices Last Updated**:")[1].split("\n")[0])
-
-        # When latest.json has a mismatched date, ensure it is not adopted
-        mismatched_dir = self.test_dir / "mismatched_prices"
-        mismatched_dir.mkdir(parents=True, exist_ok=True)
-        mismatched_cache = {
-            "date": "2026-09-15",
-            "timestamp": "2026-09-15T21:50:58.160015+00:00",
-            "prices": {},
-        }
-        (mismatched_dir / "latest.json").write_text(json.dumps(mismatched_cache), encoding="utf-8")
-
-        generate_portfolio_report(
-            db_path=self.db_path,
-            output_md=self.output_md,
-            price_cache_dir=str(mismatched_dir),
-        )
-        content_mismatched = Path(self.output_md).read_text(encoding="utf-8")
-        self.assertNotIn("2026-09-15", content_mismatched.split("**Prices Last Updated**:")[1].split("\n")[0])
+        # Ensure verbose seconds and timezone string are excluded
+        self.assertNotIn("Pacific Daylight Time", content)
+        self.assertNotIn("PDT", content)
 
     def test_report_target_date_historical(self):
         # Insert historical 2026-09-13 record
