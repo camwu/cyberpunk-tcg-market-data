@@ -406,6 +406,56 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(snapshots[1][1], 240.00)
         conn.close()
 
+    def test_valuation_with_explicit_price_file(self):
+        # Create a fallback latest.json that differs from target date filename
+        fallback_file = os.path.join(self.cache_dir, "custom_fallback.json")
+        with open(fallback_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "date": "2026-09-14",
+                "prices": {
+                    "101": {
+                        "Normal": {"marketPrice": 15.00},
+                    }
+                }
+            }, f)
+
+        # Catalog
+        cards_catalog = {
+            "101": {
+                "productId": 101,
+                "name": "V - Corporate Exile",
+                "cleanName": "V Corporate Exile",
+                "groupId": 1000,
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "rarity": "Nova",
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        collection_rows = [
+            {
+                "name": "V - Corporate Exile",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "finish": "Standard",
+                "totalQtyOwned": 2,
+            }
+        ]
+
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-14",
+            collection_path=str(self.test_dir / "collection.csv"),
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+            price_file=fallback_file,
+        )
+        self.assertEqual(res["total_value"], 30.00)
+        self.assertEqual(res["total_cards"], 2)
+
 
 class TestReportFormatting(unittest.TestCase):
 

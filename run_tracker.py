@@ -6,6 +6,7 @@ Coordinates market sync, collection intake, portfolio valuation, and report gene
 import argparse
 import csv
 import datetime
+import json
 import os
 from pathlib import Path
 import shutil
@@ -57,6 +58,7 @@ def main():
     parser.add_argument("--backfill", dest="backfill_date", help="Backfill historical prices for YYYY-MM-DD from archive")
     parser.add_argument("--report-only", action="store_true", help="Display latest portfolio report without syncing or calculating")
     parser.add_argument("--date", dest="report_date", help="Optional specific snapshot date (YYYY-MM-DD) for report generation")
+    parser.add_argument("--live", action="store_true", help="Scrape live market prices from TCGCSV instead of using cached or remote daily snapshots")
 
     args = parser.parse_args()
 
@@ -150,17 +152,29 @@ def main():
             print(f"  - {err}", file=sys.stderr)
         sys.exit(1)
 
-    sync_market_prices(price_dir=cfg.price_cache_dir, target_date=today, force=args.force)
+    price_file = sync_market_prices(price_dir=cfg.price_cache_dir, target_date=today, force=args.force, live=args.live)
+
+    effective_date = today
+    if os.path.isfile(price_file):
+        try:
+            with open(price_file, "r", encoding="utf-8") as f:
+                p_data = json.load(f)
+                file_date = p_data.get("date")
+                if file_date:
+                    effective_date = file_date
+        except Exception:
+            pass
 
     try:
         calculate_portfolio_valuation(
-            date_str=today,
+            date_str=effective_date,
             collection_path=cfg.collection_csv,
             cache_dir=cfg.price_cache_dir,
             db_path=cfg.database_path,
             force=args.force,
             collection_rows=collection_rows,
             sealed_rows=sealed_rows,
+            price_file=price_file,
         )
     except CollectionValidationError as e:
         print(f"\nError: {e}", file=sys.stderr)
@@ -170,7 +184,7 @@ def main():
         db_path=cfg.database_path,
         output_md=cfg.output_report,
         price_cache_dir=cfg.price_cache_dir,
-        target_date=args.report_date or today,
+        target_date=args.report_date or effective_date,
     )
 
 

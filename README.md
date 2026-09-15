@@ -67,27 +67,54 @@ python -m unittest discover tests -v
 
 ---
 
-## CLI Options
+## CLI Options & Arguments
+
+### Positional Arguments
+- `collection_target`: Optional direct path to a CardNexus CSV export or directory containing collection files (supports drag-and-drop onto the terminal or launcher).
+
+### Named Parameters & Flags
+- `--config <path>`: Path to custom JSON configuration file (e.g. `config.json`).
+- `--collection <path>`: Path to active card collection CSV file (overrides configuration file).
+- `--sealed <path>`: Path to sealed inventory CSV file (overrides configuration file).
+- `--db <path>`: Path to SQLite historical database (default: `data/price_history.db`).
+- `--prices <path>`: Path to daily price cache directory (default: `prices`).
+- `--output <path>`: Path to markdown summary report (default: `LATEST_PORTFOLIO_SUMMARY.md`).
+- `--import <path>`, `--import-file <path>`: Validate, back up, and import a new CardNexus CSV export.
+- `--live`: Scrape live market prices directly from TCGCSV endpoints instead of using cached local files or remote GitHub snapshots. When omitted and today's remote snapshot has not yet been published (daily cloud sync runs at 20:17 UTC), the engine falls back cleanly to `prices/latest.json` with an informational notice.
+- `--force`: Force a fresh price sync and recalculate/overwrite the portfolio valuation snapshot for the target date.
+- `--backfill <YYYY-MM-DD>`: Backfill historical market prices from TCGCSV archive bundles (requires 7-Zip).
+- `--report-only`: Render the markdown portfolio report from existing database records without syncing prices or running valuation calculations.
+- `--date <YYYY-MM-DD>`: Generate the portfolio report for a specific historical snapshot date.
+
+---
+
+### Example Commands
 
 ```bash
-# Run standard daily sync, valuation, and report generation (auto-detects newest CSV in data/)
+# Standard run (auto-detects newest CSV in data/, falls back to latest prices if today is unpublished)
 python run_tracker.py
 
-# Pass a specific CSV export or directory directly (supports drag-and-drop)
+# Live scrape current market prices from TCGCSV
+python run_tracker.py --live
+
+# Pass a specific collection file directly (supports drag-and-drop)
 python run_tracker.py path/to/my_cards.csv
 
-# Display latest report without syncing or recalculating
-python run_tracker.py --report-only
-
-# Force re-sync of today's prices and overwrite snapshot
+# Force re-sync of market prices and recalculate valuation
 python run_tracker.py --force
 
-# Import new CardNexus CSV export (automatically creates timestamped backup)
-python run_tracker.py --import path/to/inventory.csv
+# Display latest report without syncing prices or running calculations
+python run_tracker.py --report-only
 
-# Backfill historical prices from TCGCSV archives (requires 7-Zip)
+# Generate report for a specific snapshot date
+python run_tracker.py --report-only --date 2026-09-13
+
+# Import a new CardNexus export with automatic backup
+python run_tracker.py --import path/to/export.csv
+
+# Backfill historical prices for an archive date
 python run_tracker.py --backfill 2026-09-11
 
 # Use custom configuration file
-python run_tracker.py --config my_config.json
+python run_tracker.py --config custom_config.json
 ```
