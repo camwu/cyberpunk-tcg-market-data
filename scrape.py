@@ -3,11 +3,13 @@ Scrapes Cyberpunk TCG market prices dynamically across all groups from TCGCSV.
 Adheres to rate limits using custom User-Agent and throttled requests.
 """
 
+import argparse
 import datetime
 import json
 import os
 import sys
 import time
+from typing import Optional
 import urllib.request
 import urllib.error
 
@@ -27,9 +29,27 @@ def fetch_json(endpoint: str):
         return None
 
 
-def run_scraper(output_dir: str = "prices"):
+def is_valid_snapshot(file_path: str) -> bool:
+    """Verifies that an existing snapshot is non-empty and contains valid JSON with price data."""
+    if not os.path.isfile(file_path) or os.path.getsize(file_path) == 0:
+        return False
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return bool(data.get("prices"))
+    except Exception:
+        return False
+
+
+def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Optional[str] = None):
     os.makedirs(output_dir, exist_ok=True)
-    today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
+    today = target_date or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    dated_file = os.path.join(output_dir, f"{today}.json")
+
+    if not force and is_valid_snapshot(dated_file):
+        print(f"Daily price snapshot for {today} already exists at {dated_file}. Skipping scrape to preserve original timestamp (use --force to overwrite).")
+        return True
+
     print(f"Starting TCGCSV scrape for Cyberpunk TCG (Category {CATEGORY_ID}) on {today}...")
 
     groups_data = fetch_json(f"{CATEGORY_ID}/groups")
@@ -130,7 +150,12 @@ def run_scraper(output_dir: str = "prices"):
 
 
 if __name__ == "__main__":
-    out = sys.argv[1] if len(sys.argv) > 1 else "prices"
-    success = run_scraper(out)
+    parser = argparse.ArgumentParser(description="Scrapes Cyberpunk TCG market prices from TCGCSV")
+    parser.add_argument("output_dir", nargs="?", default="prices", help="Directory to save price snapshots (default: prices)")
+    parser.add_argument("--force", action="store_true", help="Force fresh scrape even if today's snapshot exists")
+    parser.add_argument("--date", dest="target_date", default=None, help="Optional target date string (YYYY-MM-DD)")
+
+    args = parser.parse_args()
+    success = run_scraper(output_dir=args.output_dir, force=args.force, target_date=args.target_date)
     if not success:
         sys.exit(1)
