@@ -3812,7 +3812,7 @@
     "cleanName": "Royce Psycho on the Edge",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
-    "printNumber": "B004",
+    "printNumber": "002",
     "rarity": "Rare"
   },
   "717127": {
@@ -3821,8 +3821,8 @@
     "cleanName": "Dum Dum Maelstrom Triggerman",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
-    "printNumber": null,
-    "rarity": null
+    "printNumber": "003",
+    "rarity": "Rare"
   },
   "717231": {
     "productId": 717231,
@@ -3839,8 +3839,8 @@
     "cleanName": "Rogue Amendiares Preem Solo",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
-    "printNumber": null,
-    "rarity": null
+    "printNumber": "005",
+    "rarity": "Rare"
   },
   "717233": {
     "productId": 717233,
@@ -3848,8 +3848,8 @@
     "cleanName": "Goro Takemura Vengeful Bodyguard",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
-    "printNumber": null,
-    "rarity": null
+    "printNumber": "006",
+    "rarity": "Rare"
   },
   "717235": {
     "productId": 717235,
@@ -3857,8 +3857,8 @@
     "cleanName": "Jackie Welles Mamas Favorite",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
-    "printNumber": null,
-    "rarity": null
+    "printNumber": "007",
+    "rarity": "Rare"
   },
   "717236": {
     "productId": 717236,
@@ -3866,8 +3866,8 @@
     "cleanName": "Panam Palmer Nomad Cavalry",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
-    "printNumber": null,
-    "rarity": null
+    "printNumber": "008",
+    "rarity": "Epic"
   },
   "717237": {
     "productId": 717237,
@@ -3875,8 +3875,8 @@
     "cleanName": "Alt Cunningham Soulkiller Architect",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
-    "printNumber": null,
-    "rarity": null
+    "printNumber": "009",
+    "rarity": "Rare"
   },
   "717238": {
     "productId": 717238,
@@ -3884,8 +3884,8 @@
     "cleanName": "Judy Alvarez Braindance Maestro",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
-    "printNumber": null,
-    "rarity": null
+    "printNumber": "010",
+    "rarity": "Epic"
   },
   "717239": {
     "productId": 717239,
@@ -3893,6 +3893,15 @@
     "cleanName": "Mantis Blades",
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
+    "printNumber": "011",
+    "rarity": "Nova Rare"
+  },
+  "717414": {
+    "productId": 717414,
+    "name": "Alpha Kit",
+    "cleanName": "Alpha Kit",
+    "groupId": 24881,
+    "groupName": "Alpha Kit",
     "printNumber": null,
     "rarity": null
   }
