@@ -22,11 +22,13 @@ ARCHIVE_BASE_URL = "https://tcgcsv.com/archive/tcgplayer"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/camwu/cyberpunk-tcg-market-data/main"
 GITHUB_RAW_URL = f"{GITHUB_RAW_BASE}/prices"
 USER_AGENT = "CyberpunkTCGMarketTracker/1.0"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_PRICES_DIR = REPO_ROOT / "prices"
 
 
 def sync_cards_catalog(target_dir: str = "prices") -> str:
     """Ensures cards.json catalog is present locally or in repository root."""
-    repo_cards = Path(__file__).resolve().parent.parent / "cards.json"
+    repo_cards = REPO_ROOT / "cards.json"
     target_cards = os.path.join(target_dir, "cards.json")
     parent_cards = os.path.join(os.path.dirname(target_dir), "cards.json")
 
@@ -65,20 +67,31 @@ def find_7z() -> Optional[str]:
     return None
 
 
-def fetch_json(url: str):
+def fetch_json(url: str, quiet_not_found: bool = False):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if quiet_not_found and e.code == 404:
+            return None
+        print(f"Error fetching {url}: {e}", file=sys.stderr)
+        return None
     except Exception as e:
         print(f"Error fetching {url}: {e}", file=sys.stderr)
         return None
 
 
-def sync_market_prices(price_dir: str = "prices", target_date: Optional[str] = None, force: bool = False) -> str:
+def sync_market_prices(
+    price_dir: str = "prices",
+    target_date: Optional[str] = None,
+    force: bool = False,
+    live: bool = False,
+) -> str:
     """
     Ensures market prices for target_date (default today) are available in price_dir.
-    Checks local directory, repo directory, GitHub raw, then live TCGCSV.
+    Checks local directory, repo directory, GitHub raw, then live TCGCSV (if live=True).
+    If live=False and prices are unpublished remotely, cleanly falls back to latest.json.
     """
     os.makedirs(price_dir, exist_ok=True)
     sync_cards_catalog(price_dir)
@@ -86,14 +99,14 @@ def sync_market_prices(price_dir: str = "prices", target_date: Optional[str] = N
     target_file = os.path.join(price_dir, f"{today}.json")
     latest_file = os.path.join(price_dir, "latest.json")
 
-    if not force and os.path.exists(target_file):
+    if not force and not live and os.path.exists(target_file):
         print(f"Using existing price data for {today} from {target_file}.")
         return target_file
 
     # 1. Check repo root prices directory if price_dir points elsewhere
-    repo_prices = Path(__file__).resolve().parent.parent / "prices"
+    repo_prices = REPO_PRICES_DIR
     repo_price_file = repo_prices / f"{today}.json"
-    if repo_price_file.is_file() and str(repo_prices.resolve()) != str(Path(price_dir).resolve()):
+    if not live and repo_price_file.is_file() and str(repo_prices.resolve()) != str(Path(price_dir).resolve()):
         try:
             with open(repo_price_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -107,17 +120,58 @@ def sync_market_prices(price_dir: str = "prices", target_date: Optional[str] = N
             pass
 
     # 2. Check GitHub Raw remote URL
-    remote_url = f"{GITHUB_RAW_URL}/{today}.json"
-    remote_data = fetch_json(remote_url)
-    if remote_data and (remote_data.get("products") or remote_data.get("prices")):
-        with open(target_file, "w", encoding="utf-8") as f:
-            json.dump(remote_data, f, indent=2)
-        with open(latest_file, "w", encoding="utf-8") as f:
-            json.dump(remote_data, f, indent=2)
-        print(f"Synced {today} prices from GitHub remote repository.")
-        return target_file
+    if not live:
+        remote_url = f"{GITHUB_RAW_URL}/{today}.json"
+        remote_data = fetch_json(remote_url, quiet_not_found=True)
+        if remote_data and (remote_data.get("products") or remote_data.get("prices")):
+            with open(target_file, "w", encoding="utf-8") as f:
+                json.dump(remote_data, f, indent=2)
+            with open(latest_file, "w", encoding="utf-8") as f:
+                json.dump(remote_data, f, indent=2)
+            print(f"Synced {today} prices from GitHub remote repository.")
+            return target_file
 
-    # 3. Live scrape from TCGCSV
+    # 3. If live is False, fall back cleanly to latest available price snapshot
+    if not live:
+        fallback_candidates = [
+            latest_file,
+            os.path.join(str(repo_prices), "latest.json"),
+        ]
+        fallback_file = next((f for f in fallback_candidates if os.path.isfile(f)), None)
+
+        if not fallback_file:
+            search_dirs = [price_dir]
+            if os.path.isdir(str(repo_prices)):
+                search_dirs.append(str(repo_prices))
+            dated_files = []
+            for d in search_dirs:
+                for f in glob.glob(os.path.join(d, "*.json")):
+                    bname = os.path.basename(f)
+                    if bname not in ("latest.json", "cards.json") and bname.replace(".json", "").replace("-", "").isdigit():
+                        dated_files.append(f)
+            if dated_files:
+                dated_files.sort(reverse=True)
+                fallback_file = dated_files[0]
+
+        if fallback_file:
+            fallback_date = "latest"
+            try:
+                with open(fallback_file, "r", encoding="utf-8") as f:
+                    fb_data = json.load(f)
+                    fallback_date = fb_data.get("date", os.path.basename(fallback_file).replace(".json", ""))
+            except Exception:
+                pass
+
+            print(f"Notice: Market prices for {today} are not yet published remotely (daily sync runs at 20:17 UTC).")
+            print(f"Proceeding with latest available price snapshot ({fallback_date}). Pass --live to scrape current prices.")
+            return fallback_file
+
+        raise FileNotFoundError(
+            f"No market price snapshot found for {today} locally or remotely, and no cached price snapshots are available. "
+            f"Pass --live to scrape current prices from TCGCSV."
+        )
+
+    # 4. Live scrape from TCGCSV (only reached if live=True)
     print(f"Fetching live market prices for {today} from TCGCSV...")
     groups_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/groups")
     if not groups_data or not groups_data.get("results"):
@@ -214,7 +268,7 @@ def backfill_market_prices(date_str: str, price_dir: str = "prices") -> str:
         return target_file
 
     # 1. Check local repo
-    repo_prices = Path(__file__).resolve().parent.parent / "prices"
+    repo_prices = REPO_PRICES_DIR
     repo_price_file = repo_prices / f"{date_str}.json"
     if repo_price_file.is_file():
         shutil.copyfile(str(repo_price_file), target_file)

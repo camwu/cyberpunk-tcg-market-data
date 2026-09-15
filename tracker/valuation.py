@@ -100,6 +100,7 @@ def calculate_portfolio_valuation(
     collection_rows: Optional[List[Dict[str, Any]]] = None,
     sealed_path: Optional[str] = None,
     sealed_rows: Optional[List[Dict[str, Any]]] = None,
+    price_file: Optional[str] = None,
 ) -> Dict[str, Any]:
     if collection_rows is None:
         is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
@@ -136,7 +137,7 @@ def calculate_portfolio_valuation(
                 "total_sealed": row[5] if len(row) > 5 else 0,
             }
 
-    cache_file = os.path.join(cache_dir, f"{date_str}.json")
+    cache_file = price_file if (price_file and os.path.isfile(price_file)) else os.path.join(cache_dir, f"{date_str}.json")
     if not os.path.exists(cache_file):
         raise FileNotFoundError(f"Price cache file not found for {date_str}: {cache_file}")
 
