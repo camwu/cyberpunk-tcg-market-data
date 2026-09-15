@@ -24,7 +24,10 @@ To scrape current market prices from TCGplayer:
 ```bash
 python scrape.py
 ```
-Output files are saved under `prices/YYYY-MM-DD.json` and `prices/latest.json`.
+Output files are saved under `prices/YYYY-MM-DD.json` and `prices/latest.json`. If a price snapshot for today already exists, `scrape.py` automatically skips execution to preserve original timestamps. To force an overwrite, pass `--force`:
+```bash
+python scrape.py prices --force
+```
 
 ---
 

@@ -5,6 +5,11 @@ on:
     # 20:17 UTC daily (1:17 PM PDT / 4:17 PM EDT)
     - cron: '17 20 * * *'
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force re-scrape even if today snapshot exists'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -26,8 +31,14 @@ jobs:
           python-version: '3.11'
 
       - name: Run Scraper
+        env:
+          FORCE_SCRAPE: ${{ inputs.force }}
         run: |
-          python scrape.py prices
+          if [ "$FORCE_SCRAPE" = "true" ]; then
+            python scrape.py prices --force
+          else
+            python scrape.py prices
+          fi
 
       - name: Commit and push if prices updated
         run: |
