@@ -2,6 +2,7 @@
 Automated unit tests for portfolio markdown report generation.
 """
 
+import json
 import os
 import sqlite3
 import tempfile
@@ -118,6 +119,37 @@ class TestReportGeneration(unittest.TestCase):
         gainers_section = content.split("## 📈 Top Lifetime Gainers")[1].split("## 📉")[0]
         self.assertIn("Johnny Silverhand", gainers_section)
         self.assertNotIn("Booster Box", gainers_section)
+
+    def test_report_header_timestamps(self):
+        # Verify header labels are properly renamed
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Prices Last Updated**:", content)
+        self.assertIn("**Report Generated**:", content)
+        self.assertNotIn("**Snapshot Date**:", content)
+        self.assertNotIn("**Last Updated**:", content)
+
+        # When price cache with ISO timestamp is explicitly provided in an isolated dir
+        price_dir = self.test_dir / "custom_prices"
+        price_dir.mkdir(parents=True, exist_ok=True)
+        sample_cache = {
+            "date": "2026-09-14",
+            "timestamp": "2026-09-14T21:50:58.160015+00:00",
+            "prices": {},
+        }
+        (price_dir / "2026-09-14.json").write_text(json.dumps(sample_cache), encoding="utf-8")
+
+        generate_portfolio_report(
+            db_path=self.db_path,
+            output_md=self.output_md,
+            price_cache_dir=str(price_dir),
+        )
+        content_with_cache = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Prices Last Updated**:", content_with_cache)
+        self.assertIn("**Report Generated**:", content_with_cache)
+        # Check that it converted ISO into localized datetime string containing date and PM
+        self.assertIn("2026-09-14", content_with_cache.split("**Prices Last Updated**:")[1].split("\n")[0])
+        self.assertIn("PM", content_with_cache.split("**Prices Last Updated**:")[1].split("\n")[0])
 
 
 if __name__ == "__main__":

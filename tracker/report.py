@@ -4,9 +4,12 @@ Outputs styled console summaries and detailed markdown reports with custom geome
 """
 
 import datetime
+import json
 import os
+from pathlib import Path
 import sqlite3
 import sys
+from typing import Optional
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -54,7 +57,11 @@ def format_color(color: str) -> str:
     return f"{dot} {color}" if dot else color
 
 
-def generate_portfolio_report(db_path: str = "data/price_history.db", output_md: str = "LATEST_PORTFOLIO_SUMMARY.md"):
+def generate_portfolio_report(
+    db_path: str = "data/price_history.db",
+    output_md: str = "LATEST_PORTFOLIO_SUMMARY.md",
+    price_cache_dir: Optional[str] = None,
+):
     if not os.path.exists(db_path):
         raise FileNotFoundError(f"Database not found at {db_path}")
 
@@ -69,6 +76,37 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
         return
 
     latest_date = latest_row[0]
+
+    price_timestamp_display = latest_date
+    candidates = []
+    if price_cache_dir:
+        candidates.append(price_cache_dir)
+    candidates.extend([
+        "prices",
+        str(Path(__file__).resolve().parent.parent / "prices"),
+        os.path.join(os.path.dirname(db_path), "prices"),
+    ])
+
+    for cdir in candidates:
+        if not cdir or not os.path.isdir(cdir):
+            continue
+        pfile = os.path.join(cdir, f"{latest_date}.json")
+        if not os.path.isfile(pfile) and os.path.isfile(os.path.join(cdir, "latest.json")):
+            pfile = os.path.join(cdir, "latest.json")
+        if os.path.isfile(pfile):
+            try:
+                with open(pfile, "r", encoding="utf-8") as f:
+                    pdata = json.load(f)
+                ts = pdata.get("timestamp")
+                if ts:
+                    dt = datetime.datetime.fromisoformat(ts)
+                    price_timestamp_display = dt.astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")
+                    break
+                elif pdata.get("date"):
+                    price_timestamp_display = pdata.get("date")
+                    break
+            except Exception:
+                pass
 
     cur.execute("""
     SELECT total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
@@ -176,11 +214,13 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
             acq_display = f"`{acq_date}`" if acq_date else "—"
             sealed_section += f"| **{name}** | {exp} | {acq_display} | {qty} | `${u_price:,.2f}` | `${total:,.2f}` | `${base:,.2f}` | {gain_str} |\n"
 
+    report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")
+
     # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
 
-**Snapshot Date**: `{latest_date}`  
-**Last Updated**: `{datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")}`
+**Prices Last Updated**: `{price_timestamp_display}`  
+**Report Generated**: `{report_generated}`
 
 ---
 
