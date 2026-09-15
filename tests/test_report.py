@@ -151,6 +151,24 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("2026-09-14", content_with_cache.split("**Prices Last Updated**:")[1].split("\n")[0])
         self.assertIn("PM", content_with_cache.split("**Prices Last Updated**:")[1].split("\n")[0])
 
+        # When latest.json has a mismatched date, ensure it is not adopted
+        mismatched_dir = self.test_dir / "mismatched_prices"
+        mismatched_dir.mkdir(parents=True, exist_ok=True)
+        mismatched_cache = {
+            "date": "2026-09-15",
+            "timestamp": "2026-09-15T21:50:58.160015+00:00",
+            "prices": {},
+        }
+        (mismatched_dir / "latest.json").write_text(json.dumps(mismatched_cache), encoding="utf-8")
+
+        generate_portfolio_report(
+            db_path=self.db_path,
+            output_md=self.output_md,
+            price_cache_dir=str(mismatched_dir),
+        )
+        content_mismatched = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertNotIn("2026-09-15", content_mismatched.split("**Prices Last Updated**:")[1].split("\n")[0])
+
 
 if __name__ == "__main__":
     unittest.main()

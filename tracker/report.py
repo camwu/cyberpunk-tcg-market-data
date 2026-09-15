@@ -91,12 +91,16 @@ def generate_portfolio_report(
         if not cdir or not os.path.isdir(cdir):
             continue
         pfile = os.path.join(cdir, f"{latest_date}.json")
+        is_fallback_latest = False
         if not os.path.isfile(pfile) and os.path.isfile(os.path.join(cdir, "latest.json")):
             pfile = os.path.join(cdir, "latest.json")
+            is_fallback_latest = True
         if os.path.isfile(pfile):
             try:
                 with open(pfile, "r", encoding="utf-8") as f:
                     pdata = json.load(f)
+                if is_fallback_latest and pdata.get("date") and pdata.get("date") != latest_date:
+                    continue
                 ts = pdata.get("timestamp")
                 if ts:
                     dt = datetime.datetime.fromisoformat(ts)
