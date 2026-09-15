@@ -2,6 +2,7 @@
 Automated unit tests for portfolio markdown report generation.
 """
 
+import json
 import os
 import sqlite3
 import tempfile
@@ -118,6 +119,44 @@ class TestReportGeneration(unittest.TestCase):
         gainers_section = content.split("## 📈 Top Lifetime Gainers")[1].split("## 📉")[0]
         self.assertIn("Johnny Silverhand", gainers_section)
         self.assertNotIn("Booster Box", gainers_section)
+
+    def test_report_header_timestamps(self):
+        # Verify header labels and clean formatting
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Prices Last Updated**: `2026-09-14`", content)
+        self.assertIn("**Report Generated**:", content)
+        self.assertNotIn("**Snapshot Date**:", content)
+        self.assertNotIn("**Last Updated**:", content)
+        # Ensure verbose seconds and timezone string are excluded
+        self.assertNotIn("Pacific Daylight Time", content)
+        self.assertNotIn("PDT", content)
+
+    def test_report_target_date_historical(self):
+        # Insert historical 2026-09-13 record
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO portfolio_daily_summary VALUES
+        ('2026-09-13', 200.00, 1, 1, 0.0, 0.0, 10.00, 5.00, 0)
+        """)
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-13', 'Exp::001::Standard', 1, 15.00, 15.00, 15.00, 20.00, 15.00, 15.00, 0.00, 0.00)
+        """)
+        conn.commit()
+        conn.close()
+
+        # Generate report specifically for 2026-09-13 even though 2026-09-14 exists
+        generate_portfolio_report(
+            db_path=self.db_path,
+            output_md=self.output_md,
+            target_date="2026-09-13",
+        )
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Prices Last Updated**: `2026-09-13", content)
+        self.assertIn("**Report Generated**:", content)
+        self.assertIn("$200.00", content)
 
 
 if __name__ == "__main__":

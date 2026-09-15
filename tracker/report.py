@@ -4,9 +4,12 @@ Outputs styled console summaries and detailed markdown reports with custom geome
 """
 
 import datetime
+import json
 import os
+from pathlib import Path
 import sqlite3
 import sys
+from typing import Optional
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -54,21 +57,36 @@ def format_color(color: str) -> str:
     return f"{dot} {color}" if dot else color
 
 
-def generate_portfolio_report(db_path: str = "data/price_history.db", output_md: str = "LATEST_PORTFOLIO_SUMMARY.md"):
+def generate_portfolio_report(
+    db_path: str = "data/price_history.db",
+    output_md: str = "LATEST_PORTFOLIO_SUMMARY.md",
+    price_cache_dir: Optional[str] = None,
+    target_date: Optional[str] = None,
+):
     if not os.path.exists(db_path):
         raise FileNotFoundError(f"Database not found at {db_path}")
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
-    cur.execute("SELECT date FROM portfolio_daily_summary ORDER BY date DESC LIMIT 1")
-    latest_row = cur.fetchone()
-    if not latest_row:
-        print("No valuation records found in database.", file=sys.stderr)
-        conn.close()
-        return
+    if target_date:
+        cur.execute("SELECT date FROM portfolio_daily_summary WHERE date = ?", (target_date,))
+        row = cur.fetchone()
+        if not row:
+            print(f"No valuation records found for date '{target_date}' in database.", file=sys.stderr)
+            conn.close()
+            return
+        latest_date = target_date
+    else:
+        cur.execute("SELECT date FROM portfolio_daily_summary ORDER BY date DESC LIMIT 1")
+        latest_row = cur.fetchone()
+        if not latest_row:
+            print("No valuation records found in database.", file=sys.stderr)
+            conn.close()
+            return
+        latest_date = latest_row[0]
 
-    latest_date = latest_row[0]
+    price_timestamp_display = latest_date
 
     cur.execute("""
     SELECT total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
@@ -176,11 +194,13 @@ def generate_portfolio_report(db_path: str = "data/price_history.db", output_md:
             acq_display = f"`{acq_date}`" if acq_date else "—"
             sealed_section += f"| **{name}** | {exp} | {acq_display} | {qty} | `${u_price:,.2f}` | `${total:,.2f}` | `${base:,.2f}` | {gain_str} |\n"
 
+    report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
+
     # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
 
-**Snapshot Date**: `{latest_date}`  
-**Last Updated**: `{datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M:%S %p %Z")}`
+**Prices Last Updated**: `{price_timestamp_display}`  
+**Report Generated**: `{report_generated}`
 
 ---
 

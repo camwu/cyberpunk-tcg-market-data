@@ -56,6 +56,7 @@ def main():
     parser.add_argument("--force", action="store_true", help="Force fresh price sync and recalculate today's valuation")
     parser.add_argument("--backfill", dest="backfill_date", help="Backfill historical prices for YYYY-MM-DD from archive")
     parser.add_argument("--report-only", action="store_true", help="Display latest portfolio report without syncing or calculating")
+    parser.add_argument("--date", dest="report_date", help="Optional specific snapshot date (YYYY-MM-DD) for report generation")
 
     args = parser.parse_args()
 
@@ -71,7 +72,12 @@ def main():
     )
 
     if args.report_only:
-        generate_portfolio_report(db_path=cfg.database_path, output_md=cfg.output_report)
+        generate_portfolio_report(
+            db_path=cfg.database_path,
+            output_md=cfg.output_report,
+            price_cache_dir=cfg.price_cache_dir,
+            target_date=args.report_date,
+        )
         return
 
     if args.import_path:
@@ -116,7 +122,12 @@ def main():
         except CollectionValidationError as e:
             print(f"\nError: {e}", file=sys.stderr)
             sys.exit(1)
-        generate_portfolio_report(db_path=cfg.database_path, output_md=cfg.output_report)
+        generate_portfolio_report(
+            db_path=cfg.database_path,
+            output_md=cfg.output_report,
+            price_cache_dir=cfg.price_cache_dir,
+            target_date=date_str,
+        )
         return
 
     # Standard run for today
@@ -155,7 +166,12 @@ def main():
         print(f"\nError: {e}", file=sys.stderr)
         sys.exit(1)
 
-    generate_portfolio_report(db_path=cfg.database_path, output_md=cfg.output_report)
+    generate_portfolio_report(
+        db_path=cfg.database_path,
+        output_md=cfg.output_report,
+        price_cache_dir=cfg.price_cache_dir,
+        target_date=args.report_date or today,
+    )
 
 
 if __name__ == "__main__":
