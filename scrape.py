@@ -29,12 +29,24 @@ def fetch_json(endpoint: str):
         return None
 
 
+def is_valid_snapshot(file_path: str) -> bool:
+    """Verifies that an existing snapshot is non-empty and contains valid JSON with price data."""
+    if not os.path.isfile(file_path) or os.path.getsize(file_path) == 0:
+        return False
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return bool(data.get("prices"))
+    except Exception:
+        return False
+
+
 def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Optional[str] = None):
     os.makedirs(output_dir, exist_ok=True)
     today = target_date or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     dated_file = os.path.join(output_dir, f"{today}.json")
 
-    if not force and os.path.exists(dated_file):
+    if not force and is_valid_snapshot(dated_file):
         print(f"Daily price snapshot for {today} already exists at {dated_file}. Skipping scrape to preserve original timestamp (use --force to overwrite).")
         return True
 

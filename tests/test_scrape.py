@@ -108,6 +108,67 @@ class TestScraperSkipBehavior(unittest.TestCase):
             saved_data = json.load(f)
         self.assertEqual(saved_data["prices"]["101"]["Normal"]["marketPrice"], 8.5)
 
+    def test_aborted_zero_byte_snapshot_triggers_scrape(self):
+        target_date = "2026-09-15"
+        dated_file = os.path.join(self.price_dir, f"{target_date}.json")
+        # Create a 0-byte file
+        with open(dated_file, "w", encoding="utf-8") as f:
+            pass
+
+        mock_responses = {
+            "92/groups": {"results": [{"groupId": 100, "name": "Set 1"}]},
+            "92/100/products": {"results": [{"productId": 101, "name": "Card One", "cleanName": "Card One"}]},
+            "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 15.0}]},
+        }
+
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)):
+            success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
+            self.assertTrue(success)
+
+        with open(dated_file, "r", encoding="utf-8") as f:
+            saved_data = json.load(f)
+        self.assertEqual(saved_data["prices"]["101"]["Normal"]["marketPrice"], 15.0)
+
+    def test_corrupted_json_snapshot_triggers_scrape(self):
+        target_date = "2026-09-15"
+        dated_file = os.path.join(self.price_dir, f"{target_date}.json")
+        with open(dated_file, "w", encoding="utf-8") as f:
+            f.write("{corrupted json: [")
+
+        mock_responses = {
+            "92/groups": {"results": [{"groupId": 100, "name": "Set 1"}]},
+            "92/100/products": {"results": [{"productId": 101, "name": "Card One", "cleanName": "Card One"}]},
+            "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 20.0}]},
+        }
+
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)):
+            success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
+            self.assertTrue(success)
+
+        with open(dated_file, "r", encoding="utf-8") as f:
+            saved_data = json.load(f)
+        self.assertEqual(saved_data["prices"]["101"]["Normal"]["marketPrice"], 20.0)
+
+    def test_empty_prices_snapshot_triggers_scrape(self):
+        target_date = "2026-09-15"
+        dated_file = os.path.join(self.price_dir, f"{target_date}.json")
+        with open(dated_file, "w", encoding="utf-8") as f:
+            json.dump({"date": target_date, "prices": {}}, f)
+
+        mock_responses = {
+            "92/groups": {"results": [{"groupId": 100, "name": "Set 1"}]},
+            "92/100/products": {"results": [{"productId": 101, "name": "Card One", "cleanName": "Card One"}]},
+            "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 30.0}]},
+        }
+
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)):
+            success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
+            self.assertTrue(success)
+
+        with open(dated_file, "r", encoding="utf-8") as f:
+            saved_data = json.load(f)
+        self.assertEqual(saved_data["prices"]["101"]["Normal"]["marketPrice"], 30.0)
+
 
 if __name__ == "__main__":
     unittest.main()
