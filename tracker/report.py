@@ -61,6 +61,7 @@ def generate_portfolio_report(
     db_path: str = "data/price_history.db",
     output_md: str = "LATEST_PORTFOLIO_SUMMARY.md",
     price_cache_dir: Optional[str] = None,
+    target_date: Optional[str] = None,
 ):
     if not os.path.exists(db_path):
         raise FileNotFoundError(f"Database not found at {db_path}")
@@ -68,14 +69,22 @@ def generate_portfolio_report(
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
-    cur.execute("SELECT date FROM portfolio_daily_summary ORDER BY date DESC LIMIT 1")
-    latest_row = cur.fetchone()
-    if not latest_row:
-        print("No valuation records found in database.", file=sys.stderr)
-        conn.close()
-        return
-
-    latest_date = latest_row[0]
+    if target_date:
+        cur.execute("SELECT date FROM portfolio_daily_summary WHERE date = ?", (target_date,))
+        row = cur.fetchone()
+        if not row:
+            print(f"No valuation records found for date '{target_date}' in database.", file=sys.stderr)
+            conn.close()
+            return
+        latest_date = target_date
+    else:
+        cur.execute("SELECT date FROM portfolio_daily_summary ORDER BY date DESC LIMIT 1")
+        latest_row = cur.fetchone()
+        if not latest_row:
+            print("No valuation records found in database.", file=sys.stderr)
+            conn.close()
+            return
+        latest_date = latest_row[0]
 
     price_timestamp_display = latest_date
     candidates = []

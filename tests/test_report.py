@@ -169,6 +169,32 @@ class TestReportGeneration(unittest.TestCase):
         content_mismatched = Path(self.output_md).read_text(encoding="utf-8")
         self.assertNotIn("2026-09-15", content_mismatched.split("**Prices Last Updated**:")[1].split("\n")[0])
 
+    def test_report_target_date_historical(self):
+        # Insert historical 2026-09-13 record
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO portfolio_daily_summary VALUES
+        ('2026-09-13', 200.00, 1, 1, 0.0, 0.0, 10.00, 5.00, 0)
+        """)
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-13', 'Exp::001::Standard', 1, 15.00, 15.00, 15.00, 20.00, 15.00, 15.00, 0.00, 0.00)
+        """)
+        conn.commit()
+        conn.close()
+
+        # Generate report specifically for 2026-09-13 even though 2026-09-14 exists
+        generate_portfolio_report(
+            db_path=self.db_path,
+            output_md=self.output_md,
+            target_date="2026-09-13",
+        )
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Prices Last Updated**: `2026-09-13", content)
+        self.assertIn("**Report Generated**:", content)
+        self.assertIn("$200.00", content)
+
 
 if __name__ == "__main__":
     unittest.main()
