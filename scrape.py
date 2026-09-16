@@ -15,11 +15,22 @@ import urllib.error
 
 CATEGORY_ID = 92
 BASE_URL = "https://tcgcsv.com/tcgplayer"
+LAST_UPDATED_URL = "https://tcgcsv.com/last-updated.txt"
 USER_AGENT = "CyberpunkTCGMarketTracker/1.0 (contact: github-actions-collector)"
 
 
+def fetch_text(url: str) -> Optional[str]:
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.read().decode("utf-8").strip()
+    except Exception as e:
+        print(f"Error fetching {url}: {e}", file=sys.stderr)
+        return None
+
+
 def fetch_json(endpoint: str):
-    url = f"{BASE_URL}/{endpoint}"
+    url = f"{BASE_URL}/{endpoint}" if not endpoint.startswith("http") else endpoint
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -50,6 +61,10 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
         print(f"Daily price snapshot for {today} already exists at {dated_file}. Skipping scrape to preserve original timestamp (use --force to overwrite).")
         return True
 
+    last_updated = fetch_text(LAST_UPDATED_URL)
+    if last_updated:
+        print(f"TCGCSV upstream build timestamp: {last_updated}")
+
     print(f"Starting TCGCSV scrape for Cyberpunk TCG (Category {CATEGORY_ID}) on {today}...")
 
     groups_data = fetch_json(f"{CATEGORY_ID}/groups")
@@ -60,17 +75,39 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
     groups = groups_data["results"]
     print(f"Discovered {len(groups)} set groups.")
 
+    cards_file = os.path.join(os.path.dirname(os.path.abspath(output_dir)), "cards.json") if output_dir != "." else "cards.json"
+    existing_cards = {}
+    if os.path.exists(cards_file):
+        try:
+            with open(cards_file, "r", encoding="utf-8") as f:
+                existing_cards = json.load(f)
+        except Exception:
+            pass
+
+    existing_groups = existing_cards.get("_groups", {})
+    existing_group_ids = {
+        card["groupId"]
+        for k, card in existing_cards.items()
+        if not k.startswith("_") and isinstance(card, dict) and "groupId" in card
+    }
+
     catalog = {}
     all_prices = {}
-    total_products = 0
+    updated_groups = dict(existing_groups)
 
     for grp in groups:
         group_id = grp["groupId"]
         group_name = grp["name"]
-        print(f"Fetching group {group_id}: {group_name}...")
+        group_modified = grp.get("modifiedOn")
+        cached_group = existing_groups.get(str(group_id))
 
-        time.sleep(0.2)
-        prod_data = fetch_json(f"{CATEGORY_ID}/{group_id}/products")
+        need_products = (
+            force
+            or group_id not in existing_group_ids
+            or not cached_group
+            or (group_modified and cached_group.get("modifiedOn") != group_modified)
+        )
+
         time.sleep(0.2)
         price_data = fetch_json(f"{CATEGORY_ID}/{group_id}/prices")
 
@@ -88,47 +125,56 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
                     "directLowPrice": pr.get("directLowPrice"),
                 }
 
-        if prod_data and "results" in prod_data:
-            for p in prod_data["results"]:
-                pid = p["productId"]
-                total_products += 1
+        if need_products:
+            print(f"Fetching group {group_id}: {group_name} (metadata updated/new)...")
+            time.sleep(0.2)
+            prod_data = fetch_json(f"{CATEGORY_ID}/{group_id}/products")
+            if prod_data and "results" in prod_data:
+                for p in prod_data["results"]:
+                    pid = p["productId"]
+                    print_number = None
+                    rarity = None
+                    for ext in p.get("extendedData", []):
+                        if ext.get("name") == "Number":
+                            print_number = ext.get("value")
+                        elif ext.get("name") == "Rarity":
+                            rarity = ext.get("value")
 
-                print_number = None
-                rarity = None
-                for ext in p.get("extendedData", []):
-                    if ext.get("name") == "Number":
-                        print_number = ext.get("value")
-                    elif ext.get("name") == "Rarity":
-                        rarity = ext.get("value")
+                    catalog[str(pid)] = {
+                        "productId": pid,
+                        "name": p.get("name"),
+                        "cleanName": p.get("cleanName"),
+                        "groupId": group_id,
+                        "groupName": group_name,
+                        "printNumber": print_number,
+                        "rarity": rarity,
+                    }
+        else:
+            print(f"Fetching group {group_id}: {group_name} (prices only, metadata unchanged)...")
 
-                catalog[str(pid)] = {
-                    "productId": pid,
-                    "name": p.get("name"),
-                    "cleanName": p.get("cleanName"),
-                    "groupId": group_id,
-                    "groupName": group_name,
-                    "printNumber": print_number,
-                    "rarity": rarity,
-                }
+        updated_groups[str(group_id)] = {
+            "name": group_name,
+            "modifiedOn": group_modified,
+        }
+
+    if not all_prices:
+        print(f"Error: No price records fetched from TCGCSV for Category {CATEGORY_ID}. Aborting scrape to protect existing snapshots.", file=sys.stderr)
+        return False
 
     # 1. Update static cards.json catalog
-    cards_file = os.path.join(os.path.dirname(os.path.abspath(output_dir)), "cards.json") if output_dir != "." else "cards.json"
-    existing_cards = {}
-    if os.path.exists(cards_file):
-        try:
-            with open(cards_file, "r", encoding="utf-8") as f:
-                existing_cards = json.load(f)
-        except Exception:
-            pass
+    if catalog or updated_groups != existing_groups:
+        existing_cards["_groups"] = updated_groups
+        existing_cards.update(catalog)
+        with open(cards_file, "w", encoding="utf-8") as f:
+            json.dump(existing_cards, f, indent=2)
 
-    existing_cards.update(catalog)
-    with open(cards_file, "w", encoding="utf-8") as f:
-        json.dump(existing_cards, f, indent=2)
+    total_products = len([k for k in existing_cards if not k.startswith("_")])
 
     # 2. Write slim daily price snapshots
     daily_payload = {
         "date": today,
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "tcgcsvBuild": last_updated,
         "category": "Cyberpunk TCG",
         "categoryId": CATEGORY_ID,
         "productCount": total_products,
@@ -144,7 +190,7 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
     with open(latest_file, "w", encoding="utf-8") as f:
         json.dump(daily_payload, f, indent=2)
 
-    print(f"Scrape completed successfully. Catalog ({len(existing_cards)} cards) saved to {cards_file}.")
+    print(f"Scrape completed successfully. Catalog ({total_products} cards) saved to {cards_file}.")
     print(f"Daily price snapshot saved to {dated_file} and {latest_file}.")
     return True
 
