@@ -1,23 +1,24 @@
 # Cyberpunk TCG Market Data & Portfolio Tracker
 
-Automated daily market price scraper and collection portfolio valuation engine for the Cyberpunk Trading Card Game.
-
-This repository provides an automated market price archive alongside a local valuation tracker for card collections.
+Automated daily market price scraper and portfolio valuation CLI tool for the Cyberpunk Trading Card Game.
 
 ---
 
-## Features
+## ✨ Features
 
-- **Daily Cloud Scraper**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:17 UTC, updating `cards.json` and saving slim price snapshots under `prices/`.
-- **Decoupled Architecture**: Static card metadata (`cards.json`) is separated from daily price snapshots (`prices/YYYY-MM-DD.json`), reducing snapshot payload size by over 70%.
-- **Configurable Storage**: Point the engine to any local directory or CardNexus CSV export via `config.json` or CLI flags.
-- **Rarity & Finish Tracking**: Tracks portfolio distribution across official geometric rarity tiers (`▽ Common`, `△ Uncommon`, `◇ Rare`, `🞚 Epic`, `⯁ Secret`, `★ Iconic`, `▣ Nova`) and finishes.
-- **Color Indicators**: Categorizes holdings across all 4 card colors (`🟢 Green`, `🔵 Blue`, `🔴 Red`, `🟡 Yellow`).
-- **Historical Performance**: Computes rolling L7D price deltas and lifetime gain/loss against baseline acquisition prices.
+- **Automated Daily Price Sync**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:17 UTC to update card metadata (`cards.json`) and record daily TCGplayer market prices under `prices/`.
+- **Unified Portfolio Tracking**: Ingests cards and sealed products (Booster Boxes, Starter Decks) from CardNexus CSV exports into a local SQLite database (`data/price_history.db`).
+- **Historical Performance & ROI**: Calculates rolling 7-day price deltas and lifetime gain/loss against purchase prices or initial market baselines.
+- **Rarity, Finish & Color Breakdowns**: Summarizes collection distribution across official rarity tiers (`▽ Common` through `▣ Nova Rare`), standard/foil finishes, and card colors.
+- **1-Click & Drag-and-Drop Launchers**: Update portfolios via Windows batch (`update_portfolio.bat`), Unix shell (`update_portfolio.sh`), or the Python CLI with automatic CSV detection.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
+
+### Prerequisites
+- **Python 3.9+**: Built entirely on the Python standard library with 0 external `pip` dependencies.
+- **7-Zip** *(Optional)*: Required only when backfilling historical price archives via `--backfill`.
 
 ### 1. Daily Market Price Scraping (Standalone)
 To scrape current market prices from TCGplayer:
@@ -26,7 +27,7 @@ python scrape.py
 ```
 Output files are saved under `prices/YYYY-MM-DD.json` and `prices/latest.json`. If a price snapshot for today already exists, `scrape.py` automatically skips execution to preserve original timestamps. To force an overwrite, pass `--force`:
 ```bash
-python scrape.py prices --force
+python scrape.py --force
 ```
 
 ---
@@ -34,10 +35,10 @@ python scrape.py prices --force
 ### 2. Portfolio Valuation
 
 1. **Add your collection CSV**:
-   Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The engine ingests both single cards and sealed products (e.g. Booster Boxes, Starter Decks) from a unified CardNexus export.
+   Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The pipeline ingests both cards and sealed products (e.g. Booster Boxes, Starter Decks) from a unified CardNexus export.
    - **Sealed Products**: Identified by product catalog matching and naming conventions; `printNumber` is optional for sealed items.
    - **Acquisition Dates**: Extracted from the CardNexus `notes` field using the first `YYYY-MM-DD` date found in the entry. Additional freeform text can surround the date, but the purchase date must appear as the first `YYYY-MM-DD` occurrence. If an acquisition date predates the earliest available price history, the baseline clamps to the oldest market price date. If the `notes` field omits an acquisition date, the database defaults the item's acquisition date to the snapshot date when it first appears in an imported collection CSV.
-   - **Auto-Discovery**: The engine validates required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) and automatically selects the newest CSV by modification timestamp.
+   - **Auto-Discovery**: The pipeline validates required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) and automatically selects the newest CSV by modification timestamp.
 
 2. **Run the tracker**:
    - **Windows 1-Click / Drag-and-Drop**: Double-click `update_portfolio.bat`, or drag-and-drop any CSV file onto it.
@@ -66,14 +67,14 @@ python scrape.py prices --force
 ---
 
 ### 3. Running Tests
-To execute the automated unit test suite:
+To run the test suite:
 ```bash
 python -m unittest discover tests -v
 ```
 
 ---
 
-## CLI Options & Arguments
+## ⚙️ CLI Options & Arguments
 
 ### Positional Arguments
 - `collection_target`: Optional direct path to a CardNexus CSV export or directory containing collection files (supports drag-and-drop onto the terminal or launcher).
@@ -86,7 +87,7 @@ python -m unittest discover tests -v
 - `--prices <path>`: Path to daily price cache directory (default: `prices`).
 - `--output <path>`: Path to markdown summary report (default: `LATEST_PORTFOLIO_SUMMARY.md`).
 - `--import <path>`, `--import-file <path>`: Validate, back up, and import a new CardNexus CSV export.
-- `--live`: Scrape live market prices directly from TCGCSV endpoints instead of using cached local files or remote GitHub snapshots. When omitted and today's remote snapshot has not yet been published (daily cloud sync runs at 20:17 UTC), the engine falls back cleanly to `prices/latest.json` with an informational notice.
+- `--live`: Scrape live market prices directly from TCGCSV endpoints instead of using cached local files or remote GitHub snapshots. When omitted and today's remote snapshot has not yet been published (daily cloud sync runs at 20:17 UTC, subject to standard GitHub Actions queue latency of up to 3 hours during peak load), the pipeline falls back cleanly to `prices/latest.json` with an informational notice.
 - `--force`: Force a fresh price sync and recalculate/overwrite the portfolio valuation snapshot for the target date.
 - `--backfill <YYYY-MM-DD>`: Backfill historical market prices from TCGCSV archive bundles (requires 7-Zip).
 - `--report-only`: Render the markdown portfolio report from existing database records without syncing prices or running valuation calculations.
