@@ -273,7 +273,9 @@ def generate_portfolio_report(
 {sealed_section}
 ---
 
-## 💎 Portfolio Breakdown by Rarity
+## 📊 Portfolio Breakdown
+
+### Rarity
 
 | Rarity | Unique Items | Physical Copies | Market Value | % of Portfolio |
 | :--- | :---: | :---: | :---: | :---: |
@@ -285,9 +287,7 @@ def generate_portfolio_report(
         md_content += f"| {r_lbl} | {entries} | {qty} | `${r_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
     md_content += """
----
-
-## 🎨 Portfolio Breakdown by Color
+### Color
 
 | Color | Unique Items | Physical Copies | Market Value | % of Portfolio |
 | :--- | :---: | :---: | :---: | :---: |
@@ -300,9 +300,7 @@ def generate_portfolio_report(
         md_content += f"| **{c_lbl}** | {entries} | {qty} | `${c_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
     md_content += """
----
-
-## 🌟 High-Value Singles (`$10.00`+)
+### High-Value Singles (`$10.00`+)
 
 | Card Name | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: |
@@ -317,7 +315,9 @@ def generate_portfolio_report(
     md_content += """
 ---
 
-## 📈 Top Lifetime Gainers
+## 📈 Top Gainers
+
+### Lifetime
 
 | Card Name | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Gain | Percent Gain |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -329,10 +329,25 @@ def generate_portfolio_report(
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
+    if l7d_date:
+        md_content += f"""
+### L7D (Since `{l7d_date}`)
+
+| Card Name | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Gain | Percent Gain |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+"""
+        for name, rarity, color, finish, qty, price, prev_price, gain, pct in top_l7d_gainers:
+            r_str = format_rarity(rarity, bold=True)
+            dot = COLOR_DOTS.get(color, "")
+            card_display = f"{dot} **{name}**" if dot else f"**{name}**"
+            md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+
     md_content += """
 ---
 
-## 📉 Top Lifetime Decliners
+## 📉 Top Decliners
+
+### Lifetime
 
 | Card Name | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Loss | Percent Loss |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -346,23 +361,7 @@ def generate_portfolio_report(
 
     if l7d_date:
         md_content += f"""
----
-
-## 📈 Top L7D Gainers (`{l7d_date}`)
-
-| Card Name | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Gain | Percent Gain |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-"""
-        for name, rarity, color, finish, qty, price, prev_price, gain, pct in top_l7d_gainers:
-            r_str = format_rarity(rarity, bold=True)
-            dot = COLOR_DOTS.get(color, "")
-            card_display = f"{dot} **{name}**" if dot else f"**{name}**"
-            md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
-
-        md_content += f"""
----
-
-## 📉 Top L7D Decliners (`{l7d_date}`)
+### L7D (Since `{l7d_date}`)
 
 | Card Name | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Loss | Percent Loss |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
