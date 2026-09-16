@@ -152,13 +152,13 @@ def generate_portfolio_report(
     """, (latest_date,))
     top_gainers = cur.fetchall()
 
-    # Get top 5 decliners (cards only)
+    # Get top 5 decliners (cards only, excluding unpriced items)
     cur.execute("""
     SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
            s.lifetime_gain_dollar, s.lifetime_gain_pct
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.lifetime_gain_dollar < 0 AND COALESCE(m.item_type, 'Card') = 'Card'
+    WHERE s.date = ? AND s.lifetime_gain_dollar < 0 AND s.unit_market_price > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
     ORDER BY s.lifetime_gain_dollar ASC
     LIMIT 5
     """, (latest_date,))
@@ -173,6 +173,63 @@ def generate_portfolio_report(
     ORDER BY s.unit_market_price DESC
     """, (latest_date,))
     high_value_cards = cur.fetchall()
+
+    # Query L7D baseline date (7th prior recorded date, or oldest available)
+    cur.execute("""
+    SELECT date
+    FROM portfolio_daily_summary
+    WHERE date < ?
+    ORDER BY date DESC
+    LIMIT 7
+    """, (latest_date,))
+    prior_summary_dates = cur.fetchall()
+    l7d_date = prior_summary_dates[-1][0] if prior_summary_dates else None
+
+    top_l7d_gainers = []
+    top_l7d_decliners = []
+    if l7d_date:
+        cur.execute("""
+        WITH evaluated AS (
+            SELECT m.name, m.rarity, m.color, m.finish, s.quantity,
+                   COALESCE(NULLIF(s.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS curr_price,
+                   COALESCE(NULLIF(prev.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS prev_price,
+                   m.item_type
+            FROM daily_snapshots s
+            JOIN daily_snapshots prev ON s.card_key = prev.card_key AND prev.date = ?
+            JOIN card_metadata m ON s.card_key = m.card_key
+            WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
+        )
+        SELECT name, rarity, color, finish, quantity, curr_price, prev_price,
+               ROUND((curr_price - prev_price) * quantity, 2) AS dollar_gain,
+               CASE WHEN prev_price > 0 THEN ROUND(((curr_price - prev_price) / prev_price) * 100.0, 1) ELSE 0.0 END AS pct_gain
+        FROM evaluated
+        WHERE curr_price > prev_price
+        ORDER BY dollar_gain DESC
+        LIMIT 5
+        """, (l7d_date, latest_date))
+        top_l7d_gainers = cur.fetchall()
+
+        cur.execute("""
+        WITH evaluated AS (
+            SELECT m.name, m.rarity, m.color, m.finish, s.quantity,
+                   COALESCE(NULLIF(s.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS curr_price,
+                   COALESCE(NULLIF(prev.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS prev_price,
+                   m.item_type
+            FROM daily_snapshots s
+            JOIN daily_snapshots prev ON s.card_key = prev.card_key AND prev.date = ?
+            JOIN card_metadata m ON s.card_key = m.card_key
+            WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
+        )
+        SELECT name, rarity, color, finish, quantity, curr_price, prev_price,
+               ROUND((curr_price - prev_price) * quantity, 2) AS dollar_gain,
+               CASE WHEN prev_price > 0 THEN ROUND(((curr_price - prev_price) / prev_price) * 100.0, 1) ELSE 0.0 END AS pct_gain
+        FROM evaluated
+        WHERE curr_price < prev_price
+        ORDER BY dollar_gain ASC
+        LIMIT 5
+        """, (l7d_date, latest_date))
+        top_l7d_decliners = cur.fetchall()
+
     conn.close()
 
     sealed_summary_line = f"\n| **Total Sealed Items** | **{total_sealed}** {'unit' if total_sealed == 1 else 'units'} |" if total_sealed > 0 else ""
@@ -286,6 +343,35 @@ def generate_portfolio_report(
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+
+    if l7d_date:
+        md_content += """
+---
+
+## 📈 Top L7D Gainers
+
+| Card Name | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Gain | Percent Gain |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+"""
+        for name, rarity, color, finish, qty, price, prev_price, gain, pct in top_l7d_gainers:
+            r_str = format_rarity(rarity, bold=True)
+            dot = COLOR_DOTS.get(color, "")
+            card_display = f"{dot} **{name}**" if dot else f"**{name}**"
+            md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+
+        md_content += """
+---
+
+## 📉 Top L7D Decliners
+
+| Card Name | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Loss | Percent Loss |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+"""
+        for name, rarity, color, finish, qty, price, prev_price, gain, pct in top_l7d_decliners:
+            r_str = format_rarity(rarity, bold=True)
+            dot = COLOR_DOTS.get(color, "")
+            card_display = f"{dot} **{name}**" if dot else f"**{name}**"
+            md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     os.makedirs(os.path.dirname(output_md) or ".", exist_ok=True)
     with open(output_md, "w", encoding="utf-8") as f:
