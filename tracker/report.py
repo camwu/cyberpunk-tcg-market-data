@@ -345,10 +345,10 @@ def generate_portfolio_report(
         md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     if l7d_date:
-        md_content += """
+        md_content += f"""
 ---
 
-## 📈 Top L7D Gainers
+## 📈 Top L7D Gainers (`{l7d_date}`)
 
 | Card Name | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Gain | Percent Gain |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -359,10 +359,10 @@ def generate_portfolio_report(
             card_display = f"{dot} **{name}**" if dot else f"**{name}**"
             md_content += f"| {card_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
-        md_content += """
+        md_content += f"""
 ---
 
-## 📉 Top L7D Decliners
+## 📉 Top L7D Decliners (`{l7d_date}`)
 
 | Card Name | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Loss | Percent Loss |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |

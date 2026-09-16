@@ -198,8 +198,8 @@ class TestReportGeneration(unittest.TestCase):
         content = Path(self.output_md).read_text(encoding="utf-8")
 
         # Verify Top L7D Gainers
-        self.assertIn("## 📈 Top L7D Gainers", content)
-        gainers_l7d = content.split("## 📈 Top L7D Gainers")[1].split("## 📉 Top L7D Decliners")[0]
+        self.assertIn("## 📈 Top L7D Gainers (`2026-09-07`)", content)
+        gainers_l7d = content.split("## 📈 Top L7D Gainers (`2026-09-07`)")[1].split("## 📉 Top L7D Decliners (`2026-09-07`)")[0]
         self.assertIn("Johnny Silverhand", gainers_l7d)
         self.assertIn("$20.00", gainers_l7d)
         self.assertIn("$15.00", gainers_l7d)
@@ -208,8 +208,8 @@ class TestReportGeneration(unittest.TestCase):
         self.assertNotIn("Booster Box", gainers_l7d)
 
         # Verify Top L7D Decliners
-        self.assertIn("## 📉 Top L7D Decliners", content)
-        decliners_l7d = content.split("## 📉 Top L7D Decliners")[1]
+        self.assertIn("## 📉 Top L7D Decliners (`2026-09-07`)", content)
+        decliners_l7d = content.split("## 📉 Top L7D Decliners (`2026-09-07`)")[1]
         self.assertIn("V - Nomad", decliners_l7d)
         self.assertIn("$20.00", decliners_l7d)
         self.assertIn("$30.00", decliners_l7d)
