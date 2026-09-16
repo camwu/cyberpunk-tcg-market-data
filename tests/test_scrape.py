@@ -169,6 +169,78 @@ class TestScraperSkipBehavior(unittest.TestCase):
             saved_data = json.load(f)
         self.assertEqual(saved_data["prices"]["101"]["Normal"]["marketPrice"], 30.0)
 
+    def test_skips_product_fetch_when_group_modified_on_matches(self):
+        target_date = "2026-09-17"
+        cards_file = os.path.join(self.temp_path, "cards.json")
+        initial_cards = {
+            "_groups": {"100": {"name": "Set 1", "modifiedOn": "2026-09-01T12:00:00"}},
+            "101": {"productId": 101, "name": "Card One", "groupId": 100}
+        }
+        with open(cards_file, "w", encoding="utf-8") as f:
+            json.dump(initial_cards, f)
+
+        mock_responses = {
+            "92/groups": {"results": [{"groupId": 100, "name": "Set 1", "modifiedOn": "2026-09-01T12:00:00"}]},
+            "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 42.0}]},
+        }
+
+        requested_endpoints = []
+
+        def tracking_fetch(endpoint):
+            requested_endpoints.append(endpoint)
+            return mock_responses.get(endpoint)
+
+        with patch("scrape.fetch_json", side_effect=tracking_fetch), \
+             patch("scrape.fetch_text", return_value="2026-09-17T20:00:00+0000"):
+            success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
+            self.assertTrue(success)
+
+        self.assertIn("92/groups", requested_endpoints)
+        self.assertIn("92/100/prices", requested_endpoints)
+        self.assertNotIn("92/100/products", requested_endpoints)
+
+        dated_file = os.path.join(self.price_dir, f"{target_date}.json")
+        with open(dated_file, "r", encoding="utf-8") as f:
+            saved_data = json.load(f)
+        self.assertEqual(saved_data["tcgcsvBuild"], "2026-09-17T20:00:00+0000")
+        self.assertEqual(saved_data["prices"]["101"]["Normal"]["marketPrice"], 42.0)
+
+    def test_fetches_products_when_group_modified_on_differs(self):
+        target_date = "2026-09-17"
+        cards_file = os.path.join(self.temp_path, "cards.json")
+        initial_cards = {
+            "_groups": {"100": {"name": "Set 1", "modifiedOn": "2026-09-01T12:00:00"}},
+            "101": {"productId": 101, "name": "Card One", "groupId": 100}
+        }
+        with open(cards_file, "w", encoding="utf-8") as f:
+            json.dump(initial_cards, f)
+
+        mock_responses = {
+            "92/groups": {"results": [{"groupId": 100, "name": "Set 1", "modifiedOn": "2026-09-02T15:00:00"}]},
+            "92/100/products": {"results": [{"productId": 101, "name": "Card One Updated", "cleanName": "Card One Updated"}]},
+            "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 45.0}]},
+        }
+
+        requested_endpoints = []
+
+        def tracking_fetch(endpoint):
+            requested_endpoints.append(endpoint)
+            return mock_responses.get(endpoint)
+
+        with patch("scrape.fetch_json", side_effect=tracking_fetch), \
+             patch("scrape.fetch_text", return_value="2026-09-17T20:00:00+0000"):
+            success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
+            self.assertTrue(success)
+
+        self.assertIn("92/groups", requested_endpoints)
+        self.assertIn("92/100/prices", requested_endpoints)
+        self.assertIn("92/100/products", requested_endpoints)
+
+        with open(cards_file, "r", encoding="utf-8") as f:
+            updated_cards = json.load(f)
+        self.assertEqual(updated_cards["_groups"]["100"]["modifiedOn"], "2026-09-02T15:00:00")
+        self.assertEqual(updated_cards["101"]["name"], "Card One Updated")
+
 
 if __name__ == "__main__":
     unittest.main()

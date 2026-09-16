@@ -125,6 +125,44 @@ class TestSyncMarketPrices(unittest.TestCase):
                 sync_market_prices(price_dir=self.price_dir, target_date=target_date, force=False, live=False)
             self.assertIn("Pass --live to scrape current prices", str(ctx.exception))
 
+    def test_live_flag_skips_products_when_group_modified_on_matches(self):
+        target_date = "2026-09-15"
+        # Seed cards.json with existing group and card
+        with open(os.path.join(self.price_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump({
+                "_groups": {"101": {"name": "Set One", "modifiedOn": "2026-09-01T00:00:00"}},
+                "1": {"productId": 1, "name": "Card One", "groupId": 101}
+            }, f)
+
+        groups_resp = {"results": [{"groupId": 101, "name": "Set One", "modifiedOn": "2026-09-01T00:00:00"}]}
+        prices_resp = {"results": [{"productId": 1, "subTypeName": "Normal", "marketPrice": 30.0}]}
+        requested_urls = []
+
+        def mock_fetch(url):
+            requested_urls.append(url)
+            if "groups" in url:
+                return groups_resp
+            if "prices" in url:
+                return prices_resp
+            return None
+
+        with patch("tracker.sync.REPO_PRICES_DIR", self.fake_repo_prices), \
+             patch("tracker.sync.fetch_json", side_effect=mock_fetch), \
+             patch("tracker.sync.fetch_text", return_value="2026-09-15T20:00:00+0000"), \
+             patch("time.sleep"):
+            res = sync_market_prices(price_dir=self.price_dir, target_date=target_date, force=False, live=True)
+            expected_file = os.path.join(self.price_dir, f"{target_date}.json")
+            self.assertEqual(res, expected_file)
+
+        self.assertTrue(any("groups" in u for u in requested_urls))
+        self.assertTrue(any("prices" in u for u in requested_urls))
+        self.assertFalse(any("products" in u for u in requested_urls))
+
+        with open(expected_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["tcgcsvBuild"], "2026-09-15T20:00:00+0000")
+        self.assertEqual(data["prices"]["1"]["Normal"]["marketPrice"], 30.0)
+
 
 if __name__ == "__main__":
     unittest.main()
