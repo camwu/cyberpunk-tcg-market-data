@@ -36,7 +36,7 @@ python scrape.py prices --force
 1. **Add your collection CSV**:
    Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The engine ingests both single cards and sealed products (e.g. Booster Boxes, Starter Decks) from a unified CardNexus export.
    - **Sealed Products**: Identified by product catalog matching and naming conventions; `printNumber` is optional for sealed items.
-   - **Acquisition Dates**: Extracted from the CardNexus `notes` field in `YYYY-MM-DD` format. If an acquisition date predates the earliest available price history, the baseline clamps to the oldest market price date. If the `notes` field omits an acquisition date, the database defaults the item's acquisition date to the snapshot date when it first appears in an imported collection CSV.
+   - **Acquisition Dates**: Extracted from the CardNexus `notes` field using the first `YYYY-MM-DD` date found in the entry. Additional freeform text can surround the date, but the purchase date must appear as the first `YYYY-MM-DD` occurrence. If an acquisition date predates the earliest available price history, the baseline clamps to the oldest market price date. If the `notes` field omits an acquisition date, the database defaults the item's acquisition date to the snapshot date when it first appears in an imported collection CSV.
    - **Auto-Discovery**: The engine validates required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) and automatically selects the newest CSV by modification timestamp.
 
 2. **Run the tracker**:
