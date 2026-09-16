@@ -101,19 +101,18 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("**Total Sealed Items** | **1** unit", content)
         self.assertIn("**Total Physical Cards** | **1** copies", content)
 
-        # Dedicated sealed section exists with Acquired column
-        self.assertIn("## 📦 Sealed Product Inventory", content)
-        self.assertIn("Welcome to Night City - Beta Booster Box", content)
-        self.assertIn("`2026-09-11`", content)
-        self.assertIn("$235.17", content)
-
-        self.assertIn("## 📊 Portfolio Breakdown", content)
+        # Dedicated sealed section exists with Acquired column under Portfolio Breakdown
+        portfolio_section = content.split("## 📊 Portfolio Breakdown")[1].split("## 📈 Top Gainers")[0]
+        self.assertIn("### Sealed Products", portfolio_section)
+        self.assertIn("Welcome to Night City - Beta Booster Box", portfolio_section)
+        self.assertIn("`2026-09-11`", portfolio_section)
+        self.assertIn("$235.17", portfolio_section)
 
         # Rarity breakdown does NOT include "Sealed"
         self.assertNotIn("Sealed", content.split("### Rarity")[1].split("### Color")[0])
 
         # High-Value Singles does NOT contain the booster box
-        singles_section = content.split("### High-Value Singles")[1].split("## 📈 Top Gainers")[0]
+        singles_section = content.split("### High-Value Singles")[1].split("### Sealed Products")[0]
         self.assertIn("Johnny Silverhand", singles_section)
         self.assertNotIn("Booster Box", singles_section)
 
