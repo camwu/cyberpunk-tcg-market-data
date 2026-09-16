@@ -158,6 +158,65 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("**Report Generated**:", content)
         self.assertIn("$200.00", content)
 
+    def test_report_omits_l7d_when_no_prior_history(self):
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertNotIn("## 📈 Top L7D Gainers", content)
+        self.assertNotIn("## 📉 Top L7D Decliners", content)
+
+    def test_report_l7d_gainers_and_decliners(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        # Add a decliner card
+        cur.execute("""
+        INSERT INTO card_metadata VALUES
+        ('Exp::002::Standard', 102, 'V - Nomad', '002', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Yellow', '2026-09-07', 30.00, 'Card')
+        """)
+
+        # Add prior day snapshot (2026-09-07)
+        cur.execute("""
+        INSERT INTO portfolio_daily_summary VALUES
+        ('2026-09-07', 245.00, 2, 3, 0.0, 0.0, 0.0, 0.0, 1)
+        """)
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-07', 'Exp::001::Standard', 1, 15.00, 15.00, 15.00, 20.00, 15.00, 15.00, 0.00, 0.00),
+        ('2026-09-07', 'Exp::002::Standard', 1, 30.00, 28.00, 30.00, 35.00, 30.00, 30.00, 0.00, 0.00),
+        ('2026-09-07', 'SEALED::Welcome to Night City - Beta::714346::2026-09-11', 1, 200.00, 190.00, 200.00, 220.00, 200.00, 200.00, 0.00, 0.00)
+        """)
+
+        # Add 2026-09-14 snapshot for the decliner card
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-14', 'Exp::002::Standard', 1, 20.00, 18.00, 20.00, 25.00, 20.00, 30.00, -10.00, -33.33)
+        """)
+        conn.commit()
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        # Verify Top L7D Gainers
+        self.assertIn("## 📈 Top L7D Gainers (`2026-09-07`)", content)
+        gainers_l7d = content.split("## 📈 Top L7D Gainers (`2026-09-07`)")[1].split("## 📉 Top L7D Decliners (`2026-09-07`)")[0]
+        self.assertIn("Johnny Silverhand", gainers_l7d)
+        self.assertIn("$20.00", gainers_l7d)
+        self.assertIn("$15.00", gainers_l7d)
+        self.assertIn("+$5.00", gainers_l7d)
+        self.assertIn("+33.3%", gainers_l7d)
+        self.assertNotIn("Booster Box", gainers_l7d)
+
+        # Verify Top L7D Decliners
+        self.assertIn("## 📉 Top L7D Decliners (`2026-09-07`)", content)
+        decliners_l7d = content.split("## 📉 Top L7D Decliners (`2026-09-07`)")[1]
+        self.assertIn("V - Nomad", decliners_l7d)
+        self.assertIn("$20.00", decliners_l7d)
+        self.assertIn("$30.00", decliners_l7d)
+        self.assertIn("$-10.00", decliners_l7d)
+        self.assertIn("-33.3%", decliners_l7d)
+        self.assertNotIn("Booster Box", decliners_l7d)
+
 
 if __name__ == "__main__":
     unittest.main()

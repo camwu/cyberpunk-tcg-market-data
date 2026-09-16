@@ -263,8 +263,26 @@ def calculate_portfolio_valuation(
                         if market_price is not None:
                             break
 
-        if market_price is None:
-            market_price = fallback_price
+        if market_price is None or market_price <= 0.0:
+            cur.execute("""
+            SELECT unit_market_price
+            FROM daily_snapshots
+            WHERE card_key = ? AND date < ? AND unit_market_price > 0.0
+            ORDER BY date DESC
+            LIMIT 1
+            """, (card_key, date_str))
+            prev_price_row = cur.fetchone()
+            if prev_price_row and prev_price_row[0] > 0.0:
+                market_price = prev_price_row[0]
+            elif fallback_price > 0.0:
+                market_price = fallback_price
+            else:
+                cur.execute("SELECT baseline_market_price FROM card_metadata WHERE card_key = ?", (card_key,))
+                base_row = cur.fetchone()
+                if base_row and base_row[0] and base_row[0] > 0.0:
+                    market_price = base_row[0]
+                else:
+                    market_price = fallback_price
 
         unit_low = prices.get("lowPrice") or market_price
         unit_mid = prices.get("midPrice") or market_price
