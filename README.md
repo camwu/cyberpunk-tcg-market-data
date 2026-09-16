@@ -125,3 +125,11 @@ python run_tracker.py --backfill 2026-09-11
 # Use custom configuration file
 python run_tracker.py --config custom_config.json
 ```
+
+---
+
+## ⚖️ License & Disclaimer
+
+This project is an unofficial tool and is not affiliated with, endorsed by, or sponsored by CD PROJEKT RED or Weird Co. *Cyberpunk* and *Cyberpunk 2077* are registered trademarks and copyright of CD PROJEKT S.A., the Cyberpunk Trading Card Game is produced by Weird Co. under license, and all card names, images, and game assets are the property of their respective owners.
+
+The software and documentation in this repository are licensed under the [MIT License](LICENSE).
