@@ -239,9 +239,7 @@ def generate_portfolio_report(
     sealed_section = ""
     if sealed_products:
         sealed_section = """
----
-
-## 📦 Sealed Product Inventory
+### Sealed Products
 
 | Product Name | Expansion | Acquired | Qty | Unit Price | Total Value | Baseline Price | Lifetime Gain |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -270,7 +268,7 @@ def generate_portfolio_report(
 | **Unique Inventory Entries** | **{unique_items}** entries |
 | **Rolling L7D Performance** | **{'+' if l7d_dollar >= 0 else ''}${l7d_dollar:,.2f}** ({'+' if l7d_pct >= 0 else ''}{l7d_pct:.2f}%) |
 | **Lifetime Gain / Loss** | **{'+' if life_dollar >= 0 else ''}${life_dollar:,.2f}** ({'+' if life_pct >= 0 else ''}{life_pct:.2f}%) |
-{sealed_section}
+
 ---
 
 ## 📊 Portfolio Breakdown
@@ -311,6 +309,9 @@ def generate_portfolio_report(
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         md_content += f"| {card_display} | {exp} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
+
+    if sealed_section:
+        md_content += sealed_section
 
     md_content += """
 ---
