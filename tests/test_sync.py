@@ -110,11 +110,32 @@ class TestSyncMarketPrices(unittest.TestCase):
 
         with patch("tracker.sync.REPO_PRICES_DIR", self.fake_repo_prices), \
              patch("tracker.sync.fetch_json", side_effect=mock_fetch), \
+             patch("tracker.sync.fetch_text", return_value="2026-09-15T20:00:00+0000"), \
              patch("time.sleep"):
             res = sync_market_prices(price_dir=self.price_dir, target_date=target_date, force=False, live=True)
             expected_file = os.path.join(self.price_dir, f"{target_date}.json")
             self.assertEqual(res, expected_file)
             self.assertTrue(os.path.isfile(expected_file))
+
+    def test_live_flag_raises_when_no_prices_fetched(self):
+        target_date = "2026-09-15"
+        groups_resp = {"results": [{"groupId": 101, "name": "Set One"}]}
+        prices_resp = {"results": []}
+
+        def mock_fetch(url):
+            if "groups" in url:
+                return groups_resp
+            if "prices" in url:
+                return prices_resp
+            return None
+
+        with patch("tracker.sync.REPO_PRICES_DIR", self.fake_repo_prices), \
+             patch("tracker.sync.fetch_json", side_effect=mock_fetch), \
+             patch("tracker.sync.fetch_text", return_value="2026-09-15T20:00:00+0000"), \
+             patch("time.sleep"):
+            with self.assertRaises(RuntimeError) as ctx:
+                sync_market_prices(price_dir=self.price_dir, target_date=target_date, force=False, live=True)
+            self.assertIn("No price records fetched from TCGCSV", str(ctx.exception))
 
     def test_missing_cache_and_fallback_raises_filenotfound(self):
         target_date = "2026-09-15"

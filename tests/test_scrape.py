@@ -70,7 +70,8 @@ class TestScraperSkipBehavior(unittest.TestCase):
         def fake_fetch(endpoint):
             return mock_responses.get(endpoint)
 
-        with patch("scrape.fetch_json", side_effect=fake_fetch):
+        with patch("scrape.fetch_json", side_effect=fake_fetch), \
+             patch("scrape.fetch_text", return_value="2026-09-15T20:00:00+0000"):
             success = run_scraper(output_dir=self.price_dir, force=True, target_date=target_date)
             self.assertTrue(success)
 
@@ -98,7 +99,8 @@ class TestScraperSkipBehavior(unittest.TestCase):
         def fake_fetch(endpoint):
             return mock_responses.get(endpoint)
 
-        with patch("scrape.fetch_json", side_effect=fake_fetch):
+        with patch("scrape.fetch_json", side_effect=fake_fetch), \
+             patch("scrape.fetch_text", return_value="2026-09-16T20:00:00+0000"):
             success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
             self.assertTrue(success)
 
@@ -121,7 +123,8 @@ class TestScraperSkipBehavior(unittest.TestCase):
             "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 15.0}]},
         }
 
-        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)):
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)), \
+             patch("scrape.fetch_text", return_value="2026-09-15T20:00:00+0000"):
             success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
             self.assertTrue(success)
 
@@ -141,7 +144,8 @@ class TestScraperSkipBehavior(unittest.TestCase):
             "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 20.0}]},
         }
 
-        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)):
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)), \
+             patch("scrape.fetch_text", return_value="2026-09-15T20:00:00+0000"):
             success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
             self.assertTrue(success)
 
@@ -161,13 +165,29 @@ class TestScraperSkipBehavior(unittest.TestCase):
             "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 30.0}]},
         }
 
-        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)):
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)), \
+             patch("scrape.fetch_text", return_value="2026-09-15T20:00:00+0000"):
             success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
             self.assertTrue(success)
 
         with open(dated_file, "r", encoding="utf-8") as f:
             saved_data = json.load(f)
         self.assertEqual(saved_data["prices"]["101"]["Normal"]["marketPrice"], 30.0)
+
+    def test_aborts_when_no_prices_fetched(self):
+        target_date = "2026-09-18"
+        mock_responses = {
+            "92/groups": {"results": [{"groupId": 100, "name": "Set 1"}]},
+            "92/100/products": {"results": [{"productId": 101, "name": "Card One"}]},
+            "92/100/prices": {"results": []},
+        }
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)), \
+             patch("scrape.fetch_text", return_value="2026-09-18T20:00:00+0000"):
+            success = run_scraper(output_dir=self.price_dir, force=False, target_date=target_date)
+            self.assertFalse(success)
+
+        dated_file = os.path.join(self.price_dir, f"{target_date}.json")
+        self.assertFalse(os.path.exists(dated_file))
 
     def test_skips_product_fetch_when_group_modified_on_matches(self):
         target_date = "2026-09-17"
