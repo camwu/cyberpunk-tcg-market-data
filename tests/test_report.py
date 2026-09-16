@@ -107,11 +107,13 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("`2026-09-11`", content)
         self.assertIn("$235.17", content)
 
+        self.assertIn("## 📊 Portfolio Breakdown", content)
+
         # Rarity breakdown does NOT include "Sealed"
-        self.assertNotIn("Sealed", content.split("## 💎 Portfolio Breakdown by Rarity")[1].split("## 🎨")[0])
+        self.assertNotIn("Sealed", content.split("### Rarity")[1].split("### Color")[0])
 
         # High-Value Singles does NOT contain the booster box
-        singles_section = content.split("## 🌟 High-Value Singles")[1].split("## 📈")[0]
+        singles_section = content.split("### High-Value Singles")[1].split("## 📈 Top Gainers")[0]
         self.assertIn("Johnny Silverhand", singles_section)
         self.assertNotIn("Booster Box", singles_section)
 

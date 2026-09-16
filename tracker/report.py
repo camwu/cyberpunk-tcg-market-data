@@ -273,7 +273,9 @@ def generate_portfolio_report(
 {sealed_section}
 ---
 
-## 💎 Portfolio Breakdown by Rarity
+## 📊 Portfolio Breakdown
+
+### Rarity
 
 | Rarity | Unique Items | Physical Copies | Market Value | % of Portfolio |
 | :--- | :---: | :---: | :---: | :---: |
@@ -285,9 +287,7 @@ def generate_portfolio_report(
         md_content += f"| {r_lbl} | {entries} | {qty} | `${r_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
     md_content += """
----
-
-## 🎨 Portfolio Breakdown by Color
+### Color
 
 | Color | Unique Items | Physical Copies | Market Value | % of Portfolio |
 | :--- | :---: | :---: | :---: | :---: |
@@ -300,9 +300,7 @@ def generate_portfolio_report(
         md_content += f"| **{c_lbl}** | {entries} | {qty} | `${c_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
     md_content += """
----
-
-## 🌟 High-Value Singles (`$10.00`+)
+### High-Value Singles (`$10.00`+)
 
 | Card Name | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: |
