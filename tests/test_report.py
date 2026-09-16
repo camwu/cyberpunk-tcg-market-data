@@ -115,8 +115,8 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("Johnny Silverhand", singles_section)
         self.assertNotIn("Booster Box", singles_section)
 
-        # Top Lifetime Gainers does NOT contain the booster box
-        gainers_section = content.split("## 📈 Top Lifetime Gainers")[1].split("## 📉")[0]
+        # Top Gainers does NOT contain the booster box
+        gainers_section = content.split("## 📈 Top Gainers")[1].split("## 📉 Top Decliners")[0]
         self.assertIn("Johnny Silverhand", gainers_section)
         self.assertNotIn("Booster Box", gainers_section)
 
@@ -161,8 +161,10 @@ class TestReportGeneration(unittest.TestCase):
     def test_report_omits_l7d_when_no_prior_history(self):
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
         content = Path(self.output_md).read_text(encoding="utf-8")
-        self.assertNotIn("## 📈 Top L7D Gainers", content)
-        self.assertNotIn("## 📉 Top L7D Decliners", content)
+        self.assertNotIn("### L7D (Since", content)
+        self.assertIn("## 📈 Top Gainers", content)
+        self.assertIn("### Lifetime", content)
+        self.assertIn("## 📉 Top Decliners", content)
 
     def test_report_l7d_gainers_and_decliners(self):
         conn = sqlite3.connect(self.db_path)
@@ -197,9 +199,11 @@ class TestReportGeneration(unittest.TestCase):
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
         content = Path(self.output_md).read_text(encoding="utf-8")
 
-        # Verify Top L7D Gainers
-        self.assertIn("## 📈 Top L7D Gainers (`2026-09-07`)", content)
-        gainers_l7d = content.split("## 📈 Top L7D Gainers (`2026-09-07`)")[1].split("## 📉 Top L7D Decliners (`2026-09-07`)")[0]
+        # Verify Top Gainers primary section and subsections
+        self.assertIn("## 📈 Top Gainers", content)
+        self.assertIn("### Lifetime", content)
+        self.assertIn("### L7D (Since `2026-09-07`)", content)
+        gainers_l7d = content.split("### L7D (Since `2026-09-07`)")[1].split("## 📉 Top Decliners")[0]
         self.assertIn("Johnny Silverhand", gainers_l7d)
         self.assertIn("$20.00", gainers_l7d)
         self.assertIn("$15.00", gainers_l7d)
@@ -207,9 +211,9 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("+33.3%", gainers_l7d)
         self.assertNotIn("Booster Box", gainers_l7d)
 
-        # Verify Top L7D Decliners
-        self.assertIn("## 📉 Top L7D Decliners (`2026-09-07`)", content)
-        decliners_l7d = content.split("## 📉 Top L7D Decliners (`2026-09-07`)")[1]
+        # Verify Top Decliners primary section and subsections
+        self.assertIn("## 📉 Top Decliners", content)
+        decliners_l7d = content.split("## 📉 Top Decliners")[1].split("### L7D (Since `2026-09-07`)")[1]
         self.assertIn("V - Nomad", decliners_l7d)
         self.assertIn("$20.00", decliners_l7d)
         self.assertIn("$30.00", decliners_l7d)
