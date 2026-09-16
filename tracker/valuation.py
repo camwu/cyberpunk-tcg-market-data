@@ -324,7 +324,7 @@ def calculate_portfolio_valuation(
         if item_type == "Sealed":
             if not acq_date_raw:
                 cur.execute(
-                    "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed' AND (product_id = ? OR name = ?)",
+                    "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed' AND (product_id = ? OR name = ?) ORDER BY first_seen_date ASC LIMIT 1",
                     (prod_id, name),
                 )
                 existing_meta = cur.fetchone()

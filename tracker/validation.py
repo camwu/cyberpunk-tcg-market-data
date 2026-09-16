@@ -5,9 +5,7 @@ Ensures structural correctness before database ingestion.
 
 import csv
 import datetime
-import json
 import os
-from pathlib import Path
 import re
 from typing import List, Optional, Set, Tuple
 
@@ -45,33 +43,9 @@ def extract_date_from_text(text: Optional[str]) -> Optional[str]:
 
 
 def is_sealed_product(name: str, expansion: str = "") -> bool:
-    """Detects whether a product is sealed based on naming conventions and catalog metadata."""
+    """Detects whether a product is sealed based on naming conventions."""
     clean_name = (name or "").strip().lower()
-    if any(keyword in clean_name for keyword in SEALED_KEYWORDS):
-        return True
-
-    # Fallback to checking cards.json catalog if available
-    cards_candidates = [
-        str(Path(__file__).resolve().parent.parent / "cards.json"),
-        "cards.json",
-    ]
-    for c_path in cards_candidates:
-        if os.path.isfile(c_path):
-            try:
-                with open(c_path, "r", encoding="utf-8") as f:
-                    catalog = json.load(f)
-                for item in catalog.values():
-                    if isinstance(item, dict) and not item.get("printNumber"):
-                        cat_name = (item.get("name") or "").strip().lower()
-                        cat_clean = (item.get("cleanName") or "").strip().lower()
-                        cat_group = (item.get("groupName") or "").strip().lower()
-                        if clean_name in (cat_name, cat_clean):
-                            if not expansion or expansion.strip().lower() == cat_group:
-                                return True
-            except Exception:
-                pass
-            break
-    return False
+    return any(keyword in clean_name for keyword in SEALED_KEYWORDS)
 
 
 class CollectionValidationError(Exception):
