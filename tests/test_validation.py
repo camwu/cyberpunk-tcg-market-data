@@ -208,6 +208,54 @@ invalid_id,,Welcome to Night City,0,-5.00,not-a-date
         self.assertEqual(len(errors), 0)
         self.assertEqual(len(rows), 0)
 
+    def test_unified_collection_with_sealed_product(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+MaxTac Suppression Team,Welcome to Night City - Beta,B050,Standard,1,0.20,2026-09-02
+Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,,Standard,1,243.16,2026-09-02
+"""
+        path = self._create_csv("unified.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 2)
+
+        # Card row
+        self.assertEqual(rows[0]["name"], "MaxTac Suppression Team")
+        self.assertEqual(rows[0]["item_type"], "Card")
+        self.assertEqual(rows[0]["printNumber"], "B050")
+        self.assertEqual(rows[0]["acquisitionDate"], "2026-09-02")
+
+        # Sealed row with empty printNumber
+        self.assertEqual(rows[1]["name"], "Welcome to Night City - Beta Booster Box")
+        self.assertEqual(rows[1]["item_type"], "Sealed")
+        self.assertIsNone(rows[1]["printNumber"])
+        self.assertEqual(rows[1]["finish"], "Standard")
+        self.assertEqual(rows[1]["rarity"], "Sealed")
+        self.assertEqual(rows[1]["acquisitionDate"], "2026-09-02")
+
+    def test_card_with_empty_print_number_rejected_in_unified(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price
+Johnny Silverhand,Welcome to Night City - Beta,,Standard,1,10.00
+"""
+        path = self._create_csv("bad_card.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertTrue(any("Row 2: 'printNumber' is empty" in err for err in errors))
+
+    def test_duplicate_sealed_lot_in_unified_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,,Standard,1,243.16,2026-09-02
+Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,,Standard,1,250.00,2026-09-02
+"""
+        path = self._create_csv("dupe_sealed_unified.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertTrue(any("Duplicate sealed lot" in err for err in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -396,15 +396,17 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(res["lifetime_dollar_gain"], 50.34)
 
         conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT card_key, baseline_price, line_total FROM daily_snapshots WHERE date = '2026-10-01' ORDER BY card_key")
-        snapshots = cur.fetchall()
-        self.assertEqual(len(snapshots), 2)
-        self.assertEqual(snapshots[0][0], "SEALED::Welcome to Night City - Beta::714346::2026-09-11")
-        self.assertEqual(snapshots[0][1], 180.00)
-        self.assertEqual(snapshots[1][0], "SEALED::Welcome to Night City - Beta::714346::2026-10-01")
-        self.assertEqual(snapshots[1][1], 240.00)
-        conn.close()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT card_key, baseline_price, line_total FROM daily_snapshots WHERE date = '2026-10-01' ORDER BY card_key")
+            snapshots = cur.fetchall()
+            self.assertEqual(len(snapshots), 2)
+            self.assertEqual(snapshots[0][0], "SEALED::Welcome to Night City - Beta::714346::2026-09-11")
+            self.assertEqual(snapshots[0][1], 180.00)
+            self.assertEqual(snapshots[1][0], "SEALED::Welcome to Night City - Beta::714346::2026-10-01")
+            self.assertEqual(snapshots[1][1], 240.00)
+        finally:
+            conn.close()
 
     def test_valuation_with_explicit_price_file(self):
         # Create a fallback latest.json that differs from target date filename
@@ -524,6 +526,145 @@ class TestPortfolioValuation(unittest.TestCase):
         # Should carry forward previous market price ($10.00) instead of dropping to $0.00
         self.assertEqual(res_d2["total_value"], 20.00)
         self.assertEqual(res_d2["lifetime_dollar_gain"], 0.0)
+
+    def test_unified_valuation_with_sealed_and_clamped_date(self):
+        # Earliest price history available is 2026-09-11
+        daily_prices = {
+            "date": "2026-09-11",
+            "prices": {
+                "101": {"Normal": {"marketPrice": 2.50}},
+                "714346": {"Normal": {"marketPrice": 216.08}},
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        cards_catalog = {
+            "101": {
+                "productId": 101,
+                "name": "V - Corporate Exile",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "rarity": "Nova",
+            },
+            "714346": {
+                "productId": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "cleanName": "Welcome to Night City Beta Booster Box",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": None,
+                "rarity": None,
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        # Single-file collection rows containing both card and sealed item (with CardNexus ID 251426)
+        collection_rows = [
+            {
+                "name": "V - Corporate Exile",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 2.50,
+                "item_type": "Card",
+                "acquisitionDate": "2026-09-02",  # Predates 2026-09-11
+            },
+            {
+                "name": "Welcome to Night City - Beta Booster Box",
+                "expansion": "Welcome to Night City - Beta",
+                "productId": 251426,  # CardNexus ID
+                "printNumber": None,
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 216.08,
+                "item_type": "Sealed",
+                "acquisitionDate": "2026-09-02",  # Predates 2026-09-11
+            },
+        ]
+
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+
+        self.assertEqual(res["total_cards"], 1)
+        self.assertEqual(res["total_sealed"], 1)
+        self.assertEqual(res["unique_items"], 2)
+        self.assertEqual(res["total_value"], 218.58)
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        # Verify sealed item matched TCGplayer ID 714346 and clamped date to 2026-09-11
+        cur.execute("SELECT card_key, product_id, first_seen_date, item_type FROM card_metadata WHERE item_type = 'Sealed'")
+        sealed_meta = cur.fetchone()
+        self.assertEqual(sealed_meta[0], "SEALED::Welcome to Night City - Beta::714346::2026-09-11")
+        self.assertEqual(sealed_meta[1], 714346)
+        self.assertEqual(sealed_meta[2], "2026-09-11")
+        self.assertEqual(sealed_meta[3], "Sealed")
+
+        # Verify card clamped first_seen_date to 2026-09-11
+        cur.execute("SELECT first_seen_date FROM card_metadata WHERE product_id = 101")
+        self.assertEqual(cur.fetchone()[0], "2026-09-11")
+
+        conn.close()
+
+    def test_unified_valuation_missing_date_defaults_to_snapshot_date(self):
+        daily_prices = {
+            "date": "2026-09-15",
+            "prices": {
+                "714346": {"Normal": {"marketPrice": 240.00}},
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-15.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        cards_catalog = {
+            "714346": {
+                "productId": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "groupName": "Welcome to Night City - Beta",
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        # Sealed row without notes or acquisitionDate
+        collection_rows = [
+            {
+                "name": "Welcome to Night City - Beta Booster Box",
+                "expansion": "Welcome to Night City - Beta",
+                "productId": 251426,
+                "printNumber": None,
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 240.00,
+                "item_type": "Sealed",
+            }
+        ]
+
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-15",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+
+        self.assertEqual(res["total_sealed"], 1)
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed'")
+        meta = cur.fetchone()
+        self.assertEqual(meta[0], "SEALED::Welcome to Night City - Beta::714346::2026-09-15")
+        self.assertEqual(meta[1], "2026-09-15")
+        conn.close()
 
 
 class TestReportFormatting(unittest.TestCase):

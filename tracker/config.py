@@ -116,7 +116,8 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
     cli_sealed = cli_overrides.get("sealed_csv")
     sealed_csv_val = cli_sealed or os.getenv("CYBERPUNK_SEALED_CSV") or cfg_data.get("sealed_csv")
     if sealed_csv_val:
-        resolved_sealed = resolve(sealed_csv_val, "data/sealed_inventory.csv")
+        candidate_sealed = resolve(sealed_csv_val, "data/sealed_inventory.csv")
+        resolved_sealed = candidate_sealed if os.path.isfile(candidate_sealed) else None
     else:
         adjacent_sealed = Path(resolved_collection).parent / "sealed_inventory.csv"
         resolved_sealed = str(adjacent_sealed.resolve()) if adjacent_sealed.is_file() else None

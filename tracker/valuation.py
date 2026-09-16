@@ -11,7 +11,42 @@ from pathlib import Path
 import sqlite3
 from typing import Dict, Any, List, Optional
 
-from tracker.validation import validate_collection_file, validate_sealed_file, CollectionValidationError
+from tracker.validation import (
+    validate_collection_file,
+    validate_sealed_file,
+    is_sealed_product,
+    extract_date_from_text,
+    CollectionValidationError,
+)
+
+
+def get_earliest_price_date(cache_dir: str, cur: Optional[sqlite3.Cursor] = None) -> Optional[str]:
+    """Finds the earliest available price date across price cache files and database snapshots."""
+    dates = []
+    candidates = [cache_dir]
+    repo_prices = str(Path(__file__).resolve().parent.parent / "prices")
+    if repo_prices not in candidates:
+        candidates.append(repo_prices)
+
+    for c_dir in candidates:
+        if c_dir and os.path.isdir(c_dir):
+            for f in os.listdir(c_dir):
+                if f.endswith(".json") and f != "latest.json":
+                    stem = f[:-5]
+                    try:
+                        datetime.date.fromisoformat(stem)
+                        dates.append(stem)
+                    except ValueError:
+                        pass
+    if cur:
+        try:
+            cur.execute("SELECT MIN(date) FROM daily_snapshots")
+            db_min = cur.fetchone()[0]
+            if db_min:
+                dates.append(db_min)
+        except Exception:
+            pass
+    return min(dates) if dates else None
 
 
 def init_database(db_path: str):
@@ -177,12 +212,17 @@ def calculate_portfolio_valuation(
 
     catalog_by_group_pnum = {}
     catalog_by_pid = {}
+    catalog_by_group_name = {}
+    catalog_by_group_clean_name = {}
+    catalog_by_name = {}
     for p in prods.values():
         pid = p.get("productId")
         if pid:
             catalog_by_pid[int(pid)] = p
             catalog_by_pid[str(pid)] = p
         g = p.get("groupName", "").strip().lower()
+        p_name = p.get("name", "").strip().lower()
+        p_clean = p.get("cleanName", "").strip().lower()
         pnum = p.get("printNumber")
         if not pnum and isinstance(p.get("extendedData"), dict):
             pnum = p.get("extendedData", {}).get("number")
@@ -205,12 +245,34 @@ def calculate_portfolio_valuation(
                     break
         if g and pnum:
             catalog_by_group_pnum[(g, str(pnum).strip().lower())] = p
+        if g and p_name:
+            catalog_by_group_name[(g, p_name)] = p
+        if g and p_clean:
+            catalog_by_group_clean_name[(g, p_clean)] = p
+        if p_name:
+            catalog_by_name[p_name] = p
+
+    earliest_price_date = get_earliest_price_date(cache_dir, cur)
 
     card_items = list(collection_rows or [])
     sealed_items = list(sealed_rows or [])
-    all_items = card_items + sealed_items
 
-    print(f"Calculating portfolio valuation for {date_str} across {len(card_items)} card rows and {len(sealed_items)} sealed items...")
+    # Deduplicate if sealed items are already present in collection_rows
+    if sealed_items:
+        card_item_identifiers = {
+            (r.get("name", "").strip().lower(), r.get("expansion", "").strip().lower())
+            for r in card_items
+            if r.get("item_type") == "Sealed" or is_sealed_product(r.get("name", ""), r.get("expansion", ""))
+        }
+        sealed_deduped = [
+            s for s in sealed_items
+            if (s.get("name", "").strip().lower(), s.get("expansion", "").strip().lower()) not in card_item_identifiers
+        ]
+        all_items = card_items + sealed_deduped
+    else:
+        all_items = card_items
+
+    print(f"Calculating portfolio valuation for {date_str} across {len(card_items)} collection rows and {len(sealed_items)} legacy sealed items...")
 
     total_value = 0.0
     total_cards = 0
@@ -219,7 +281,10 @@ def calculate_portfolio_valuation(
     total_lifetime_gain = 0.0
 
     for row in all_items:
-        item_type = row.get("item_type") or "Card"
+        item_type = row.get("item_type")
+        if not item_type:
+            item_type = "Sealed" if is_sealed_product(row.get("name", ""), row.get("expansion", "")) else "Card"
+
         name = row["name"].strip()
         expansion = row["expansion"].strip()
         print_number = (row.get("printNumber") or "").strip() or None
@@ -234,13 +299,40 @@ def calculate_portfolio_valuation(
             prod = catalog_by_pid.get(int(row_pid)) or catalog_by_pid.get(str(row_pid))
         if not prod and print_number:
             prod = catalog_by_group_pnum.get((expansion.lower(), print_number.lower()))
+        if not prod:
+            prod = catalog_by_group_name.get((expansion.lower(), name.lower()))
+        if not prod:
+            prod = catalog_by_group_clean_name.get((expansion.lower(), name.lower()))
+        if not prod:
+            prod = catalog_by_name.get(name.lower())
 
         prod_id = prod["productId"] if prod else (int(row_pid) if row_pid else None)
         rarity = prod.get("rarity") if prod else row.get("rarity")
 
+        acq_date_raw = (row.get("acquisitionDate") or "").strip()
+        if not acq_date_raw and row.get("notes"):
+            acq_date_raw = extract_date_from_text(row.get("notes")) or ""
+
+        if acq_date_raw:
+            if earliest_price_date and acq_date_raw < earliest_price_date:
+                effective_acq_date = earliest_price_date
+            else:
+                effective_acq_date = acq_date_raw
+        else:
+            effective_acq_date = date_str
+
         if item_type == "Sealed":
-            acq_date = (row.get("acquisitionDate") or "").strip()
-            card_key = f"SEALED::{expansion}::{prod_id or name}::{acq_date}" if acq_date else f"SEALED::{expansion}::{prod_id or name}"
+            if not acq_date_raw:
+                cur.execute(
+                    "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed' AND (product_id = ? OR name = ?)",
+                    (prod_id, name),
+                )
+                existing_meta = cur.fetchone()
+                if existing_meta and existing_meta[1]:
+                    effective_acq_date = existing_meta[1]
+                else:
+                    effective_acq_date = date_str
+            card_key = f"SEALED::{expansion}::{prod_id or name}::{effective_acq_date}"
             rarity = "Sealed"
         else:
             card_key = f"{expansion}::{print_number}::{finish}"
@@ -307,18 +399,19 @@ def calculate_portfolio_valuation(
                 cur.execute("UPDATE card_metadata SET color = ? WHERE card_key = ?", (color, card_key))
             if not existing_item_type or existing_item_type != item_type:
                 cur.execute("UPDATE card_metadata SET item_type = ? WHERE card_key = ?", (item_type, card_key))
-            if item_type == "Sealed" and fallback_price > 0.0 and baseline_price != fallback_price:
-                baseline_price = fallback_price
-                cur.execute("UPDATE card_metadata SET baseline_market_price = ? WHERE card_key = ?", (baseline_price, card_key))
-            elif (baseline_price is None or baseline_price <= 0.0) and market_price > 0.0:
-                baseline_price = market_price
-                cur.execute("UPDATE card_metadata SET baseline_market_price = ? WHERE card_key = ?", (baseline_price, card_key))
+            if baseline_price is None or baseline_price <= 0.0:
+                if fallback_price > 0.0:
+                    baseline_price = fallback_price
+                elif market_price > 0.0:
+                    baseline_price = market_price
+                if baseline_price and baseline_price > 0.0:
+                    cur.execute("UPDATE card_metadata SET baseline_market_price = ? WHERE card_key = ?", (baseline_price, card_key))
         else:
             if item_type == "Sealed" and fallback_price > 0.0:
                 baseline_price = fallback_price
             else:
                 baseline_price = market_price
-            first_seen = acq_date if (item_type == "Sealed" and acq_date) else date_str
+            first_seen = effective_acq_date
             cur.execute("""
             INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
