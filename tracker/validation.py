@@ -6,12 +6,46 @@ Ensures structural correctness before database ingestion.
 import csv
 import datetime
 import os
-from typing import List, Tuple
+import re
+from typing import List, Optional, Set, Tuple
 
 REQUIRED_COLUMNS = {"name", "expansion", "printNumber", "finish", "totalQtyOwned"}
 REQUIRED_SEALED_COLUMNS = {"productId", "name", "expansion", "totalQtyOwned", "acquisitionDate"}
 VALID_FINISHES = {"standard", "foil"}
 FINISH_ALIASES = {"normal": "Standard"}
+SEALED_KEYWORDS = (
+    "booster box",
+    "booster pack",
+    "starter deck",
+    "display",
+    "box case",
+    "booster case",
+    "sealed",
+    "alpha kit",
+    "bundle",
+    "blister",
+)
+
+
+def extract_date_from_text(text: Optional[str]) -> Optional[str]:
+    """Extracts the first valid YYYY-MM-DD date pattern from text, or returns None."""
+    if not text:
+        return None
+    match = re.search(r"\b\d{4}-\d{2}-\d{2}\b", str(text).strip())
+    if match:
+        date_candidate = match.group(0)
+        try:
+            datetime.date.fromisoformat(date_candidate)
+            return date_candidate
+        except ValueError:
+            return None
+    return None
+
+
+def is_sealed_product(name: str, expansion: str = "") -> bool:
+    """Detects whether a product is sealed based on naming conventions."""
+    clean_name = (name or "").strip().lower()
+    return any(keyword in clean_name for keyword in SEALED_KEYWORDS)
 
 
 class CollectionValidationError(Exception):
@@ -25,6 +59,7 @@ class CollectionValidationError(Exception):
 def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, List[str], List[dict]]:
     """
     Validates a collection CSV file against mandatory schema and data integrity constraints.
+    Supports unified CardNexus exports containing single cards and sealed products.
     Returns (is_valid, list_of_error_strings, list_of_validated_rows).
     """
     errors: List[str] = []
@@ -53,6 +88,7 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
 
             row_count = 0
             row_errors = 0
+            seen_sealed_lots: Set[Tuple[str, str, str]] = set()
             for row_idx, row in enumerate(reader, start=2):
                 row_count += 1
                 if missing:
@@ -64,6 +100,8 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
                 finish = (row.get("finish") or "").strip()
                 qty_raw = (row.get("totalQtyOwned") or "").strip()
                 price_raw = (row.get("price") or "").strip()
+                notes_raw = (row.get("notes") or "").strip()
+                acq_date_col = (row.get("acquisitionDate") or "").strip()
 
                 if not name:
                     errors.append(f"Row {row_idx}: 'name' is empty.")
@@ -71,15 +109,18 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
                 if not expansion:
                     errors.append(f"Row {row_idx}: 'expansion' is empty.")
                     row_errors += 1
-                if not print_number:
+
+                # Determine item type (Sealed vs Card)
+                is_sealed = (row.get("item_type") == "Sealed") or is_sealed_product(name, expansion)
+                item_type = "Sealed" if is_sealed else "Card"
+
+                if not is_sealed and not print_number:
                     errors.append(f"Row {row_idx}: 'printNumber' is empty.")
                     row_errors += 1
 
-                normalized_finish = finish
-                if not finish:
-                    errors.append(f"Row {row_idx}: 'finish' is empty.")
-                    row_errors += 1
-                else:
+                # Normalize finish
+                normalized_finish = "Standard"
+                if finish:
                     finish_key = finish.lower()
                     if finish_key in FINISH_ALIASES:
                         normalized_finish = FINISH_ALIASES[finish_key]
@@ -88,6 +129,24 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
                     else:
                         errors.append(f"Row {row_idx}: 'finish' must be 'Standard' or 'Foil' (got '{finish}').")
                         row_errors += 1
+                elif not is_sealed:
+                    errors.append(f"Row {row_idx}: 'finish' is empty.")
+                    row_errors += 1
+
+                # Acquisition date discovery from notes or dedicated column
+                acq_date = extract_date_from_text(acq_date_col) or extract_date_from_text(notes_raw)
+                if acq_date_col and not acq_date:
+                    errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format (got '{acq_date_col}').")
+                    row_errors += 1
+
+                # Prevent duplicate sealed lots sharing the same lot key
+                if is_sealed and acq_date:
+                    lot_key = (name.lower(), expansion.lower(), acq_date)
+                    if lot_key in seen_sealed_lots:
+                        errors.append(f"Row {row_idx}: Duplicate sealed lot for '{name}' and acquisitionDate '{acq_date}'. Combine quantities using 'totalQtyOwned'.")
+                        row_errors += 1
+                    else:
+                        seen_sealed_lots.add(lot_key)
 
                 qty = 0
                 try:
@@ -118,15 +177,18 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
                 row_copy = dict(row)
                 row_copy["name"] = name
                 row_copy["expansion"] = expansion
-                row_copy["printNumber"] = print_number
+                row_copy["printNumber"] = print_number or None
                 row_copy["finish"] = normalized_finish
                 row_copy["totalQtyOwned"] = qty
                 row_copy["price"] = price
-                row_copy["item_type"] = "Card"
+                row_copy["item_type"] = item_type
+                row_copy["acquisitionDate"] = acq_date
+                if is_sealed:
+                    row_copy["rarity"] = "Sealed"
                 validated_rows.append(row_copy)
 
             if row_count == 0 and not errors:
-                errors.append("Collection CSV contains 0 card rows.")
+                errors.append("Collection CSV contains 0 inventory rows.")
 
     except UnicodeDecodeError as e:
         return False, [f"Unable to decode CSV as UTF-8: {e}"], []

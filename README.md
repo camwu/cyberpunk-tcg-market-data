@@ -34,7 +34,10 @@ python scrape.py prices --force
 ### 2. Portfolio Valuation
 
 1. **Add your collection CSV**:
-   Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The engine validates that required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) are present and automatically selects the newest file by modification timestamp.
+   Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The engine ingests both single cards and sealed products (e.g. Booster Boxes, Starter Decks) from a unified CardNexus export.
+   - **Sealed Products**: Identified by product catalog matching and naming conventions; `printNumber` is optional for sealed items.
+   - **Acquisition Dates**: Extracted from the CardNexus `notes` field using the first `YYYY-MM-DD` date found in the entry. Additional freeform text can surround the date, but the purchase date must appear as the first `YYYY-MM-DD` occurrence. If an acquisition date predates the earliest available price history, the baseline clamps to the oldest market price date. If the `notes` field omits an acquisition date, the database defaults the item's acquisition date to the snapshot date when it first appears in an imported collection CSV.
+   - **Auto-Discovery**: The engine validates required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) and automatically selects the newest CSV by modification timestamp.
 
 2. **Run the tracker**:
    - **Windows 1-Click / Drag-and-Drop**: Double-click `update_portfolio.bat`, or drag-and-drop any CSV file onto it.
@@ -77,8 +80,8 @@ python -m unittest discover tests -v
 
 ### Named Parameters & Flags
 - `--config <path>`: Path to custom JSON configuration file (e.g. `config.json`).
-- `--collection <path>`: Path to active card collection CSV file (overrides configuration file).
-- `--sealed <path>`: Path to sealed inventory CSV file (overrides configuration file).
+- `--collection <path>`: Path to active collection CSV file containing cards and sealed products (overrides configuration file).
+- `--sealed <path>`: Optional / legacy path to separate sealed inventory CSV file (overrides configuration file).
 - `--db <path>`: Path to SQLite historical database (default: `data/price_history.db`).
 - `--prices <path>`: Path to daily price cache directory (default: `prices`).
 - `--output <path>`: Path to markdown summary report (default: `LATEST_PORTFOLIO_SUMMARY.md`).

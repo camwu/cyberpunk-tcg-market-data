@@ -28,6 +28,8 @@ def import_collection_file(source_path: str, target_path: str, backup_dir: str) 
         return False
 
     total_items = len(rows)
+    card_items = sum(1 for r in rows if r.get("item_type") != "Sealed")
+    sealed_items = sum(1 for r in rows if r.get("item_type") == "Sealed")
     total_qty = sum(int(r.get("totalQtyOwned", 1)) for r in rows)
 
     os.makedirs(backup_dir, exist_ok=True)
@@ -40,7 +42,8 @@ def import_collection_file(source_path: str, target_path: str, backup_dir: str) 
         print(f"Backed up existing collection to {backup_file}")
 
     shutil.copyfile(source_path, target_path)
-    print(f"Successfully imported active collection: {total_items} card entries ({total_qty} physical copies).")
+    sealed_info = f" and {sealed_items} sealed items" if sealed_items else ""
+    print(f"Successfully imported active collection: {total_items} entries ({card_items} cards{sealed_info}, {total_qty} physical units).")
     return True
 
 
@@ -92,7 +95,7 @@ def main():
             sys.exit(1)
 
     sealed_rows = []
-    if cfg.sealed_csv:
+    if cfg.sealed_csv and os.path.isfile(cfg.sealed_csv):
         is_sealed_valid, sealed_errors, sealed_rows = validate_sealed_file(cfg.sealed_csv)
         if not is_sealed_valid:
             print(f"\nError: Sealed inventory validation failed for '{cfg.sealed_csv}':", file=sys.stderr)
@@ -142,7 +145,7 @@ def main():
     else:
         print(f"Collection source: {cfg.collection_csv}")
 
-    if cfg.sealed_csv:
+    if cfg.sealed_csv and os.path.isfile(cfg.sealed_csv):
         print(f"Sealed source: {Path(cfg.sealed_csv).name} ({len(sealed_rows)} items)")
 
     is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)
@@ -151,6 +154,11 @@ def main():
         for err in validation_errors:
             print(f"  - {err}", file=sys.stderr)
         sys.exit(1)
+
+    cards_count = sum(1 for r in collection_rows if r.get("item_type") != "Sealed")
+    sealed_count = sum(1 for r in collection_rows if r.get("item_type") == "Sealed")
+    if sealed_count > 0:
+        print(f"Discovered {len(collection_rows)} collection entries: {cards_count} card entries and {sealed_count} sealed items.")
 
     price_file = sync_market_prices(price_dir=cfg.price_cache_dir, target_date=today, force=args.force, live=args.live)
 
