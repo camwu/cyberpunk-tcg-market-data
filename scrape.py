@@ -157,6 +157,10 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
             "modifiedOn": group_modified,
         }
 
+    if not all_prices:
+        print(f"Error: No price records fetched from TCGCSV for Category {CATEGORY_ID}. Aborting scrape to protect existing snapshots.", file=sys.stderr)
+        return False
+
     # 1. Update static cards.json catalog
     if catalog or updated_groups != existing_groups:
         existing_cards["_groups"] = updated_groups

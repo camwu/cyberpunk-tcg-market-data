@@ -274,6 +274,9 @@ def sync_market_prices(
             "modifiedOn": group_modified,
         }
 
+    if not all_prices:
+        raise RuntimeError(f"No price records fetched from TCGCSV for Category {CATEGORY_ID}.")
+
     # Update cards.json catalog
     if catalog or updated_groups != existing_groups:
         existing_cards["_groups"] = updated_groups
