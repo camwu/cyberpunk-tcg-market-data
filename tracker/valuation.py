@@ -161,6 +161,8 @@ def calculate_portfolio_valuation(
         daily_prices = cache_data.get("prices", {})
         prods = {}
         for pid_str, card_meta in cards_catalog.items():
+            if str(pid_str).startswith("_"):
+                continue
             card_dict = dict(card_meta)
             card_dict["prices"] = daily_prices.get(pid_str, {})
             prods[pid_str] = card_dict

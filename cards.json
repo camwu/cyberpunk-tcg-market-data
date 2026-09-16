@@ -1,4 +1,50 @@
 {
+  "_groups": {
+    "24845": {
+      "name": "Welcome to Night City - Beta",
+      "modifiedOn": "2026-09-14T15:24:34.933"
+    },
+    "24846": {
+      "name": "Embracing Power - Beta Starter Deck",
+      "modifiedOn": "2026-09-02T20:08:53.53"
+    },
+    "24847": {
+      "name": "The Heist - Beta Starter Deck",
+      "modifiedOn": "2026-09-02T20:11:18.173"
+    },
+    "24848": {
+      "name": "Box Toppers - Beta",
+      "modifiedOn": "2026-09-03T18:17:36.753"
+    },
+    "24855": {
+      "name": "Welcome to Night City - Retail",
+      "modifiedOn": "2026-09-03T15:19:21.117"
+    },
+    "24857": {
+      "name": "Box Toppers - Retail",
+      "modifiedOn": "2026-09-03T18:28:10.553"
+    },
+    "24858": {
+      "name": "Embracing Power - Retail Starter Deck",
+      "modifiedOn": "2026-09-03T19:06:42.527"
+    },
+    "24859": {
+      "name": "The Heist - Retail Starter Deck",
+      "modifiedOn": "2026-09-03T19:46:50.067"
+    },
+    "24860": {
+      "name": "Set 1 Promos",
+      "modifiedOn": "2026-09-03T19:34:57.447"
+    },
+    "24880": {
+      "name": "Pre-Release Beta",
+      "modifiedOn": "2026-09-14T19:38:47.483"
+    },
+    "24881": {
+      "name": "Alpha Kit",
+      "modifiedOn": "2026-09-15T14:34:14.323"
+    }
+  },
   "715194": {
     "productId": 715194,
     "name": "V - Corporate Exile",

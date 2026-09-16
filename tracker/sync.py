@@ -18,6 +18,7 @@ import urllib.request
 
 CATEGORY_ID = 92
 BASE_URL = "https://tcgcsv.com/tcgplayer"
+LAST_UPDATED_URL = "https://tcgcsv.com/last-updated.txt"
 ARCHIVE_BASE_URL = "https://tcgcsv.com/archive/tcgplayer"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/camwu/cyberpunk-tcg-market-data/main"
 GITHUB_RAW_URL = f"{GITHUB_RAW_BASE}/prices"
@@ -65,6 +66,16 @@ def find_7z() -> Optional[str]:
         if os.path.isfile(p):
             return p
     return None
+
+
+def fetch_text(url: str) -> Optional[str]:
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.read().decode("utf-8").strip()
+    except Exception as e:
+        print(f"Error fetching {url}: {e}", file=sys.stderr)
+        return None
 
 
 def fetch_json(url: str, quiet_not_found: bool = False):
@@ -172,21 +183,48 @@ def sync_market_prices(
         )
 
     # 4. Live scrape from TCGCSV (only reached if live=True)
+    last_updated = fetch_text(LAST_UPDATED_URL)
+    if last_updated:
+        print(f"TCGCSV upstream build timestamp: {last_updated}")
     print(f"Fetching live market prices for {today} from TCGCSV...")
     groups_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/groups")
     if not groups_data or not groups_data.get("results"):
         raise RuntimeError("Failed to fetch group catalog from TCGCSV.")
 
+    cards_file = sync_cards_catalog(price_dir)
+    existing_cards = {}
+    if os.path.isfile(cards_file):
+        try:
+            with open(cards_file, "r", encoding="utf-8") as f:
+                existing_cards = json.load(f)
+        except Exception:
+            pass
+
+    existing_groups = existing_cards.get("_groups", {})
+    existing_group_ids = {
+        card["groupId"]
+        for k, card in existing_cards.items()
+        if not k.startswith("_") and isinstance(card, dict) and "groupId" in card
+    }
+
     catalog = {}
     all_prices = {}
+    updated_groups = dict(existing_groups)
     total_groups = len(groups_data["results"])
 
     for idx, group in enumerate(groups_data["results"], start=1):
         gid = group["groupId"]
         gname = group["name"]
-        print(f"[{idx}/{total_groups}] Fetching {gname} (ID: {gid})...")
-        time.sleep(0.2)
-        prod_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/{gid}/products")
+        group_modified = group.get("modifiedOn")
+        cached_group = existing_groups.get(str(gid))
+
+        need_products = (
+            force
+            or gid not in existing_group_ids
+            or not cached_group
+            or (group_modified and cached_group.get("modifiedOn") != group_modified)
+        )
+
         time.sleep(0.2)
         price_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/{gid}/prices")
 
@@ -204,46 +242,54 @@ def sync_market_prices(
                     "directLowPrice": pr.get("directLowPrice"),
                 }
 
-        if prod_data and "results" in prod_data:
-            for p in prod_data["results"]:
-                pid = p["productId"]
-                print_number = None
-                rarity = None
-                for ext in p.get("extendedData", []):
-                    if ext.get("name") == "Number":
-                        print_number = ext.get("value")
-                    elif ext.get("name") == "Rarity":
-                        rarity = ext.get("value")
+        if need_products:
+            print(f"[{idx}/{total_groups}] Fetching {gname} (ID: {gid}) metadata...")
+            time.sleep(0.2)
+            prod_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/{gid}/products")
+            if prod_data and "results" in prod_data:
+                for p in prod_data["results"]:
+                    pid = p["productId"]
+                    print_number = None
+                    rarity = None
+                    for ext in p.get("extendedData", []):
+                        if ext.get("name") == "Number":
+                            print_number = ext.get("value")
+                        elif ext.get("name") == "Rarity":
+                            rarity = ext.get("value")
 
-                catalog[str(pid)] = {
-                    "productId": pid,
-                    "name": p.get("name"),
-                    "cleanName": p.get("cleanName"),
-                    "groupId": gid,
-                    "groupName": gname,
-                    "printNumber": print_number,
-                    "rarity": rarity,
-                }
+                    catalog[str(pid)] = {
+                        "productId": pid,
+                        "name": p.get("name"),
+                        "cleanName": p.get("cleanName"),
+                        "groupId": gid,
+                        "groupName": gname,
+                        "printNumber": print_number,
+                        "rarity": rarity,
+                    }
+        else:
+            print(f"[{idx}/{total_groups}] Fetching {gname} (ID: {gid}) prices only...")
+
+        updated_groups[str(gid)] = {
+            "name": gname,
+            "modifiedOn": group_modified,
+        }
 
     # Update cards.json catalog
-    cards_file = sync_cards_catalog(price_dir)
-    existing_cards = {}
-    if os.path.isfile(cards_file):
-        try:
-            with open(cards_file, "r", encoding="utf-8") as f:
-                existing_cards = json.load(f)
-        except Exception:
-            pass
-    existing_cards.update(catalog)
-    with open(cards_file, "w", encoding="utf-8") as f:
-        json.dump(existing_cards, f, indent=2)
+    if catalog or updated_groups != existing_groups:
+        existing_cards["_groups"] = updated_groups
+        existing_cards.update(catalog)
+        with open(cards_file, "w", encoding="utf-8") as f:
+            json.dump(existing_cards, f, indent=2)
+
+    total_products = len([k for k in existing_cards if not k.startswith("_")])
 
     payload = {
         "date": today,
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "tcgcsvBuild": last_updated,
         "category": "Cyberpunk TCG",
         "categoryId": CATEGORY_ID,
-        "productCount": len(catalog),
+        "productCount": total_products,
         "prices": all_prices,
     }
 
