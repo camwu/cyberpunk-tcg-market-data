@@ -456,6 +456,75 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(res["total_value"], 30.00)
         self.assertEqual(res["total_cards"], 2)
 
+    def test_carry_forward_unlisted_market_price(self):
+        # Day 1: Card is priced at $10.00
+        daily_prices_d1 = {
+            "date": "2026-09-13",
+            "prices": {
+                "303": {"Normal": {"marketPrice": 10.00}}
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-13.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices_d1, f)
+
+        cards_catalog = {
+            "303": {
+                "productId": 303,
+                "name": "Dexter DeShawn - One Last Chance",
+                "cleanName": "Dexter DeShawn One Last Chance",
+                "groupId": 2000,
+                "groupName": "The Heist - Beta Starter Deck",
+                "printNumber": "B016",
+                "rarity": "Uncommon",
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        collection_rows = [
+            {
+                "name": "Dexter DeShawn - One Last Chance",
+                "expansion": "The Heist - Beta Starter Deck",
+                "printNumber": "B016",
+                "finish": "Standard",
+                "totalQtyOwned": 2,
+                "price": 0.00,
+            }
+        ]
+
+        res_d1 = calculate_portfolio_valuation(
+            date_str="2026-09-13",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+        self.assertEqual(res_d1["total_value"], 20.00)
+        self.assertEqual(res_d1["lifetime_dollar_gain"], 0.0)
+
+        # Day 2: Market scrape lacks pricing data for product 303 (unlisted / None)
+        daily_prices_d2 = {
+            "date": "2026-09-14",
+            "prices": {
+                "303": {"Normal": {"marketPrice": None}}
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-14.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices_d2, f)
+
+        res_d2 = calculate_portfolio_valuation(
+            date_str="2026-09-14",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+        # Should carry forward previous market price ($10.00) instead of dropping to $0.00
+        self.assertEqual(res_d2["total_value"], 20.00)
+        self.assertEqual(res_d2["lifetime_dollar_gain"], 0.0)
+
 
 class TestReportFormatting(unittest.TestCase):
 
