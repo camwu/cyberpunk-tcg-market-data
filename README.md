@@ -132,4 +132,4 @@ python run_tracker.py --config custom_config.json
 
 This project is an unofficial tool and is not affiliated with, endorsed by, or sponsored by CD PROJEKT RED or Weird Co. *Cyberpunk* and *Cyberpunk 2077* are registered trademarks and copyright of CD PROJEKT S.A., the Cyberpunk Trading Card Game is produced by Weird Co. under license, and all card names, images, and game assets are the property of their respective owners.
 
-The software and documentation in this repository are licensed under the [MIT License](LICENSE).
+The software and documentation in this repository are licensed under the [GNU General Public License v3.0](COPYING).
