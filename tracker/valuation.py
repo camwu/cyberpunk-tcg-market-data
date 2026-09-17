@@ -371,14 +371,7 @@ def calculate_portfolio_valuation(
             elif fallback_price > 0.0:
                 market_price = fallback_price
             else:
-                cur.execute("SELECT baseline_market_price FROM card_metadata WHERE card_key = ?", (card_key,))
-                base_row = cur.fetchone()
-                if base_row and base_row[0] and base_row[0] > 0.0:
-                    market_price = base_row[0]
-                elif fallback_price > 0.0:
-                    market_price = fallback_price
-                else:
-                    market_price = None
+                market_price = None
 
         if market_price is not None and market_price > 0.0:
             unit_low = prices.get("lowPrice") or market_price

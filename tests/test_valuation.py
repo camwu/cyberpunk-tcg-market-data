@@ -800,6 +800,25 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(sum_row[2], 6.00)
         self.assertEqual(sum_row[0], sum_row[2])
         self.assertEqual(sum_row[1], sum_row[3])
+
+        # Force re-running Day 1 must NOT leak the Day 3 established baseline (4.00) backward into Day 1
+        res_d1_rerun = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+        self.assertEqual(res_d1_rerun["total_value"], 10.00)
+        cur.execute("""
+        SELECT unit_market_price, baseline_price, lifetime_gain_dollar
+        FROM daily_snapshots
+        WHERE date = '2026-09-11' AND card_key = 'The Heist - Beta Starter Deck::B015::Standard'
+        """)
+        rerun_snapshot = cur.fetchone()
+        self.assertIsNone(rerun_snapshot[0])
+        self.assertIsNone(rerun_snapshot[2])
         conn.close()
 
 
