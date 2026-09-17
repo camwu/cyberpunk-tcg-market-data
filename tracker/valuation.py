@@ -366,7 +366,7 @@ def calculate_portfolio_valuation(
             LIMIT 1
             """, (card_key, date_str))
             prev_price_row = cur.fetchone()
-            if prev_price_row and prev_price_row[0] > 0.0:
+            if prev_price_row and prev_price_row[0] is not None and prev_price_row[0] > 0.0:
                 market_price = prev_price_row[0]
             elif fallback_price > 0.0:
                 market_price = fallback_price
@@ -375,15 +375,24 @@ def calculate_portfolio_valuation(
                 base_row = cur.fetchone()
                 if base_row and base_row[0] and base_row[0] > 0.0:
                     market_price = base_row[0]
-                else:
+                elif fallback_price > 0.0:
                     market_price = fallback_price
+                else:
+                    market_price = None
 
-        unit_low = prices.get("lowPrice") or market_price
-        unit_mid = prices.get("midPrice") or market_price
-        unit_high = prices.get("highPrice") or market_price
+        if market_price is not None and market_price > 0.0:
+            unit_low = prices.get("lowPrice") or market_price
+            unit_mid = prices.get("midPrice") or market_price
+            unit_high = prices.get("highPrice") or market_price
+            line_total = round(qty * market_price, 2)
+            total_value += line_total
+        else:
+            market_price = None
+            unit_low = None
+            unit_mid = None
+            unit_high = None
+            line_total = None
 
-        line_total = round(qty * market_price, 2)
-        total_value += line_total
         if item_type == "Sealed":
             total_sealed += qty
         else:
@@ -402,24 +411,32 @@ def calculate_portfolio_valuation(
             if baseline_price is None or baseline_price <= 0.0:
                 if fallback_price > 0.0:
                     baseline_price = fallback_price
-                elif market_price > 0.0:
+                elif market_price is not None and market_price > 0.0:
                     baseline_price = market_price
                 if baseline_price and baseline_price > 0.0:
                     cur.execute("UPDATE card_metadata SET baseline_market_price = ? WHERE card_key = ?", (baseline_price, card_key))
         else:
             if item_type == "Sealed" and fallback_price > 0.0:
                 baseline_price = fallback_price
-            else:
+            elif market_price is not None and market_price > 0.0:
                 baseline_price = market_price
+            elif fallback_price > 0.0:
+                baseline_price = fallback_price
+            else:
+                baseline_price = None
             first_seen = effective_acq_date
             cur.execute("""
             INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (card_key, prod_id, name, print_number, expansion, finish, rarity, color, first_seen, baseline_price, item_type))
 
-        card_gain_dollar = round((market_price - baseline_price) * qty, 2)
-        card_gain_pct = round(((market_price - baseline_price) / baseline_price) * 100.0, 2) if baseline_price > 0 else 0.0
-        total_lifetime_gain += card_gain_dollar
+        if market_price is not None and baseline_price is not None and market_price > 0.0 and baseline_price > 0.0:
+            card_gain_dollar = round((market_price - baseline_price) * qty, 2)
+            card_gain_pct = round(((market_price - baseline_price) / baseline_price) * 100.0, 2)
+            total_lifetime_gain += card_gain_dollar
+        else:
+            card_gain_dollar = None
+            card_gain_pct = None
 
         cur.execute("""
         INSERT OR REPLACE INTO daily_snapshots (
@@ -437,18 +454,35 @@ def calculate_portfolio_valuation(
     lifetime_pct_gain = round((total_lifetime_gain / portfolio_baseline) * 100.0, 2) if portfolio_baseline > 0 else 0.0
 
     cur.execute("""
-    SELECT date, total_value
+    SELECT date
     FROM portfolio_daily_summary
     WHERE date < ?
     ORDER BY date DESC
     LIMIT 7
     """, (date_str,))
-    history_rows = cur.fetchall()
+    history_dates = cur.fetchall()
 
-    if history_rows:
-        baseline_l7d = history_rows[-1][1]
-        l7d_dollar_delta = round(total_value - baseline_l7d, 2)
-        l7d_pct_delta = round((l7d_dollar_delta / baseline_l7d) * 100.0, 2) if baseline_l7d > 0 else 0.0
+    if history_dates:
+        l7d_target_date = history_dates[-1][0]
+        cur.execute("""
+        SELECT s.card_key, s.quantity, s.unit_market_price, s.baseline_price, prev.unit_market_price
+        FROM daily_snapshots s
+        LEFT JOIN daily_snapshots prev ON s.card_key = prev.card_key AND prev.date = ?
+        WHERE s.date = ? AND s.unit_market_price IS NOT NULL
+        """, (l7d_target_date, date_str))
+
+        l7d_dollar_delta = 0.0
+        l7d_baseline_total = 0.0
+        for ckey, qty, curr_p, base_p, prev_p in cur.fetchall():
+            ref_p = prev_p if (prev_p is not None and prev_p > 0.0) else base_p
+            if ref_p is not None and ref_p > 0.0:
+                l7d_dollar_delta += (curr_p - ref_p) * qty
+                l7d_baseline_total += ref_p * qty
+            elif curr_p is not None and curr_p > 0.0:
+                l7d_baseline_total += curr_p * qty
+
+        l7d_dollar_delta = round(l7d_dollar_delta, 2)
+        l7d_pct_delta = round((l7d_dollar_delta / l7d_baseline_total) * 100.0, 2) if l7d_baseline_total > 0 else 0.0
     else:
         l7d_dollar_delta = 0.0
         l7d_pct_delta = 0.0

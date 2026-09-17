@@ -666,6 +666,142 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(meta[1], "2026-09-15")
         conn.close()
 
+    def test_unpriced_card_stores_null_and_maintains_l7d_parity(self):
+        # Catalog with 1 priced card (101) and 1 unpriced card (202)
+        cards_catalog = {
+            "101": {
+                "productId": 101,
+                "name": "Johnny Silverhand",
+                "cleanName": "Johnny Silverhand",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "001",
+                "rarity": "Iconic",
+            },
+            "202": {
+                "productId": 202,
+                "name": "MT0D12 Flathead",
+                "cleanName": "MT0D12 Flathead",
+                "groupName": "The Heist - Beta Starter Deck",
+                "printNumber": "B015",
+                "rarity": "Uncommon",
+            },
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        collection_rows = [
+            {
+                "name": "Johnny Silverhand",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "001",
+                "finish": "Foil",
+                "totalQtyOwned": 1,
+                "price": 0.0,
+            },
+            {
+                "name": "MT0D12 Flathead",
+                "expansion": "The Heist - Beta Starter Deck",
+                "printNumber": "B015",
+                "finish": "Standard",
+                "totalQtyOwned": 2,
+                "price": 0.0,
+            },
+        ]
+
+        # Day 1: 101 is $10.00, 202 has no market price (empty prices dict)
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump({
+                "date": "2026-09-11",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 10.00}},
+                    "202": {},
+                },
+            }, f)
+
+        res_d1 = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+        self.assertEqual(res_d1["total_value"], 10.00)
+        self.assertEqual(res_d1["total_cards"], 3)
+        self.assertEqual(res_d1["lifetime_dollar_gain"], 0.0)
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+        SELECT unit_market_price, line_total, baseline_price, lifetime_gain_dollar, lifetime_gain_pct
+        FROM daily_snapshots
+        WHERE date = '2026-09-11' AND card_key = 'The Heist - Beta Starter Deck::B015::Standard'
+        """)
+        unpriced_snapshot = cur.fetchone()
+        self.assertIsNone(unpriced_snapshot[0])
+        self.assertIsNone(unpriced_snapshot[1])
+        self.assertIsNone(unpriced_snapshot[2])
+        self.assertIsNone(unpriced_snapshot[3])
+        self.assertIsNone(unpriced_snapshot[4])
+
+        # Day 3: 101 rises to $15.00 (+5.00). 202 discovers first price at $4.00 (baseline $4.00, gain 0.0)
+        with open(os.path.join(self.cache_dir, "2026-09-13.json"), "w", encoding="utf-8") as f:
+            json.dump({
+                "date": "2026-09-13",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 15.00}},
+                    "202": {"Normal": {"marketPrice": 4.00}},
+                },
+            }, f)
+
+        res_d2 = calculate_portfolio_valuation(
+            date_str="2026-09-13",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+        # Total value: 15.00 + (2 * 4.00) = 23.00
+        self.assertEqual(res_d2["total_value"], 23.00)
+        self.assertEqual(res_d2["lifetime_dollar_gain"], 5.00)
+
+        # Day 5: 101 is $12.00 (+2.00). 202 rises to $6.00 (+4.00 total gain: (6.00 - 4.00) * 2)
+        with open(os.path.join(self.cache_dir, "2026-09-15.json"), "w", encoding="utf-8") as f:
+            json.dump({
+                "date": "2026-09-15",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 12.00}},
+                    "202": {"Normal": {"marketPrice": 6.00}},
+                },
+            }, f)
+
+        res_d3 = calculate_portfolio_valuation(
+            date_str="2026-09-15",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+        # Total value: 12.00 + (2 * 6.00) = 24.00
+        self.assertEqual(res_d3["total_value"], 24.00)
+        # Lifetime gain: +2.00 (from 101) + +4.00 (from 202) = +6.00
+        self.assertEqual(res_d3["lifetime_dollar_gain"], 6.00)
+
+        # In summary table, L7D delta must match Lifetime delta within initial 7-day window
+        cur.execute("""
+        SELECT l7d_dollar_delta, l7d_pct_delta, lifetime_dollar_gain, lifetime_pct_gain
+        FROM portfolio_daily_summary
+        WHERE date = '2026-09-15'
+        """)
+        sum_row = cur.fetchone()
+        self.assertEqual(sum_row[0], 6.00)
+        self.assertEqual(sum_row[2], 6.00)
+        self.assertEqual(sum_row[0], sum_row[2])
+        self.assertEqual(sum_row[1], sum_row[3])
+        conn.close()
+
 
 class TestReportFormatting(unittest.TestCase):
 
