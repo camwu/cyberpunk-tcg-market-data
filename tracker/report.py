@@ -20,8 +20,8 @@ RARITY_ICONS = {
     "Common": "▽",
     "Uncommon": "△",
     "Rare": "◇",
-    "Epic": "🞚",
-    "Secret": "⯁",
+    "Epic": "◆",
+    "Secret": "⬠",
     "Iconic": "★",
     "Nova": "▣",
 }
