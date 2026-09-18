@@ -61,6 +61,13 @@ class TestTrackerConfig(unittest.TestCase):
         cfg = load_config(config_path=str(empty_cfg), sealed_csv=str(custom_sealed))
         self.assertEqual(Path(cfg.sealed_csv).resolve(), custom_sealed.resolve())
 
+    def test_load_config_default_price_cache_dir_anchors_to_repo_root(self):
+        empty_cfg = self.test_dir / "non_existent_config.json"
+        cfg = load_config(config_path=str(empty_cfg))
+        repo_root = Path(__file__).resolve().parent.parent
+        expected = str((repo_root / "prices").resolve())
+        self.assertEqual(Path(cfg.price_cache_dir).resolve(), Path(expected).resolve())
+
 
 if __name__ == "__main__":
     unittest.main()

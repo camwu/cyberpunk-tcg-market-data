@@ -10,12 +10,15 @@ import os
 from pathlib import Path
 from typing import Optional
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_PRICES_DIR = str((REPO_ROOT / "prices").resolve())
+
 
 @dataclass
 class TrackerConfig:
     collection_csv: str = "data"
     database_path: str = "data/price_history.db"
-    price_cache_dir: str = "prices"
+    price_cache_dir: str = DEFAULT_PRICES_DIR
     output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
     backup_dir: str = "data/backups"
     sealed_csv: Optional[str] = None
@@ -103,6 +106,15 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
             return str((base_dir / p).resolve())
         return str(p)
 
+    def resolve_repo_asset(val: Optional[str], default_rel: str) -> str:
+        raw = val or default_rel
+        p = Path(raw)
+        if not p.is_absolute():
+            if found_cfg_file:
+                return str((base_dir / p).resolve())
+            return str((REPO_ROOT / p).resolve())
+        return str(p)
+
     cli_collection = cli_overrides.get("collection_csv")
     is_explicit = bool(cli_collection and Path(cli_collection).is_file())
     collection_csv = cli_collection or os.getenv("CYBERPUNK_COLLECTION_CSV") or cfg_data.get("collection_csv")
@@ -125,7 +137,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
     return TrackerConfig(
         collection_csv=resolved_collection,
         database_path=resolve(database_path, "data/price_history.db"),
-        price_cache_dir=resolve(price_cache_dir, "prices"),
+        price_cache_dir=resolve_repo_asset(price_cache_dir, "prices"),
         output_report=resolve(output_report, "LATEST_PORTFOLIO_SUMMARY.md"),
         backup_dir=resolve(backup_dir, "data/backups"),
         sealed_csv=resolved_sealed,
