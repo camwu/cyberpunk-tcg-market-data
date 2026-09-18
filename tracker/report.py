@@ -119,11 +119,11 @@ def generate_portfolio_report(
 
     # Get breakdown by color (cards only)
     cur.execute("""
-    SELECT COALESCE(m.color, 'Unknown'), COUNT(*), SUM(s.quantity), SUM(s.line_total)
+    SELECT COALESCE(NULLIF(m.color, ''), 'Unknown') AS clean_color, COUNT(*), SUM(s.quantity), SUM(s.line_total)
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
-    GROUP BY m.color
+    GROUP BY clean_color
     ORDER BY SUM(s.line_total) DESC
     """, (latest_date,))
     color_breakdown = cur.fetchall()

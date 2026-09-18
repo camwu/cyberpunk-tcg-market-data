@@ -8,6 +8,7 @@ import datetime
 import json
 import os
 from pathlib import Path
+import re
 import sqlite3
 from typing import Dict, Any, List, Optional
 
@@ -18,6 +19,13 @@ from tracker.validation import (
     extract_date_from_text,
     CollectionValidationError,
 )
+
+
+def sanitize_card_name(name: str) -> str:
+    """Strips upstream disambiguation suffixes (e.g. (Epic), (Secret), (IO), (a)) from catalog card names."""
+    if not name:
+        return ""
+    return re.sub(r"\s*\((?:Epic|Rare|Secret|Iconic|ILegend|IO|ISecret|007|[ab])\)$", "", name.strip(), flags=re.IGNORECASE)
 
 
 def get_earliest_price_date(cache_dir: str, cur: Optional[sqlite3.Cursor] = None) -> Optional[str]:
@@ -289,15 +297,12 @@ def calculate_portfolio_valuation(
         expansion = row["expansion"].strip()
         print_number = (row.get("printNumber") or "").strip() or None
         finish = (row.get("finish") or "Standard").strip()
-        color = (row.get("color") or "").strip()
         qty = int(row.get("totalQtyOwned", 1))
         fallback_price = float(row.get("price") or 0.0)
         row_pid = row.get("productId")
 
         prod = None
-        if row_pid:
-            prod = catalog_by_pid.get(int(row_pid)) or catalog_by_pid.get(str(row_pid))
-        if not prod and print_number:
+        if print_number:
             prod = catalog_by_group_pnum.get((expansion.lower(), print_number.lower()))
         if not prod:
             prod = catalog_by_group_name.get((expansion.lower(), name.lower()))
@@ -305,9 +310,19 @@ def calculate_portfolio_valuation(
             prod = catalog_by_group_clean_name.get((expansion.lower(), name.lower()))
         if not prod:
             prod = catalog_by_name.get(name.lower())
+        if not prod and row_pid:
+            prod = catalog_by_pid.get(int(row_pid)) or catalog_by_pid.get(str(row_pid))
 
         prod_id = prod["productId"] if prod else (int(row_pid) if row_pid else None)
-        rarity = prod.get("rarity") if prod else row.get("rarity")
+        if prod:
+            name = sanitize_card_name(prod.get("name") or name)
+            expansion = prod.get("groupName") or expansion
+            rarity = prod.get("rarity") or row.get("rarity")
+            color = (prod.get("color") or row.get("color") or "").strip()
+        else:
+            name = sanitize_card_name(name)
+            rarity = row.get("rarity")
+            color = (row.get("color") or "").strip()
 
         acq_date_raw = (row.get("acquisitionDate") or "").strip()
         if not acq_date_raw and row.get("notes"):
@@ -391,14 +406,20 @@ def calculate_portfolio_valuation(
         else:
             total_cards += qty
 
-        cur.execute("SELECT baseline_market_price, color, item_type FROM card_metadata WHERE card_key = ?", (card_key,))
+        cur.execute("SELECT baseline_market_price, color, item_type, name, rarity FROM card_metadata WHERE card_key = ?", (card_key,))
         meta_res = cur.fetchone()
         if meta_res:
             baseline_price = meta_res[0]
             existing_color = meta_res[1]
             existing_item_type = meta_res[2] if len(meta_res) > 2 else "Card"
-            if (not existing_color or existing_color == "") and color:
+            existing_name = meta_res[3] if len(meta_res) > 3 else None
+            existing_rarity = meta_res[4] if len(meta_res) > 4 else None
+            if color and existing_color != color:
                 cur.execute("UPDATE card_metadata SET color = ? WHERE card_key = ?", (color, card_key))
+            if name and existing_name != name:
+                cur.execute("UPDATE card_metadata SET name = ? WHERE card_key = ?", (name, card_key))
+            if rarity and existing_rarity != rarity:
+                cur.execute("UPDATE card_metadata SET rarity = ? WHERE card_key = ?", (rarity, card_key))
             if not existing_item_type or existing_item_type != item_type:
                 cur.execute("UPDATE card_metadata SET item_type = ? WHERE card_key = ?", (item_type, card_key))
             if baseline_price is None or baseline_price <= 0.0:

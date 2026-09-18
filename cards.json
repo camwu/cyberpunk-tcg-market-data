@@ -60,7 +60,8 @@
     "groupId": 24857,
     "groupName": "Box Toppers - Retail",
     "printNumber": "006",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Blue"
   },
   "715195": {
     "productId": 715195,
@@ -69,7 +70,8 @@
     "groupId": 24857,
     "groupName": "Box Toppers - Retail",
     "printNumber": "005",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Blue"
   },
   "715196": {
     "productId": 715196,
@@ -78,7 +80,8 @@
     "groupId": 24857,
     "groupName": "Box Toppers - Retail",
     "printNumber": "004",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Green"
   },
   "715197": {
     "productId": 715197,
@@ -87,7 +90,8 @@
     "groupId": 24857,
     "groupName": "Box Toppers - Retail",
     "printNumber": "003",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Green"
   },
   "715198": {
     "productId": 715198,
@@ -96,7 +100,8 @@
     "groupId": 24857,
     "groupName": "Box Toppers - Retail",
     "printNumber": "002",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Yellow"
   },
   "715199": {
     "productId": 715199,
@@ -105,7 +110,8 @@
     "groupId": 24857,
     "groupName": "Box Toppers - Retail",
     "printNumber": "001",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Red"
   },
   "714497": {
     "productId": 714497,
@@ -114,7 +120,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714498": {
     "productId": 714498,
@@ -123,7 +130,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "715219": {
     "productId": 715219,
@@ -132,7 +140,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "001",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Red"
   },
   "715220": {
     "productId": 715220,
@@ -141,7 +150,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "002",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "715221": {
     "productId": 715221,
@@ -150,7 +160,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "003",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "715222": {
     "productId": 715222,
@@ -159,7 +170,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "004",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "715223": {
     "productId": 715223,
@@ -168,7 +180,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "005",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "715224": {
     "productId": 715224,
@@ -177,7 +190,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "006",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "715225": {
     "productId": 715225,
@@ -186,7 +200,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "007",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "715226": {
     "productId": 715226,
@@ -195,7 +210,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "008",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "715227": {
     "productId": 715227,
@@ -204,7 +220,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "009",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "715228": {
     "productId": 715228,
@@ -213,7 +230,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "010",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "715229": {
     "productId": 715229,
@@ -222,7 +240,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "011",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "715230": {
     "productId": 715230,
@@ -231,7 +250,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "012",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Green"
   },
   "715231": {
     "productId": 715231,
@@ -240,7 +260,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "013",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Green"
   },
   "715232": {
     "productId": 715232,
@@ -249,7 +270,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "014",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "715233": {
     "productId": 715233,
@@ -258,7 +280,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "015",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "715234": {
     "productId": 715234,
@@ -267,7 +290,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "016",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "715235": {
     "productId": 715235,
@@ -276,7 +300,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "017",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "715236": {
     "productId": 715236,
@@ -285,7 +310,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "018",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "715237": {
     "productId": 715237,
@@ -294,7 +320,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "019",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "715238": {
     "productId": 715238,
@@ -303,7 +330,8 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "020",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "715247": {
     "productId": 715247,
@@ -312,7 +340,8 @@
     "groupId": 24860,
     "groupName": "Set 1 Promos",
     "printNumber": "008",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Red"
   },
   "715251": {
     "productId": 715251,
@@ -321,7 +350,8 @@
     "groupId": 24860,
     "groupName": "Set 1 Promos",
     "printNumber": "005",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Red"
   },
   "715255": {
     "productId": 715255,
@@ -330,7 +360,8 @@
     "groupId": 24860,
     "groupName": "Set 1 Promos",
     "printNumber": "007",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Red"
   },
   "714499": {
     "productId": 714499,
@@ -339,7 +370,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714500": {
     "productId": 714500,
@@ -348,7 +380,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "715265": {
     "productId": 715265,
@@ -357,7 +390,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "001",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Yellow"
   },
   "715266": {
     "productId": 715266,
@@ -366,7 +400,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "002",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "715267": {
     "productId": 715267,
@@ -375,7 +410,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "003",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "715268": {
     "productId": 715268,
@@ -384,7 +420,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "004",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "715269": {
     "productId": 715269,
@@ -393,7 +430,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "005",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "715270": {
     "productId": 715270,
@@ -402,7 +440,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "006",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "715271": {
     "productId": 715271,
@@ -411,7 +450,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "007",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "715272": {
     "productId": 715272,
@@ -420,7 +460,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "008",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "715273": {
     "productId": 715273,
@@ -429,7 +470,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "009",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "715274": {
     "productId": 715274,
@@ -438,7 +480,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "010",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "715275": {
     "productId": 715275,
@@ -447,7 +490,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "011",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Blue"
   },
   "715276": {
     "productId": 715276,
@@ -456,7 +500,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "012",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Blue"
   },
   "715277": {
     "productId": 715277,
@@ -465,7 +510,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "013",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "715278": {
     "productId": 715278,
@@ -474,7 +520,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "014",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "715279": {
     "productId": 715279,
@@ -483,7 +530,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "015",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "715280": {
     "productId": 715280,
@@ -492,7 +540,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "016",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "715281": {
     "productId": 715281,
@@ -501,7 +550,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "017",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "715282": {
     "productId": 715282,
@@ -510,7 +560,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "018",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "715283": {
     "productId": 715283,
@@ -519,7 +570,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "019",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "715284": {
     "productId": 715284,
@@ -528,7 +580,8 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "020",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714494": {
     "productId": 714494,
@@ -537,7 +590,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714495": {
     "productId": 714495,
@@ -546,7 +600,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714496": {
     "productId": 714496,
@@ -555,7 +610,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "715005": {
     "productId": 715005,
@@ -564,7 +620,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "098",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715006": {
     "productId": 715006,
@@ -573,7 +630,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "006",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715007": {
     "productId": 715007,
@@ -582,7 +640,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "001",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715008": {
     "productId": 715008,
@@ -591,7 +650,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "041",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715009": {
     "productId": 715009,
@@ -600,7 +660,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "059",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715010": {
     "productId": 715010,
@@ -609,7 +670,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "065",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715011": {
     "productId": 715011,
@@ -618,7 +680,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "027",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715012": {
     "productId": 715012,
@@ -627,7 +690,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "042",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715013": {
     "productId": 715013,
@@ -636,7 +700,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "106",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715014": {
     "productId": 715014,
@@ -645,7 +710,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "007",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715015": {
     "productId": 715015,
@@ -654,7 +720,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "028",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715016": {
     "productId": 715016,
@@ -663,7 +730,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "023",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715017": {
     "productId": 715017,
@@ -672,7 +740,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "043",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715018": {
     "productId": 715018,
@@ -681,7 +750,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "029",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715019": {
     "productId": 715019,
@@ -690,7 +760,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "066",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715020": {
     "productId": 715020,
@@ -699,7 +770,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "044",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715021": {
     "productId": 715021,
@@ -708,7 +780,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "030",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715022": {
     "productId": 715022,
@@ -717,7 +790,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "008",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715023": {
     "productId": 715023,
@@ -726,7 +800,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "131",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715024": {
     "productId": 715024,
@@ -735,7 +810,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "076",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715025": {
     "productId": 715025,
@@ -744,7 +820,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "097",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715026": {
     "productId": 715026,
@@ -753,7 +830,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "067",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715027": {
     "productId": 715027,
@@ -762,7 +840,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "024",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715028": {
     "productId": 715028,
@@ -771,7 +850,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "111",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715029": {
     "productId": 715029,
@@ -780,7 +860,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "112",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715030": {
     "productId": 715030,
@@ -789,7 +870,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "031",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715031": {
     "productId": 715031,
@@ -798,7 +880,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "002",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715032": {
     "productId": 715032,
@@ -807,7 +890,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "036",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715033": {
     "productId": 715033,
@@ -816,7 +900,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "128",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715034": {
     "productId": 715034,
@@ -825,7 +910,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "009",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715035": {
     "productId": 715035,
@@ -834,7 +920,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "077",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715036": {
     "productId": 715036,
@@ -843,7 +930,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "107",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715037": {
     "productId": 715037,
@@ -852,7 +940,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "113",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715038": {
     "productId": 715038,
@@ -861,7 +950,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "078",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715039": {
     "productId": 715039,
@@ -870,7 +960,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "132",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715040": {
     "productId": 715040,
@@ -879,7 +970,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "099",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715041": {
     "productId": 715041,
@@ -888,7 +980,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "045",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715042": {
     "productId": 715042,
@@ -897,7 +990,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "060",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715043": {
     "productId": 715043,
@@ -906,7 +1000,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "071",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715044": {
     "productId": 715044,
@@ -915,7 +1010,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "032",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715045": {
     "productId": 715045,
@@ -924,7 +1020,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "114",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715046": {
     "productId": 715046,
@@ -933,7 +1030,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "072",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715047": {
     "productId": 715047,
@@ -942,7 +1040,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "046",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715048": {
     "productId": 715048,
@@ -951,7 +1050,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "047",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715049": {
     "productId": 715049,
@@ -960,7 +1060,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "033",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715050": {
     "productId": 715050,
@@ -969,7 +1070,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "115",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715051": {
     "productId": 715051,
@@ -978,7 +1080,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "073",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715052": {
     "productId": 715052,
@@ -987,7 +1090,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "048",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715053": {
     "productId": 715053,
@@ -996,7 +1100,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "010",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715054": {
     "productId": 715054,
@@ -1005,7 +1110,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "011",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715055": {
     "productId": 715055,
@@ -1014,7 +1120,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "003",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715056": {
     "productId": 715056,
@@ -1023,7 +1130,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "108",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715057": {
     "productId": 715057,
@@ -1032,7 +1140,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "116",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715058": {
     "productId": 715058,
@@ -1041,7 +1150,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "037",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715059": {
     "productId": 715059,
@@ -1050,7 +1160,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "012",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715060": {
     "productId": 715060,
@@ -1059,7 +1170,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "061",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715061": {
     "productId": 715061,
@@ -1068,7 +1180,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "013",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715062": {
     "productId": 715062,
@@ -1077,7 +1190,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "133",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715063": {
     "productId": 715063,
@@ -1086,7 +1200,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "068",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715064": {
     "productId": 715064,
@@ -1095,7 +1210,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "117",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715065": {
     "productId": 715065,
@@ -1104,7 +1220,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "049",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715066": {
     "productId": 715066,
@@ -1113,7 +1230,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "079",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715067": {
     "productId": 715067,
@@ -1122,7 +1240,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "118",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715068": {
     "productId": 715068,
@@ -1131,7 +1250,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "062",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715069": {
     "productId": 715069,
@@ -1140,7 +1260,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "025",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715070": {
     "productId": 715070,
@@ -1149,7 +1270,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "080",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715071": {
     "productId": 715071,
@@ -1158,7 +1280,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "081",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715072": {
     "productId": 715072,
@@ -1167,7 +1290,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "082",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715073": {
     "productId": 715073,
@@ -1176,7 +1300,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "050",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715074": {
     "productId": 715074,
@@ -1185,7 +1310,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "100",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715075": {
     "productId": 715075,
@@ -1194,7 +1320,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "014",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715076": {
     "productId": 715076,
@@ -1203,7 +1330,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "119",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715077": {
     "productId": 715077,
@@ -1212,7 +1340,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "120",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715078": {
     "productId": 715078,
@@ -1221,7 +1350,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "121",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715079": {
     "productId": 715079,
@@ -1230,7 +1360,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "122",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715080": {
     "productId": 715080,
@@ -1239,7 +1370,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "038",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715081": {
     "productId": 715081,
@@ -1248,7 +1380,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "083",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715082": {
     "productId": 715082,
@@ -1257,7 +1390,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "129",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715083": {
     "productId": 715083,
@@ -1266,7 +1400,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "134",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715084": {
     "productId": 715084,
@@ -1275,7 +1410,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "015",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715085": {
     "productId": 715085,
@@ -1284,7 +1420,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "051",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715086": {
     "productId": 715086,
@@ -1293,7 +1430,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "034",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715087": {
     "productId": 715087,
@@ -1302,7 +1440,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "093",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715088": {
     "productId": 715088,
@@ -1311,7 +1450,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "084",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715089": {
     "productId": 715089,
@@ -1320,7 +1460,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "074",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715090": {
     "productId": 715090,
@@ -1329,7 +1470,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "075",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715091": {
     "productId": 715091,
@@ -1338,7 +1480,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "085",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715092": {
     "productId": 715092,
@@ -1347,7 +1490,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "101",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715093": {
     "productId": 715093,
@@ -1356,7 +1500,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "086",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715094": {
     "productId": 715094,
@@ -1365,7 +1510,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "123",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715095": {
     "productId": 715095,
@@ -1374,7 +1520,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "124",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715096": {
     "productId": 715096,
@@ -1383,7 +1530,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "135",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715097": {
     "productId": 715097,
@@ -1392,7 +1540,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "136",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715098": {
     "productId": 715098,
@@ -1401,7 +1550,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "087",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715099": {
     "productId": 715099,
@@ -1410,7 +1560,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "094",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715100": {
     "productId": 715100,
@@ -1419,7 +1570,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "125",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715101": {
     "productId": 715101,
@@ -1428,7 +1580,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "039",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715102": {
     "productId": 715102,
@@ -1437,7 +1590,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "052",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715103": {
     "productId": 715103,
@@ -1446,7 +1600,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "040",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715104": {
     "productId": 715104,
@@ -1455,7 +1610,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "126",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715105": {
     "productId": 715105,
@@ -1464,7 +1620,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "016",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715106": {
     "productId": 715106,
@@ -1473,7 +1630,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "004",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715107": {
     "productId": 715107,
@@ -1482,7 +1640,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "017",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715108": {
     "productId": 715108,
@@ -1491,7 +1650,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "069",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715109": {
     "productId": 715109,
@@ -1500,7 +1660,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "088",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715110": {
     "productId": 715110,
@@ -1509,7 +1670,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "095",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715111": {
     "productId": 715111,
@@ -1518,7 +1680,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "109",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715112": {
     "productId": 715112,
@@ -1527,7 +1690,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "026",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715113": {
     "productId": 715113,
@@ -1536,7 +1700,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "089",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715114": {
     "productId": 715114,
@@ -1545,7 +1710,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "018",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715115": {
     "productId": 715115,
@@ -1554,7 +1720,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "053",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715116": {
     "productId": 715116,
@@ -1563,7 +1730,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "035",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715117": {
     "productId": 715117,
@@ -1572,7 +1740,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "054",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715118": {
     "productId": 715118,
@@ -1581,7 +1750,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "019",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715119": {
     "productId": 715119,
@@ -1590,7 +1760,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "102",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715120": {
     "productId": 715120,
@@ -1599,7 +1770,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "055",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715121": {
     "productId": 715121,
@@ -1608,7 +1780,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "103",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715122": {
     "productId": 715122,
@@ -1617,7 +1790,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "130",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715123": {
     "productId": 715123,
@@ -1626,7 +1800,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "070",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715124": {
     "productId": 715124,
@@ -1635,7 +1810,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "063",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715125": {
     "productId": 715125,
@@ -1644,7 +1820,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "137",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715126": {
     "productId": 715126,
@@ -1653,7 +1830,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "138",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715128": {
     "productId": 715128,
@@ -1662,7 +1840,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "056",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715129": {
     "productId": 715129,
@@ -1671,7 +1850,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "139",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715130": {
     "productId": 715130,
@@ -1680,7 +1860,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "090",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715131": {
     "productId": 715131,
@@ -1689,7 +1870,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "140",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715132": {
     "productId": 715132,
@@ -1698,7 +1880,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "020",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715133": {
     "productId": 715133,
@@ -1707,7 +1890,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "005a",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715134": {
     "productId": 715134,
@@ -1716,7 +1900,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "005",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715135": {
     "productId": 715135,
@@ -1725,7 +1910,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "021",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715136": {
     "productId": 715136,
@@ -1734,7 +1920,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "091",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715137": {
     "productId": 715137,
@@ -1743,7 +1930,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "057",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715138": {
     "productId": 715138,
@@ -1752,7 +1940,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "058",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715139": {
     "productId": 715139,
@@ -1761,7 +1950,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "110",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715140": {
     "productId": 715140,
@@ -1770,7 +1960,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "104",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715141": {
     "productId": 715141,
@@ -1779,7 +1970,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "127",
-    "rarity": null
+    "rarity": null,
+    "color": "Blue"
   },
   "715142": {
     "productId": 715142,
@@ -1788,7 +1980,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "105",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715143": {
     "productId": 715143,
@@ -1797,7 +1990,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "092",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715144": {
     "productId": 715144,
@@ -1806,7 +2000,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "022",
-    "rarity": null
+    "rarity": null,
+    "color": "Red"
   },
   "715145": {
     "productId": 715145,
@@ -1815,7 +2010,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "096",
-    "rarity": null
+    "rarity": null,
+    "color": "Green"
   },
   "715146": {
     "productId": 715146,
@@ -1824,7 +2020,8 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "064",
-    "rarity": null
+    "rarity": null,
+    "color": "Yellow"
   },
   "715166": {
     "productId": 715166,
@@ -1833,7 +2030,8 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B006",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Blue"
   },
   "715170": {
     "productId": 715170,
@@ -1842,7 +2040,8 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B005",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Blue"
   },
   "715174": {
     "productId": 715174,
@@ -1851,7 +2050,8 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B004",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Green"
   },
   "715179": {
     "productId": 715179,
@@ -1860,7 +2060,8 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B003",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Green"
   },
   "715181": {
     "productId": 715181,
@@ -1869,7 +2070,8 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B002",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Yellow"
   },
   "715185": {
     "productId": 715185,
@@ -1878,7 +2080,8 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B001",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Red"
   },
   "714119": {
     "productId": 714119,
@@ -1887,7 +2090,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B001",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Red"
   },
   "714120": {
     "productId": 714120,
@@ -1896,7 +2100,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B002",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714121": {
     "productId": 714121,
@@ -1905,7 +2110,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B003",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714122": {
     "productId": 714122,
@@ -1914,7 +2120,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B004",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714123": {
     "productId": 714123,
@@ -1923,7 +2130,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B005",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714124": {
     "productId": 714124,
@@ -1932,7 +2140,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B006",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714125": {
     "productId": 714125,
@@ -1941,7 +2150,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B007",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714126": {
     "productId": 714126,
@@ -1950,7 +2160,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B008",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714127": {
     "productId": 714127,
@@ -1959,7 +2170,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B009",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714128": {
     "productId": 714128,
@@ -1968,7 +2180,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B010",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714129": {
     "productId": 714129,
@@ -1977,7 +2190,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B011",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714130": {
     "productId": 714130,
@@ -1986,7 +2200,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B012",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Green"
   },
   "714131": {
     "productId": 714131,
@@ -1995,7 +2210,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B013",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Green"
   },
   "714132": {
     "productId": 714132,
@@ -2004,7 +2220,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B014",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714133": {
     "productId": 714133,
@@ -2013,7 +2230,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B015",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714134": {
     "productId": 714134,
@@ -2022,7 +2240,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B016",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714135": {
     "productId": 714135,
@@ -2031,7 +2250,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B017",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714136": {
     "productId": 714136,
@@ -2040,7 +2260,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B018",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714137": {
     "productId": 714137,
@@ -2049,7 +2270,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B019",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714138": {
     "productId": 714138,
@@ -2058,7 +2280,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B020",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714344": {
     "productId": 714344,
@@ -2067,7 +2290,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714417": {
     "productId": 714417,
@@ -2076,7 +2300,8 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714140": {
     "productId": 714140,
@@ -2085,7 +2310,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B001",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Yellow"
   },
   "714141": {
     "productId": 714141,
@@ -2094,7 +2320,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B002",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714142": {
     "productId": 714142,
@@ -2103,7 +2330,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B003",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714143": {
     "productId": 714143,
@@ -2112,7 +2340,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B004",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714144": {
     "productId": 714144,
@@ -2121,7 +2350,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B005",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714145": {
     "productId": 714145,
@@ -2130,7 +2360,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B006",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714146": {
     "productId": 714146,
@@ -2139,7 +2370,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B007",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714147": {
     "productId": 714147,
@@ -2148,7 +2380,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B008",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714148": {
     "productId": 714148,
@@ -2157,7 +2390,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B009",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714149": {
     "productId": 714149,
@@ -2166,7 +2400,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B010",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714150": {
     "productId": 714150,
@@ -2175,7 +2410,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B011",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Blue"
   },
   "714151": {
     "productId": 714151,
@@ -2184,7 +2420,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B012",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Blue"
   },
   "714152": {
     "productId": 714152,
@@ -2193,7 +2430,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B013",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714153": {
     "productId": 714153,
@@ -2202,7 +2440,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B014",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "714154": {
     "productId": 714154,
@@ -2211,7 +2450,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B015",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "714155": {
     "productId": 714155,
@@ -2220,7 +2460,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B016",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714156": {
     "productId": 714156,
@@ -2229,7 +2470,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B017",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714157": {
     "productId": 714157,
@@ -2238,7 +2480,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B018",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714158": {
     "productId": 714158,
@@ -2247,7 +2490,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B019",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714159": {
     "productId": 714159,
@@ -2256,7 +2500,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B020",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714345": {
     "productId": 714345,
@@ -2265,7 +2510,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714418": {
     "productId": 714418,
@@ -2274,7 +2520,8 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714162": {
     "productId": 714162,
@@ -2283,7 +2530,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B001",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Red"
   },
   "714163": {
     "productId": 714163,
@@ -2292,7 +2540,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B002",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714164": {
     "productId": 714164,
@@ -2301,7 +2550,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B003",
-    "rarity": "Secret"
+    "rarity": "Secret",
+    "color": "Red"
   },
   "714165": {
     "productId": 714165,
@@ -2310,7 +2560,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B004",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714166": {
     "productId": 714166,
@@ -2319,7 +2570,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B005a",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714167": {
     "productId": 714167,
@@ -2328,7 +2580,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B005b",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714168": {
     "productId": 714168,
@@ -2337,7 +2590,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B006",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714169": {
     "productId": 714169,
@@ -2346,7 +2600,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B007",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714170": {
     "productId": 714170,
@@ -2355,7 +2610,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B008",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714171": {
     "productId": 714171,
@@ -2364,7 +2620,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B009",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714172": {
     "productId": 714172,
@@ -2373,7 +2630,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B010",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714173": {
     "productId": 714173,
@@ -2382,7 +2640,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B011",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Red"
   },
   "714174": {
     "productId": 714174,
@@ -2391,7 +2650,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B012",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714175": {
     "productId": 714175,
@@ -2400,7 +2660,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B013",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714176": {
     "productId": 714176,
@@ -2409,7 +2670,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B014",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714177": {
     "productId": 714177,
@@ -2418,7 +2680,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B015",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714178": {
     "productId": 714178,
@@ -2427,7 +2690,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B016",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714179": {
     "productId": 714179,
@@ -2436,7 +2700,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B017",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714180": {
     "productId": 714180,
@@ -2445,7 +2710,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B018",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714181": {
     "productId": 714181,
@@ -2454,7 +2720,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B019",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714182": {
     "productId": 714182,
@@ -2463,7 +2730,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B020",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Red"
   },
   "714183": {
     "productId": 714183,
@@ -2472,7 +2740,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B021",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714184": {
     "productId": 714184,
@@ -2481,7 +2750,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B022",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714185": {
     "productId": 714185,
@@ -2490,7 +2760,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B023",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714186": {
     "productId": 714186,
@@ -2499,7 +2770,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B024",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714187": {
     "productId": 714187,
@@ -2508,7 +2780,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B025",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714188": {
     "productId": 714188,
@@ -2517,7 +2790,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B026",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714189": {
     "productId": 714189,
@@ -2526,7 +2800,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B027",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714190": {
     "productId": 714190,
@@ -2535,7 +2810,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B028",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714191": {
     "productId": 714191,
@@ -2544,7 +2820,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B029",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714192": {
     "productId": 714192,
@@ -2553,7 +2830,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B030",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714193": {
     "productId": 714193,
@@ -2562,7 +2840,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B031",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714194": {
     "productId": 714194,
@@ -2571,7 +2850,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B032",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714195": {
     "productId": 714195,
@@ -2580,7 +2860,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B033",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Red"
   },
   "714196": {
     "productId": 714196,
@@ -2589,7 +2870,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B034",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Red"
   },
   "714197": {
     "productId": 714197,
@@ -2598,7 +2880,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B035",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "714198": {
     "productId": 714198,
@@ -2607,7 +2890,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B036",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "714199": {
     "productId": 714199,
@@ -2616,7 +2900,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B037",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "714200": {
     "productId": 714200,
@@ -2625,7 +2910,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B038",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "714201": {
     "productId": 714201,
@@ -2634,7 +2920,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B039",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "714202": {
     "productId": 714202,
@@ -2643,7 +2930,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B040",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "714203": {
     "productId": 714203,
@@ -2652,7 +2940,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B041",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Yellow"
   },
   "714204": {
     "productId": 714204,
@@ -2661,7 +2950,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B042",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "714205": {
     "productId": 714205,
@@ -2670,7 +2960,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B043",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714206": {
     "productId": 714206,
@@ -2679,7 +2970,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B044",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "714207": {
     "productId": 714207,
@@ -2688,7 +2980,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B045",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714208": {
     "productId": 714208,
@@ -2697,7 +2990,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B046",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "714209": {
     "productId": 714209,
@@ -2706,7 +3000,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B047",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714210": {
     "productId": 714210,
@@ -2715,7 +3010,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B048",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Yellow"
   },
   "714211": {
     "productId": 714211,
@@ -2724,7 +3020,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B049",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714212": {
     "productId": 714212,
@@ -2733,7 +3030,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B050",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714213": {
     "productId": 714213,
@@ -2742,7 +3040,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B051",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714214": {
     "productId": 714214,
@@ -2751,7 +3050,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B052",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714215": {
     "productId": 714215,
@@ -2760,7 +3060,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B053",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714216": {
     "productId": 714216,
@@ -2769,7 +3070,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B054",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714217": {
     "productId": 714217,
@@ -2778,7 +3080,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B055",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714218": {
     "productId": 714218,
@@ -2787,7 +3090,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B056",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714219": {
     "productId": 714219,
@@ -2796,7 +3100,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B057",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Yellow"
   },
   "714220": {
     "productId": 714220,
@@ -2805,7 +3110,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B058",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714221": {
     "productId": 714221,
@@ -2814,7 +3120,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B059",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714222": {
     "productId": 714222,
@@ -2823,7 +3130,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B060",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714223": {
     "productId": 714223,
@@ -2832,7 +3140,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B061",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714224": {
     "productId": 714224,
@@ -2841,7 +3150,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B062",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714225": {
     "productId": 714225,
@@ -2850,7 +3160,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B063",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Yellow"
   },
   "714226": {
     "productId": 714226,
@@ -2859,7 +3170,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B064",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714227": {
     "productId": 714227,
@@ -2868,7 +3180,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B065",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714228": {
     "productId": 714228,
@@ -2877,7 +3190,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B066",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714229": {
     "productId": 714229,
@@ -2886,7 +3200,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B067",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714230": {
     "productId": 714230,
@@ -2895,7 +3210,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B068",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714231": {
     "productId": 714231,
@@ -2904,7 +3220,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B069",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Yellow"
   },
   "714232": {
     "productId": 714232,
@@ -2913,7 +3230,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B070",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Yellow"
   },
   "714233": {
     "productId": 714233,
@@ -2922,7 +3240,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B071",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "714234": {
     "productId": 714234,
@@ -2931,7 +3250,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B072",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "714235": {
     "productId": 714235,
@@ -2940,7 +3260,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B073",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "714236": {
     "productId": 714236,
@@ -2949,7 +3270,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B074",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "714237": {
     "productId": 714237,
@@ -2958,7 +3280,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B075",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Green"
   },
   "714238": {
     "productId": 714238,
@@ -2967,7 +3290,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B076",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714239": {
     "productId": 714239,
@@ -2976,7 +3300,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B077",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714240": {
     "productId": 714240,
@@ -2985,7 +3310,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B078",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714241": {
     "productId": 714241,
@@ -2994,7 +3320,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B079",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714242": {
     "productId": 714242,
@@ -3003,7 +3330,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B080",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714243": {
     "productId": 714243,
@@ -3012,7 +3340,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B081",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714244": {
     "productId": 714244,
@@ -3021,7 +3350,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B082",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714245": {
     "productId": 714245,
@@ -3030,7 +3360,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B083",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714246": {
     "productId": 714246,
@@ -3039,7 +3370,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B084",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714247": {
     "productId": 714247,
@@ -3048,7 +3380,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B085",
-    "rarity": "Secret"
+    "rarity": "Secret",
+    "color": "Green"
   },
   "714248": {
     "productId": 714248,
@@ -3057,7 +3390,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B086",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714249": {
     "productId": 714249,
@@ -3066,7 +3400,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B087",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714250": {
     "productId": 714250,
@@ -3075,7 +3410,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B088",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "714251": {
     "productId": 714251,
@@ -3084,7 +3420,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B089",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "714252": {
     "productId": 714252,
@@ -3093,7 +3430,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B090",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714253": {
     "productId": 714253,
@@ -3102,7 +3440,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B091",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714254": {
     "productId": 714254,
@@ -3111,7 +3450,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B092",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714255": {
     "productId": 714255,
@@ -3120,7 +3460,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B093",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Green"
   },
   "714256": {
     "productId": 714256,
@@ -3129,7 +3470,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B094",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714257": {
     "productId": 714257,
@@ -3138,7 +3480,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B095",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714258": {
     "productId": 714258,
@@ -3147,7 +3490,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B096",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714259": {
     "productId": 714259,
@@ -3156,7 +3500,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B097",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714260": {
     "productId": 714260,
@@ -3165,7 +3510,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B098",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "714261": {
     "productId": 714261,
@@ -3174,7 +3520,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B099",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "714262": {
     "productId": 714262,
@@ -3183,7 +3530,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B100",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714263": {
     "productId": 714263,
@@ -3192,7 +3540,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B101",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714264": {
     "productId": 714264,
@@ -3201,7 +3550,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B102",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714265": {
     "productId": 714265,
@@ -3210,7 +3560,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B103",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714266": {
     "productId": 714266,
@@ -3219,7 +3570,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B104",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Green"
   },
   "714267": {
     "productId": 714267,
@@ -3228,7 +3580,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B105",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Green"
   },
   "714268": {
     "productId": 714268,
@@ -3237,7 +3590,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B106",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714269": {
     "productId": 714269,
@@ -3246,7 +3600,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B107",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714270": {
     "productId": 714270,
@@ -3255,7 +3610,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B108",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Blue"
   },
   "714271": {
     "productId": 714271,
@@ -3264,7 +3620,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B109",
-    "rarity": "Secret"
+    "rarity": "Secret",
+    "color": "Blue"
   },
   "714272": {
     "productId": 714272,
@@ -3273,7 +3630,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B110",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714273": {
     "productId": 714273,
@@ -3282,7 +3640,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B111",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "714274": {
     "productId": 714274,
@@ -3291,7 +3650,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B112",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714275": {
     "productId": 714275,
@@ -3300,7 +3660,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B113",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "714276": {
     "productId": 714276,
@@ -3309,7 +3670,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B114",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714277": {
     "productId": 714277,
@@ -3318,7 +3680,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B115",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714278": {
     "productId": 714278,
@@ -3327,7 +3690,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B116",
-    "rarity": "Secret"
+    "rarity": "Secret",
+    "color": "Blue"
   },
   "714279": {
     "productId": 714279,
@@ -3336,7 +3700,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B117",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714280": {
     "productId": 714280,
@@ -3345,7 +3710,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B118",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "714281": {
     "productId": 714281,
@@ -3354,7 +3720,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B119",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714282": {
     "productId": 714282,
@@ -3363,7 +3730,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B120",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714283": {
     "productId": 714283,
@@ -3372,7 +3740,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B121",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714284": {
     "productId": 714284,
@@ -3381,7 +3750,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B122",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714285": {
     "productId": 714285,
@@ -3390,7 +3760,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B123",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714286": {
     "productId": 714286,
@@ -3399,7 +3770,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B124",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714287": {
     "productId": 714287,
@@ -3408,7 +3780,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B125",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714288": {
     "productId": 714288,
@@ -3417,7 +3790,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B126",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Blue"
   },
   "714289": {
     "productId": 714289,
@@ -3426,7 +3800,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B127",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714290": {
     "productId": 714290,
@@ -3435,7 +3810,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B128",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714291": {
     "productId": 714291,
@@ -3444,7 +3820,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B129",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "714292": {
     "productId": 714292,
@@ -3453,7 +3830,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B130",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714293": {
     "productId": 714293,
@@ -3462,7 +3840,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B131",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714294": {
     "productId": 714294,
@@ -3471,7 +3850,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B132",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714295": {
     "productId": 714295,
@@ -3480,7 +3860,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B133",
-    "rarity": "Uncommon"
+    "rarity": "Uncommon",
+    "color": "Blue"
   },
   "714296": {
     "productId": 714296,
@@ -3489,7 +3870,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B134",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714297": {
     "productId": 714297,
@@ -3498,7 +3880,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B135",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "714298": {
     "productId": 714298,
@@ -3507,7 +3890,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B136",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714299": {
     "productId": 714299,
@@ -3516,7 +3900,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B137",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714300": {
     "productId": 714300,
@@ -3525,7 +3910,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B138",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Blue"
   },
   "714301": {
     "productId": 714301,
@@ -3534,7 +3920,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B139",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714302": {
     "productId": 714302,
@@ -3543,7 +3930,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B140",
-    "rarity": "Common"
+    "rarity": "Common",
+    "color": "Blue"
   },
   "714303": {
     "productId": 714303,
@@ -3552,7 +3940,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B141",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Red"
   },
   "714304": {
     "productId": 714304,
@@ -3561,7 +3950,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B142",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Red"
   },
   "714305": {
     "productId": 714305,
@@ -3570,7 +3960,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B143",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Red"
   },
   "714306": {
     "productId": 714306,
@@ -3579,7 +3970,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B144",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Red"
   },
   "714307": {
     "productId": 714307,
@@ -3588,7 +3980,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B145",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Yellow"
   },
   "714308": {
     "productId": 714308,
@@ -3597,7 +3990,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B146",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Yellow"
   },
   "714309": {
     "productId": 714309,
@@ -3606,7 +4000,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B147",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Yellow"
   },
   "714310": {
     "productId": 714310,
@@ -3615,7 +4010,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B148",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Yellow"
   },
   "714311": {
     "productId": 714311,
@@ -3624,7 +4020,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B149",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Yellow"
   },
   "714312": {
     "productId": 714312,
@@ -3633,7 +4030,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B150",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Green"
   },
   "714313": {
     "productId": 714313,
@@ -3642,7 +4040,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B151",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Green"
   },
   "714314": {
     "productId": 714314,
@@ -3651,7 +4050,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B152",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Green"
   },
   "714315": {
     "productId": 714315,
@@ -3660,7 +4060,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B153",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Green"
   },
   "714316": {
     "productId": 714316,
@@ -3669,7 +4070,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B154",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Green"
   },
   "714317": {
     "productId": 714317,
@@ -3678,7 +4080,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B155",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Blue"
   },
   "714318": {
     "productId": 714318,
@@ -3687,7 +4090,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B156",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Blue"
   },
   "714319": {
     "productId": 714319,
@@ -3696,7 +4100,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B157",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Blue"
   },
   "714320": {
     "productId": 714320,
@@ -3705,7 +4110,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B158",
-    "rarity": "Iconic Legend"
+    "rarity": "Iconic Legend",
+    "color": "Blue"
   },
   "714321": {
     "productId": 714321,
@@ -3714,7 +4120,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B159",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Red"
   },
   "714322": {
     "productId": 714322,
@@ -3723,7 +4130,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B160",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Yellow"
   },
   "714323": {
     "productId": 714323,
@@ -3732,7 +4140,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B161",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Yellow"
   },
   "714324": {
     "productId": 714324,
@@ -3741,7 +4150,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B162",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Yellow"
   },
   "714325": {
     "productId": 714325,
@@ -3750,7 +4160,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B163",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Yellow"
   },
   "714326": {
     "productId": 714326,
@@ -3759,7 +4170,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B164",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Green"
   },
   "714327": {
     "productId": 714327,
@@ -3768,7 +4180,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B165",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Green"
   },
   "714328": {
     "productId": 714328,
@@ -3777,7 +4190,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B166",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Blue"
   },
   "714329": {
     "productId": 714329,
@@ -3786,7 +4200,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B167",
-    "rarity": "Iconic Other"
+    "rarity": "Iconic Other",
+    "color": "Blue"
   },
   "714330": {
     "productId": 714330,
@@ -3795,7 +4210,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B168",
-    "rarity": "Iconic Secret"
+    "rarity": "Iconic Secret",
+    "color": "Red"
   },
   "714331": {
     "productId": 714331,
@@ -3804,7 +4220,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B169",
-    "rarity": "Iconic Secret"
+    "rarity": "Iconic Secret",
+    "color": "Blue"
   },
   "714332": {
     "productId": 714332,
@@ -3813,7 +4230,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B170",
-    "rarity": "Iconic Secret"
+    "rarity": "Iconic Secret",
+    "color": "Green"
   },
   "714333": {
     "productId": 714333,
@@ -3822,7 +4240,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B171",
-    "rarity": "Iconic Secret"
+    "rarity": "Iconic Secret",
+    "color": "Blue"
   },
   "714346": {
     "productId": 714346,
@@ -3831,7 +4250,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714347": {
     "productId": 714347,
@@ -3840,7 +4260,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "714493": {
     "productId": 714493,
@@ -3849,7 +4270,8 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   },
   "717125": {
     "productId": 717125,
@@ -3858,7 +4280,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "001",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Red"
   },
   "717126": {
     "productId": 717126,
@@ -3867,7 +4290,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "002",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Red"
   },
   "717127": {
     "productId": 717127,
@@ -3876,7 +4300,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "003",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "717231": {
     "productId": 717231,
@@ -3885,7 +4310,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "004",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "717232": {
     "productId": 717232,
@@ -3894,7 +4320,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "005",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Yellow"
   },
   "717233": {
     "productId": 717233,
@@ -3903,7 +4330,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "006",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "717235": {
     "productId": 717235,
@@ -3912,7 +4340,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "007",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Green"
   },
   "717236": {
     "productId": 717236,
@@ -3921,7 +4350,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "008",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Green"
   },
   "717237": {
     "productId": 717237,
@@ -3930,7 +4360,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "009",
-    "rarity": "Rare"
+    "rarity": "Rare",
+    "color": "Blue"
   },
   "717238": {
     "productId": 717238,
@@ -3939,7 +4370,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "010",
-    "rarity": "Epic"
+    "rarity": "Epic",
+    "color": "Blue"
   },
   "717239": {
     "productId": 717239,
@@ -3948,7 +4380,8 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "011",
-    "rarity": "Nova Rare"
+    "rarity": "Nova Rare",
+    "color": "Red"
   },
   "717414": {
     "productId": 717414,
@@ -3957,6 +4390,7 @@
     "groupId": 24881,
     "groupName": "Alpha Kit",
     "printNumber": null,
-    "rarity": null
+    "rarity": null,
+    "color": null
   }
 }

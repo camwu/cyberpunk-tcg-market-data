@@ -821,6 +821,157 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertIsNone(rerun_snapshot[2])
         conn.close()
 
+    def test_canonical_catalog_sourcing_and_suffix_sanitization(self):
+        daily_prices = {
+            "date": "2026-09-17",
+            "prices": {
+                "301": {"Foil": {"marketPrice": 2.50}},
+                "302": {"Standard": {"marketPrice": 5.00}},
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-17.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        cards_catalog = {
+            "301": {
+                "productId": 301,
+                "name": "Johnny Silverhand - Never Stop Fighting (Epic)",
+                "cleanName": "Johnny Silverhand Never Stop Fighting Epic",
+                "groupId": 1000,
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B011",
+                "rarity": "Epic",
+                "color": "Red",
+            },
+            "302": {
+                "productId": 302,
+                "name": "Viktor Vektor - Drop Your Illusions",
+                "cleanName": "Viktor Vektor Drop Your Illusions",
+                "groupId": 1000,
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B057",
+                "rarity": "Epic",
+                "color": "Yellow",
+            },
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        collection_rows = [
+            {
+                "name": "Raw Johnny Name From CSV",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "B011",
+                "finish": "Foil",
+                "totalQtyOwned": 1,
+                "price": 2.00,
+                "color": "",
+            },
+            {
+                "name": "Viktor Vektor - Drop Your Illusions",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "B057",
+                "finish": "Standard",
+                "totalQtyOwned": 2,
+                "price": 4.50,
+                "color": "",
+            },
+        ]
+
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-17",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key, name, rarity, color FROM card_metadata ORDER BY print_number")
+        rows = cur.fetchall()
+        conn.close()
+
+        self.assertEqual(rows[0][0], "Welcome to Night City - Beta::B011::Foil")
+        self.assertEqual(rows[0][1], "Johnny Silverhand - Never Stop Fighting")
+        self.assertEqual(rows[0][2], "Epic")
+        self.assertEqual(rows[0][3], "Red")
+
+        self.assertEqual(rows[1][0], "Welcome to Night City - Beta::B057::Standard")
+        self.assertEqual(rows[1][1], "Viktor Vektor - Drop Your Illusions")
+        self.assertEqual(rows[1][2], "Epic")
+        self.assertEqual(rows[1][3], "Yellow")
+
+    def test_disjoint_namespace_print_number_precedence_over_product_id(self):
+        # Setup catalog with an unrelated card whose productId happens to match CardNexus CSV's internal ID (999)
+        cards_catalog = {
+            "999": {
+                "productId": 999,
+                "name": "Wrong Unrelated Card",
+                "cleanName": "Wrong Unrelated Card",
+                "groupId": 9999,
+                "groupName": "Unrelated Expansion",
+                "printNumber": "999",
+                "rarity": "Common",
+                "color": "Green",
+            },
+            "714219": {
+                "productId": 714219,
+                "name": "Viktor Vektor - Drop Your Illusions",
+                "cleanName": "Viktor Vektor Drop Your Illusions",
+                "groupId": 1000,
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B057",
+                "rarity": "Epic",
+                "color": "Yellow",
+            },
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        daily_prices = {
+            "date": "2026-09-17",
+            "prices": {
+                "714219": {"Standard": {"marketPrice": 2.50}},
+                "999": {"Standard": {"marketPrice": 100.00}},
+            },
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-17.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        collection_rows = [
+            {
+                "productId": "999",  # CardNexus internal ID sequence
+                "name": "Viktor Vektor - Drop Your Illusions",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "B057",
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 2.50,
+            }
+        ]
+
+        calculate_portfolio_valuation(
+            date_str="2026-09-17",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key, product_id, name, color FROM card_metadata WHERE card_key = 'Welcome to Night City - Beta::B057::Standard'")
+        row = cur.fetchone()
+        conn.close()
+
+        self.assertIsNotNone(row)
+        self.assertEqual(row[1], 714219)  # Must resolve to TCGplayer 714219, NOT CardNexus 999
+        self.assertEqual(row[2], "Viktor Vektor - Drop Your Illusions")
+        self.assertEqual(row[3], "Yellow")
+
 
 class TestReportFormatting(unittest.TestCase):
 
