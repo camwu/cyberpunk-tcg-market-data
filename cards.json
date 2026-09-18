@@ -38,7 +38,7 @@
     },
     "24880": {
       "name": "Pre-Release Beta",
-      "modifiedOn": "2026-09-14T19:38:47.483"
+      "modifiedOn": "2026-09-18T19:19:37.423"
     },
     "24881": {
       "name": "Alpha Kit",
@@ -50,7 +50,7 @@
     },
     "24883": {
       "name": "Edgerunner Open Season 1",
-      "modifiedOn": "2026-09-16T14:01:00.837"
+      "modifiedOn": "2026-09-18T18:37:27.03"
     }
   },
   "715194": {
@@ -4391,6 +4391,226 @@
     "groupName": "Alpha Kit",
     "printNumber": null,
     "rarity": null,
+    "color": null
+  },
+  "718647": {
+    "productId": 718647,
+    "name": "Pre-Release Beta - Beta Event Kit",
+    "cleanName": "Pre Release Beta Beta Event Kit",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null,
+    "color": null
+  },
+  "718538": {
+    "productId": 718538,
+    "name": "Royce - Don't Call Me Simon",
+    "cleanName": "Royce Dont Call Me Simon",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "001",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718539": {
+    "productId": 718539,
+    "name": "Field Operator",
+    "cleanName": "Field Operator",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "002",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718540": {
+    "productId": 718540,
+    "name": "Riding Nomad",
+    "cleanName": "Riding Nomad",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "003",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718541": {
+    "productId": 718541,
+    "name": "Industrial Assembly",
+    "cleanName": "Industrial Assembly",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "004",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718542": {
+    "productId": 718542,
+    "name": "Afterparty at Lizzie's",
+    "cleanName": "Afterparty at Lizzies",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "005",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718543": {
+    "productId": 718543,
+    "name": "Peace Offering",
+    "cleanName": "Peace Offering",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "006",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718544": {
+    "productId": 718544,
+    "name": "Trust No One",
+    "cleanName": "Trust No One",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "007",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718545": {
+    "productId": 718545,
+    "name": "Dexter DeShawn - Off the Grid",
+    "cleanName": "Dexter DeShawn Off the Grid",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "012",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718546": {
+    "productId": 718546,
+    "name": "V - StreetKid",
+    "cleanName": "V StreetKid",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "013",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718547": {
+    "productId": 718547,
+    "name": "Muamar Reyes - El Capitan",
+    "cleanName": "Muamar Reyes El Capitan",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "014",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718548": {
+    "productId": 718548,
+    "name": "Judy Alvarez - Braindance Maestro",
+    "cleanName": "Judy Alvarez Braindance Maestro",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "015",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718549": {
+    "productId": 718549,
+    "name": "Yorinobu Arasaka - Embracing Destruction",
+    "cleanName": "Yorinobu Arasaka Embracing Destruction",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "034",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718550": {
+    "productId": 718550,
+    "name": "River Ward - Detective on the Hunt",
+    "cleanName": "River Ward Detective on the Hunt",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "038",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718551": {
+    "productId": 718551,
+    "name": "Viktor Vektor - Sit Down and Relax",
+    "cleanName": "Viktor Vektor Sit Down and Relax",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "040",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718552": {
+    "productId": 718552,
+    "name": "Goro Takemura - Hands Unclean",
+    "cleanName": "Goro Takemura Hands Unclean",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "041",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718553": {
+    "productId": 718553,
+    "name": "Jackie Welles - Mama's Favorite",
+    "cleanName": "Jackie Welles Mamas Favorite",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "044",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718554": {
+    "productId": 718554,
+    "name": "Saburo Arasaka - Stubborn Patriarch",
+    "cleanName": "Saburo Arasaka Stubborn Patriarch",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "047",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718555": {
+    "productId": 718555,
+    "name": "Alt Cunningham - Soulkiller Architect",
+    "cleanName": "Alt Cunningham Soulkiller Architect",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "048",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718556": {
+    "productId": 718556,
+    "name": "Evelyn Parker - Beautiful Enigma",
+    "cleanName": "Evelyn Parker Beautiful Enigma",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "049",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718557": {
+    "productId": 718557,
+    "name": "Jackie Welles - Pour One Out For Me",
+    "cleanName": "Jackie Welles Pour One Out For Me",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "050",
+    "rarity": "Nova Rare",
+    "color": null
+  },
+  "718558": {
+    "productId": 718558,
+    "name": "V - Corporate Exile",
+    "cleanName": "V Corporate Exile",
+    "groupId": 24883,
+    "groupName": "Edgerunner Open Season 1",
+    "printNumber": "053",
+    "rarity": "Nova Rare",
     "color": null
   }
 }
