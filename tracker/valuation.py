@@ -302,9 +302,7 @@ def calculate_portfolio_valuation(
         row_pid = row.get("productId")
 
         prod = None
-        if row_pid:
-            prod = catalog_by_pid.get(int(row_pid)) or catalog_by_pid.get(str(row_pid))
-        if not prod and print_number:
+        if print_number:
             prod = catalog_by_group_pnum.get((expansion.lower(), print_number.lower()))
         if not prod:
             prod = catalog_by_group_name.get((expansion.lower(), name.lower()))
@@ -312,6 +310,8 @@ def calculate_portfolio_valuation(
             prod = catalog_by_group_clean_name.get((expansion.lower(), name.lower()))
         if not prod:
             prod = catalog_by_name.get(name.lower())
+        if not prod and row_pid:
+            prod = catalog_by_pid.get(int(row_pid)) or catalog_by_pid.get(str(row_pid))
 
         prod_id = prod["productId"] if prod else (int(row_pid) if row_pid else None)
         if prod:
