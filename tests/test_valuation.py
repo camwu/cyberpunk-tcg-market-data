@@ -828,16 +828,20 @@ class TestReportFormatting(unittest.TestCase):
         self.assertEqual(RARITY_ICONS["Common"], "▽")
         self.assertEqual(RARITY_ICONS["Uncommon"], "△")
         self.assertEqual(RARITY_ICONS["Rare"], "◇")
-        self.assertEqual(RARITY_ICONS["Epic"], "🞚")
-        self.assertEqual(RARITY_ICONS["Secret"], "⯁")
+        self.assertEqual(RARITY_ICONS["Epic"], "◆")
+        self.assertEqual(RARITY_ICONS["Secret"], "⬠")
         self.assertEqual(RARITY_ICONS["Iconic"], "★")
         self.assertEqual(RARITY_ICONS["Nova"], "▣")
 
     def test_format_rarity(self):
         self.assertEqual(format_rarity("Common"), "▽ Common")
         self.assertEqual(format_rarity("Uncommon"), "△ Uncommon")
+        self.assertEqual(format_rarity("Epic"), "◆ Epic")
+        self.assertEqual(format_rarity("Secret"), "⬠ Secret")
         self.assertEqual(format_rarity("Common", bold=True), "**▽ Common**")
         self.assertEqual(format_rarity("Uncommon", bold=True), "**△ Uncommon**")
+        self.assertEqual(format_rarity("Epic", bold=True), "**◆ Epic**")
+        self.assertEqual(format_rarity("Secret", bold=True), "**⬠ Secret**")
 
 
 if __name__ == "__main__":
