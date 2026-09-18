@@ -261,6 +261,39 @@ class TestScraperSkipBehavior(unittest.TestCase):
         self.assertEqual(updated_cards["_groups"]["100"]["modifiedOn"], "2026-09-02T15:00:00")
         self.assertEqual(updated_cards["101"]["name"], "Card One Updated")
 
+    def test_extracts_color_from_extended_data(self):
+        target_date = "2026-09-17"
+        cards_file = os.path.join(self.temp_path, "cards.json")
+        mock_responses = {
+            "92/groups": {"results": [{"groupId": 100, "name": "Set 1", "modifiedOn": "2026-09-17T12:00:00"}]},
+            "92/100/products": {
+                "results": [
+                    {
+                        "productId": 101,
+                        "name": "Card One",
+                        "cleanName": "Card One",
+                        "extendedData": [
+                            {"name": "Number", "value": "B057"},
+                            {"name": "Rarity", "value": "Epic"},
+                            {"name": "Color", "value": "Yellow"},
+                        ],
+                    }
+                ]
+            },
+            "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 10.0}]},
+        }
+
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)), \
+             patch("scrape.fetch_text", return_value="2026-09-17T20:00:00+0000"):
+            success = run_scraper(output_dir=self.price_dir, force=True, target_date=target_date)
+            self.assertTrue(success)
+
+        with open(cards_file, "r", encoding="utf-8") as f:
+            saved_cards = json.load(f)
+        self.assertEqual(saved_cards["101"]["color"], "Yellow")
+        self.assertEqual(saved_cards["101"]["printNumber"], "B057")
+        self.assertEqual(saved_cards["101"]["rarity"], "Epic")
+
 
 if __name__ == "__main__":
     unittest.main()

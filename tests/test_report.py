@@ -222,6 +222,27 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("-33.3%", decliners_l7d)
         self.assertNotIn("Booster Box", decliners_l7d)
 
+    def test_report_color_null_and_empty_string_safety(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO card_metadata VALUES
+        ('Exp::003::Standard', 103, 'Uncolored Card', '003', 'Welcome to Night City - Beta', 'Standard', 'Common', '', '2026-09-14', 5.00, 'Card')
+        """)
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-14', 'Exp::003::Standard', 1, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 0.00, 0.00)
+        """)
+        conn.commit()
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        self.assertIn("### Color", content)
+        self.assertNotIn("****", content)
+        self.assertIn("| **Unknown** | 1 | 1 | `$5.00` |", content)
+
 
 if __name__ == "__main__":
     unittest.main()

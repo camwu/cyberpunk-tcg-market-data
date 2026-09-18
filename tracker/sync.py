@@ -251,11 +251,14 @@ def sync_market_prices(
                     pid = p["productId"]
                     print_number = None
                     rarity = None
+                    color = None
                     for ext in p.get("extendedData", []):
                         if ext.get("name") == "Number":
                             print_number = ext.get("value")
                         elif ext.get("name") == "Rarity":
                             rarity = ext.get("value")
+                        elif ext.get("name") == "Color":
+                            color = ext.get("value")
 
                     catalog[str(pid)] = {
                         "productId": pid,
@@ -265,6 +268,7 @@ def sync_market_prices(
                         "groupName": gname,
                         "printNumber": print_number,
                         "rarity": rarity,
+                        "color": color,
                     }
         else:
             print(f"[{idx}/{total_groups}] Fetching {gname} (ID: {gid}) prices only...")
