@@ -62,7 +62,7 @@ def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tu
         return [(None, total_qty)], None
 
     if len(chunks) == 1:
-        m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b(?:\s*:\s*(\d+))?", chunks[0])
+        m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b(?:\s*:\s*(-?\d+))?", chunks[0])
         if m:
             date_candidate = m.group(1)
             try:
@@ -73,6 +73,8 @@ def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tu
             explicit_qty_str = m.group(2)
             if explicit_qty_str is not None:
                 qty = int(explicit_qty_str)
+                if qty < 1:
+                    return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty})."
                 if qty != total_qty:
                     return [], f"Sum of parsed lots ({qty}) does not equal totalQtyOwned ({total_qty})."
                 return [(date_candidate, qty)], None
@@ -81,7 +83,7 @@ def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tu
 
     lots: List[Tuple[Optional[str], int]] = []
     for c in chunks:
-        m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b(?:\s*:\s*(\d+))?", c)
+        m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b(?:\s*:\s*(-?\d+))?", c)
         if not m:
             continue
         date_candidate = m.group(1)
@@ -91,7 +93,12 @@ def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tu
             continue
 
         explicit_qty_str = m.group(2)
-        qty = int(explicit_qty_str) if explicit_qty_str is not None else 1
+        if explicit_qty_str is not None:
+            qty = int(explicit_qty_str)
+            if qty < 1:
+                return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty})."
+        else:
+            qty = 1
         lots.append((date_candidate, qty))
 
     if not lots:

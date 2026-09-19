@@ -309,6 +309,25 @@ Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,,Standard,
         self.assertEqual(lots_implicit, [])
         self.assertIn("Sum of parsed lots (2) does not equal totalQtyOwned (3)", err_implicit)
 
+    def test_parse_multi_lot_notes_non_positive_quantity_rejected(self):
+        # Explicit zero quantity in multi-lot list
+        lots_zero, err_zero = parse_multi_lot_notes("2026-09-02: 0; 2026-09-18: 2", 2)
+        self.assertIsNotNone(err_zero)
+        self.assertEqual(lots_zero, [])
+        self.assertIn("Parsed lot quantity for '2026-09-02' must be at least 1 (got 0)", err_zero)
+
+        # Explicit negative quantity in multi-lot list
+        lots_neg, err_neg = parse_multi_lot_notes("2026-09-02: -1; 2026-09-18: 2", 1)
+        self.assertIsNotNone(err_neg)
+        self.assertEqual(lots_neg, [])
+        self.assertIn("Parsed lot quantity for '2026-09-02' must be at least 1 (got -1)", err_neg)
+
+        # Explicit zero quantity in standalone single date
+        lots_single_zero, err_single_zero = parse_multi_lot_notes("2026-09-02: 0", 0)
+        self.assertIsNotNone(err_single_zero)
+        self.assertEqual(lots_single_zero, [])
+        self.assertIn("Parsed lot quantity for '2026-09-02' must be at least 1 (got 0)", err_single_zero)
+
     def test_validate_collection_file_multi_lot_card_expansion(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
 Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026-09-18: 2"
