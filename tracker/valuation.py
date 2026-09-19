@@ -122,7 +122,7 @@ def get_historical_market_price(
                 match = True
             elif print_number and p_exp == expansion.lower() and p_pnum == str(print_number).strip().lower():
                 match = True
-            elif p_exp == expansion.lower() and p_name == name.lower():
+            elif not print_number and p_exp == expansion.lower() and p_name == name.lower():
                 match = True
 
             if match:
@@ -138,6 +138,12 @@ def get_historical_market_price(
                 return price
 
     return None
+
+
+def clear_historical_price_cache() -> None:
+    """Clears in-memory cache of historical prices."""
+    global _HISTORICAL_PRICE_CACHE
+    _HISTORICAL_PRICE_CACHE.clear()
 
 
 def init_database(db_path: str):
@@ -172,9 +178,14 @@ def init_database(db_path: str):
     for old_key, first_seen in cur.fetchall():
         parts = old_key.split("::")
         if len(parts) == 3:
-            migrated_date = first_seen or "2026-09-11"
+            if not first_seen:
+                cur.execute("SELECT MIN(date) FROM daily_snapshots WHERE card_key = ?", (old_key,))
+                min_row = cur.fetchone()
+                migrated_date = min_row[0] if (min_row and min_row[0]) else datetime.date.today().isoformat()
+            else:
+                migrated_date = first_seen
             new_key = f"{old_key}::{migrated_date}"
-            cur.execute("UPDATE card_metadata SET card_key = ? WHERE card_key = ?", (new_key, old_key))
+            cur.execute("UPDATE card_metadata SET card_key = ?, first_seen_date = COALESCE(first_seen_date, ?) WHERE card_key = ?", (new_key, migrated_date, old_key))
             cur.execute("UPDATE daily_snapshots SET card_key = ? WHERE card_key = ?", (new_key, old_key))
 
     # Migrate legacy 3-part card keys ({expansion}::{print_number}::{finish}) to lot keys with acquisitionDate
@@ -182,9 +193,14 @@ def init_database(db_path: str):
     for old_key, first_seen in cur.fetchall():
         parts = old_key.split("::")
         if len(parts) == 3:
-            migrated_date = first_seen or "2026-09-11"
+            if not first_seen:
+                cur.execute("SELECT MIN(date) FROM daily_snapshots WHERE card_key = ?", (old_key,))
+                min_row = cur.fetchone()
+                migrated_date = min_row[0] if (min_row and min_row[0]) else datetime.date.today().isoformat()
+            else:
+                migrated_date = first_seen
             new_key = f"{old_key}::{migrated_date}"
-            cur.execute("UPDATE card_metadata SET card_key = ? WHERE card_key = ?", (new_key, old_key))
+            cur.execute("UPDATE card_metadata SET card_key = ?, first_seen_date = COALESCE(first_seen_date, ?) WHERE card_key = ?", (new_key, migrated_date, old_key))
             cur.execute("UPDATE daily_snapshots SET card_key = ? WHERE card_key = ?", (new_key, old_key))
 
     cur.execute("""
