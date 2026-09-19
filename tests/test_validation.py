@@ -371,6 +371,17 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,2,1.50,2026-09-02
 
         self.assertFalse(is_valid)
         self.assertTrue(any("Duplicate card lot" in err for err in errors))
+    def test_validate_collection_file_non_date_notes_falls_back_to_acquisition_date_col(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes,acquisitionDate
+Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,"Personal collection from local store",2026-09-05
+"""
+        path = self._create_csv("notes_fallback_acq_col.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["acquisitionDate"], "2026-09-05")
 
 
 if __name__ == "__main__":

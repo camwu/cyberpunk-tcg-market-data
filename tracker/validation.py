@@ -232,7 +232,12 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
 
                 lots = []
                 if qty >= 1:
-                    raw_to_parse = notes_raw if notes_raw else acq_date_col
+                    if notes_raw and extract_date_from_text(notes_raw):
+                        raw_to_parse = notes_raw
+                    elif acq_date_col:
+                        raw_to_parse = acq_date_col
+                    else:
+                        raw_to_parse = notes_raw
                     parsed_lots, lot_err = parse_multi_lot_notes(raw_to_parse, qty)
                     if lot_err:
                         errors.append(f"Row {row_idx}: Quantity mismatch for '{name}'. {lot_err}")
