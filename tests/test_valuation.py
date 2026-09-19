@@ -735,7 +735,7 @@ class TestPortfolioValuation(unittest.TestCase):
         cur.execute("""
         SELECT unit_market_price, line_total, baseline_price, lifetime_gain_dollar, lifetime_gain_pct
         FROM daily_snapshots
-        WHERE date = '2026-09-11' AND card_key = 'The Heist - Beta Starter Deck::B015::Standard'
+        WHERE date = '2026-09-11' AND card_key = 'The Heist - Beta Starter Deck::B015::Standard::2026-09-11'
         """)
         unpriced_snapshot = cur.fetchone()
         self.assertIsNone(unpriced_snapshot[0])
@@ -814,7 +814,7 @@ class TestPortfolioValuation(unittest.TestCase):
         cur.execute("""
         SELECT unit_market_price, baseline_price, lifetime_gain_dollar
         FROM daily_snapshots
-        WHERE date = '2026-09-11' AND card_key = 'The Heist - Beta Starter Deck::B015::Standard'
+        WHERE date = '2026-09-11' AND card_key = 'The Heist - Beta Starter Deck::B015::Standard::2026-09-11'
         """)
         rerun_snapshot = cur.fetchone()
         self.assertIsNone(rerun_snapshot[0])
@@ -893,12 +893,12 @@ class TestPortfolioValuation(unittest.TestCase):
         rows = cur.fetchall()
         conn.close()
 
-        self.assertEqual(rows[0][0], "Welcome to Night City - Beta::B011::Foil")
+        self.assertEqual(rows[0][0], "Welcome to Night City - Beta::B011::Foil::2026-09-17")
         self.assertEqual(rows[0][1], "Johnny Silverhand - Never Stop Fighting")
         self.assertEqual(rows[0][2], "Epic")
         self.assertEqual(rows[0][3], "Red")
 
-        self.assertEqual(rows[1][0], "Welcome to Night City - Beta::B057::Standard")
+        self.assertEqual(rows[1][0], "Welcome to Night City - Beta::B057::Standard::2026-09-17")
         self.assertEqual(rows[1][1], "Viktor Vektor - Drop Your Illusions")
         self.assertEqual(rows[1][2], "Epic")
         self.assertEqual(rows[1][3], "Yellow")
@@ -963,7 +963,7 @@ class TestPortfolioValuation(unittest.TestCase):
 
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        cur.execute("SELECT card_key, product_id, name, color FROM card_metadata WHERE card_key = 'Welcome to Night City - Beta::B057::Standard'")
+        cur.execute("SELECT card_key, product_id, name, color FROM card_metadata WHERE card_key = 'Welcome to Night City - Beta::B057::Standard::2026-09-17'")
         row = cur.fetchone()
         conn.close()
 
@@ -971,6 +971,163 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertEqual(row[1], 714219)  # Must resolve to TCGplayer 714219, NOT CardNexus 999
         self.assertEqual(row[2], "Viktor Vektor - Drop Your Illusions")
         self.assertEqual(row[3], "Yellow")
+
+    def test_multi_lot_separate_baselines_and_keys(self):
+        cards_catalog = {
+            "500": {
+                "productId": 500,
+                "name": "Towerfall",
+                "cleanName": "Towerfall",
+                "groupId": 1000,
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B034",
+                "rarity": "Rare",
+                "color": "Blue",
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        # Historical price on 2026-09-02: $10.00
+        hist_prices = {
+            "date": "2026-09-02",
+            "prices": {
+                "500": {"Standard": {"marketPrice": 10.00}}
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-02.json"), "w", encoding="utf-8") as f:
+            json.dump(hist_prices, f)
+
+        # Current price on 2026-09-18: $15.00
+        cur_prices = {
+            "date": "2026-09-18",
+            "prices": {
+                "500": {"Standard": {"marketPrice": 15.00}}
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-18.json"), "w", encoding="utf-8") as f:
+            json.dump(cur_prices, f)
+
+        # 2 lots for B034: 1 acquired on 2026-09-02, 2 acquired on 2026-09-18
+        collection_rows = [
+            {
+                "name": "Towerfall",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "B034",
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 0.0,
+                "acquisitionDate": "2026-09-02",
+                "item_type": "Card",
+            },
+            {
+                "name": "Towerfall",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "B034",
+                "finish": "Standard",
+                "totalQtyOwned": 2,
+                "price": 0.0,
+                "acquisitionDate": "2026-09-18",
+                "item_type": "Card",
+            },
+        ]
+
+        calculate_portfolio_valuation(
+            date_str="2026-09-18",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=collection_rows,
+        )
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key, quantity, unit_market_price, baseline_price, line_total, lifetime_gain_dollar FROM daily_snapshots ORDER BY card_key")
+        snapshots = cur.fetchall()
+        cur.execute("SELECT lifetime_dollar_gain, total_value FROM portfolio_daily_summary WHERE date = '2026-09-18'")
+        summary = cur.fetchone()
+        conn.close()
+
+        self.assertEqual(len(snapshots), 2)
+        # Lot 1 (2026-09-02): baseline $10.00, current $15.00, line_total $15.00, gain +$5.00
+        self.assertEqual(snapshots[0][0], "Welcome to Night City - Beta::B034::Standard::2026-09-02")
+        self.assertEqual(snapshots[0][1], 1)
+        self.assertEqual(snapshots[0][2], 15.00)
+        self.assertEqual(snapshots[0][3], 10.00)
+        self.assertEqual(snapshots[0][4], 15.00)
+        self.assertEqual(snapshots[0][5], 5.00)
+
+        # Lot 2 (2026-09-18): baseline $15.00, current $15.00, line_total $30.00, gain $0.00
+        self.assertEqual(snapshots[1][0], "Welcome to Night City - Beta::B034::Standard::2026-09-18")
+        self.assertEqual(snapshots[1][1], 2)
+        self.assertEqual(snapshots[1][2], 15.00)
+        self.assertEqual(snapshots[1][3], 15.00)
+        self.assertEqual(snapshots[1][4], 30.00)
+        self.assertEqual(snapshots[1][5], 0.00)
+
+        # Portfolio totals: total value = $45.00, baseline cost = $40.00, gain = +$5.00
+        self.assertEqual(summary[0], 5.00)
+        self.assertEqual(summary[1], 45.00)
+
+    def test_sqlite_migration_3part_to_4part_card_keys(self):
+        migration_db = os.path.join(self.temp_dir.name, "migration_test.db")
+        conn = sqlite3.connect(migration_db)
+        cur = conn.cursor()
+        cur.execute("""
+        CREATE TABLE card_metadata (
+            card_key TEXT PRIMARY KEY,
+            product_id INTEGER,
+            name TEXT,
+            print_number TEXT,
+            rarity TEXT,
+            expansion TEXT,
+            finish TEXT,
+            first_seen_date TEXT,
+            baseline_market_price REAL,
+            color TEXT,
+            item_type TEXT DEFAULT 'Card'
+        )
+        """)
+        cur.execute("""
+        CREATE TABLE daily_snapshots (
+            date TEXT,
+            card_key TEXT,
+            quantity INTEGER,
+            unit_market_price REAL,
+            unit_low_price REAL,
+            unit_mid_price REAL,
+            unit_high_price REAL,
+            line_total REAL,
+            baseline_price REAL,
+            lifetime_gain_dollar REAL,
+            lifetime_gain_pct REAL,
+            PRIMARY KEY (date, card_key)
+        )
+        """)
+        # Insert 3-part card key
+        cur.execute("""
+        INSERT INTO card_metadata (card_key, product_id, name, print_number, rarity, expansion, finish, first_seen_date, baseline_market_price, item_type)
+        VALUES ('Welcome to Night City - Beta::B011::Foil', 101, 'Johnny Silverhand', 'B011', 'Epic', 'Welcome to Night City - Beta', 'Foil', '2026-09-12', 20.00, 'Card')
+        """)
+        cur.execute("""
+        INSERT INTO daily_snapshots (date, card_key, quantity, unit_market_price, line_total, baseline_price, lifetime_gain_dollar, lifetime_gain_pct)
+        VALUES ('2026-09-12', 'Welcome to Night City - Beta::B011::Foil', 1, 20.00, 20.00, 20.00, 0.0, 0.0)
+        """)
+        conn.commit()
+        conn.close()
+
+        # Run init_database which triggers migration
+        migrated_conn = init_database(migration_db)
+        m_cur = migrated_conn.cursor()
+        m_cur.execute("SELECT card_key FROM card_metadata")
+        meta_keys = [r[0] for r in m_cur.fetchall()]
+        m_cur.execute("SELECT card_key FROM daily_snapshots")
+        snap_keys = [r[0] for r in m_cur.fetchall()]
+        migrated_conn.close()
+
+        self.assertEqual(meta_keys, ["Welcome to Night City - Beta::B011::Foil::2026-09-12"])
+        self.assertEqual(snap_keys, ["Welcome to Night City - Beta::B011::Foil::2026-09-12"])
 
 
 class TestReportFormatting(unittest.TestCase):

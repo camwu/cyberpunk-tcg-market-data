@@ -57,6 +57,89 @@ def get_earliest_price_date(cache_dir: str, cur: Optional[sqlite3.Cursor] = None
     return min(dates) if dates else None
 
 
+_HISTORICAL_PRICE_CACHE = {}
+
+
+def get_historical_market_price(
+    cache_dir: str,
+    target_date: str,
+    prod_id: Optional[int],
+    expansion: str,
+    print_number: Optional[str],
+    name: str,
+    finish: str,
+) -> Optional[float]:
+    """Retrieves market price for a product on target_date from price cache files."""
+    global _HISTORICAL_PRICE_CACHE
+    cache_key = (os.path.abspath(cache_dir), target_date)
+    if cache_key not in _HISTORICAL_PRICE_CACHE:
+        candidates = [
+            os.path.join(cache_dir, f"{target_date}.json"),
+            str(Path(__file__).resolve().parent.parent / "prices" / f"{target_date}.json"),
+        ]
+        target_file = next((c for c in candidates if os.path.isfile(c)), None)
+        if not target_file:
+            _HISTORICAL_PRICE_CACHE[cache_key] = {}
+        else:
+            try:
+                with open(target_file, "r", encoding="utf-8") as f:
+                    _HISTORICAL_PRICE_CACHE[cache_key] = json.load(f)
+            except Exception:
+                _HISTORICAL_PRICE_CACHE[cache_key] = {}
+
+    cache_data = _HISTORICAL_PRICE_CACHE.get(cache_key, {})
+    if not cache_data:
+        return None
+
+    sub_type = "Foil" if finish.lower() == "foil" else "Normal"
+
+    def _extract_from_price_dict(p_dict: dict) -> Optional[float]:
+        if not isinstance(p_dict, dict):
+            return None
+        finish_keys = ["Foil"] if sub_type == "Foil" else ["Normal", "Standard"]
+        for k in finish_keys:
+            sub = p_dict.get(k)
+            if isinstance(sub, dict):
+                mp = sub.get("marketPrice") or sub.get("midPrice") or sub.get("lowPrice")
+                if mp is not None and mp > 0.0:
+                    return float(mp)
+        # Check remaining sub-dictionaries as fallback
+        for k, sub in p_dict.items():
+            if isinstance(sub, dict) and k not in finish_keys:
+                mp = sub.get("marketPrice") or sub.get("midPrice") or sub.get("lowPrice")
+                if mp is not None and mp > 0.0:
+                    return float(mp)
+        return None
+
+    if "products" in cache_data:
+        for p in cache_data["products"].values():
+            p_pid = p.get("productId")
+            p_exp = (p.get("groupName") or "").strip().lower()
+            p_name = (p.get("name") or "").strip().lower()
+            p_pnum = (p.get("printNumber") or "").strip().lower()
+            match = False
+            if prod_id and p_pid and int(p_pid) == int(prod_id):
+                match = True
+            elif print_number and p_exp == expansion.lower() and p_pnum == str(print_number).strip().lower():
+                match = True
+            elif p_exp == expansion.lower() and p_name == name.lower():
+                match = True
+
+            if match:
+                price = _extract_from_price_dict(p.get("prices", {}))
+                if price is not None:
+                    return price
+
+    elif "prices" in cache_data and prod_id:
+        p_data = cache_data["prices"].get(str(prod_id)) or cache_data["prices"].get(int(prod_id))
+        if isinstance(p_data, dict):
+            price = _extract_from_price_dict(p_data)
+            if price is not None:
+                return price
+
+    return None
+
+
 def init_database(db_path: str):
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conn = sqlite3.connect(db_path)
@@ -86,6 +169,16 @@ def init_database(db_path: str):
 
     # Migrate legacy 3-part sealed keys (SEALED::{expansion}::{productId}) to lot keys with acquisitionDate
     cur.execute("SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed'")
+    for old_key, first_seen in cur.fetchall():
+        parts = old_key.split("::")
+        if len(parts) == 3:
+            migrated_date = first_seen or "2026-09-11"
+            new_key = f"{old_key}::{migrated_date}"
+            cur.execute("UPDATE card_metadata SET card_key = ? WHERE card_key = ?", (new_key, old_key))
+            cur.execute("UPDATE daily_snapshots SET card_key = ? WHERE card_key = ?", (new_key, old_key))
+
+    # Migrate legacy 3-part card keys ({expansion}::{print_number}::{finish}) to lot keys with acquisitionDate
+    cur.execute("SELECT card_key, first_seen_date FROM card_metadata WHERE COALESCE(item_type, 'Card') = 'Card'")
     for old_key, first_seen in cur.fetchall():
         parts = old_key.split("::")
         if len(parts) == 3:
@@ -350,7 +443,17 @@ def calculate_portfolio_valuation(
             card_key = f"SEALED::{expansion}::{prod_id or name}::{effective_acq_date}"
             rarity = "Sealed"
         else:
-            card_key = f"{expansion}::{print_number}::{finish}"
+            if not acq_date_raw:
+                cur.execute(
+                    "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Card' AND expansion = ? AND print_number = ? AND finish = ? ORDER BY first_seen_date ASC LIMIT 1",
+                    (expansion, print_number, finish),
+                )
+                existing_meta = cur.fetchone()
+                if existing_meta and existing_meta[1]:
+                    effective_acq_date = existing_meta[1]
+                else:
+                    effective_acq_date = date_str
+            card_key = f"{expansion}::{print_number}::{finish}::{effective_acq_date}"
 
         sub_type = "Foil" if finish.lower() == "foil" else "Normal"
         prices = prod.get("prices", {}).get(sub_type, {}) if prod else {}
@@ -374,12 +477,16 @@ def calculate_portfolio_valuation(
 
         if market_price is None or market_price <= 0.0:
             cur.execute("""
-            SELECT unit_market_price
-            FROM daily_snapshots
-            WHERE card_key = ? AND date < ? AND unit_market_price > 0.0
-            ORDER BY date DESC
+            SELECT s.unit_market_price
+            FROM daily_snapshots s
+            JOIN card_metadata m ON s.card_key = m.card_key
+            WHERE s.date < ? AND s.unit_market_price > 0.0
+              AND ((m.product_id IS NOT NULL AND m.product_id = ?)
+                   OR (m.expansion = ? AND m.print_number = ? AND m.finish = ?)
+                   OR (m.expansion = ? AND m.name = ?))
+            ORDER BY s.date DESC
             LIMIT 1
-            """, (card_key, date_str))
+            """, (date_str, prod_id, expansion, print_number, finish, expansion, name))
             prev_price_row = cur.fetchone()
             if prev_price_row and prev_price_row[0] is not None and prev_price_row[0] > 0.0:
                 market_price = prev_price_row[0]
@@ -432,12 +539,29 @@ def calculate_portfolio_valuation(
         else:
             if item_type == "Sealed" and fallback_price > 0.0:
                 baseline_price = fallback_price
-            elif market_price is not None and market_price > 0.0:
-                baseline_price = market_price
-            elif fallback_price > 0.0:
-                baseline_price = fallback_price
             else:
                 baseline_price = None
+                if effective_acq_date and effective_acq_date < date_str:
+                    hist_price = get_historical_market_price(
+                        cache_dir=cache_dir,
+                        target_date=effective_acq_date,
+                        prod_id=prod_id,
+                        expansion=expansion,
+                        print_number=print_number,
+                        name=name,
+                        finish=finish,
+                    )
+                    if hist_price is not None and hist_price > 0.0:
+                        baseline_price = hist_price
+
+                if baseline_price is None or baseline_price <= 0.0:
+                    if market_price is not None and market_price > 0.0:
+                        baseline_price = market_price
+                    elif fallback_price > 0.0:
+                        baseline_price = fallback_price
+                    else:
+                        baseline_price = None
+
             first_seen = effective_acq_date
             cur.execute("""
             INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type)
