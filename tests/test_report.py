@@ -243,6 +243,67 @@ class TestReportGeneration(unittest.TestCase):
         self.assertNotIn("****", content)
         self.assertIn("| **Unknown** | 1 | 1 | `$5.00` |", content)
 
+    def test_multi_lot_high_value_cards_aggregated(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        # Insert 2 lots for Towerfall (print B034, unit_market_price 15.00)
+        cur.execute("""
+        INSERT INTO card_metadata VALUES
+        ('Exp::B034::Standard::2026-09-02', 500, 'Towerfall', 'B034', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Blue', '2026-09-02', 10.00, 'Card'),
+        ('Exp::B034::Standard::2026-09-18', 500, 'Towerfall', 'B034', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Blue', '2026-09-18', 15.00, 'Card')
+        """)
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-18', 'Exp::B034::Standard::2026-09-02', 1, 15.00, 15.00, 15.00, 18.00, 15.00, 10.00, 5.00, 50.0),
+        ('2026-09-18', 'Exp::B034::Standard::2026-09-18', 2, 15.00, 15.00, 15.00, 18.00, 30.00, 15.00, 0.00, 0.0)
+        """)
+        cur.execute("""
+        INSERT INTO portfolio_daily_summary VALUES
+        ('2026-09-18', 45.00, 3, 1, 0.0, 0.0, 5.00, 12.5, 0)
+        """)
+        conn.commit()
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-18")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        # In High-Value Singles table, Towerfall should appear only once with aggregated quantity 3 and line total $45.00
+        singles_section = content.split("### High-Value Singles")[1]
+        if "### Sealed Products" in singles_section:
+            singles_section = singles_section.split("### Sealed Products")[0]
+        else:
+            singles_section = singles_section.split("## 📈 Top Gainers")[0]
+        self.assertEqual(singles_section.count("Towerfall"), 1)
+        self.assertIn("| 🔵 **Towerfall** | Welcome to Night City - Beta | **◇ Rare** | Standard | 3 | `$15.00` | `$45.00` |", singles_section)
+
+    def test_multi_lot_rarity_breakdown_distinct_card_count(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        # Insert 2 lots for Towerfall (print B034)
+        cur.execute("""
+        INSERT INTO card_metadata VALUES
+        ('Exp::B034::Standard::2026-09-02', 500, 'Towerfall', 'B034', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Blue', '2026-09-02', 10.00, 'Card'),
+        ('Exp::B034::Standard::2026-09-18', 500, 'Towerfall', 'B034', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Blue', '2026-09-18', 15.00, 'Card')
+        """)
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-18', 'Exp::B034::Standard::2026-09-02', 1, 15.00, 15.00, 15.00, 18.00, 15.00, 10.00, 5.00, 50.0),
+        ('2026-09-18', 'Exp::B034::Standard::2026-09-18', 2, 15.00, 15.00, 15.00, 18.00, 30.00, 15.00, 0.00, 0.0)
+        """)
+        cur.execute("""
+        INSERT INTO portfolio_daily_summary VALUES
+        ('2026-09-18', 45.00, 3, 1, 0.0, 0.0, 5.00, 12.5, 0)
+        """)
+        conn.commit()
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-18")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        # Rarity breakdown should count 1 distinct card and 3 copies for Rare
+        rarity_section = content.split("### Rarity")[1].split("### Color")[0]
+        self.assertIn("| **◇ Rare** | 1 | 3 | `$45.00` |", rarity_section)
+
 
 if __name__ == "__main__":
     unittest.main()
