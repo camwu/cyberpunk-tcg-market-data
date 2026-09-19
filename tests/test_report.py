@@ -304,6 +304,47 @@ class TestReportGeneration(unittest.TestCase):
         rarity_section = content.split("### Rarity")[1].split("### Color")[0]
         self.assertIn("| **◇ Rare** | 1 | 3 | `$45.00` |", rarity_section)
 
+    def test_top_gainers_ranks_by_per_unit_delta_and_includes_acquired_date(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        # Card A: 1 copy, unit price 20.00, baseline 10.00 -> +10.00/unit, total gain $10.00
+        # Card B: 2 copies, unit price 20.00, baseline 12.00 -> +8.00/unit, total gain $16.00
+        cur.execute("""
+        INSERT INTO card_metadata VALUES
+        ('Exp::A::Standard::2026-09-02', 601, 'Card Alpha', 'A', 'Expansion A', 'Standard', 'Rare', 'Red', '2026-09-02', 10.00, 'Card'),
+        ('Exp::B::Standard::2026-09-10', 602, 'Card Beta', 'B', 'Expansion A', 'Standard', 'Rare', 'Blue', '2026-09-10', 12.00, 'Card')
+        """)
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-19', 'Exp::A::Standard::2026-09-02', 1, 20.00, 20.00, 20.00, 20.00, 20.00, 10.00, 10.00, 100.0),
+        ('2026-09-19', 'Exp::B::Standard::2026-09-10', 2, 20.00, 20.00, 20.00, 20.00, 40.00, 12.00, 16.00, 66.7)
+        """)
+        cur.execute("""
+        INSERT INTO portfolio_daily_summary VALUES
+        ('2026-09-19', 60.00, 3, 2, 0.0, 0.0, 26.00, 76.5, 0)
+        """)
+        conn.commit()
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-19")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        gainers_section = content.split("## 📈 Top Gainers")[1].split("## 📉 Top Decliners")[0]
+
+        # Table header must include Acquired
+        self.assertIn("| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Gain | Percent Gain |", gainers_section)
+
+        # Card Alpha (+$10.00/unit) must rank BEFORE Card Beta (+$8.00/unit, despite higher $16 position gain)
+        idx_alpha = gainers_section.find("Card Alpha")
+        idx_beta = gainers_section.find("Card Beta")
+        self.assertNotEqual(idx_alpha, -1)
+        self.assertNotEqual(idx_beta, -1)
+        self.assertLess(idx_alpha, idx_beta)
+
+        # Acquisition dates must appear in the rows
+        self.assertIn("| 🔴 **Card Alpha** | `2026-09-02` |", gainers_section)
+        self.assertIn("| 🔵 **Card Beta** | `2026-09-10` |", gainers_section)
+
 
 if __name__ == "__main__":
     unittest.main()
