@@ -6,7 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tracker.validation import validate_collection_file, validate_sealed_file
+from tracker.validation import (
+    parse_multi_lot_notes,
+    validate_collection_file,
+    validate_sealed_file,
+)
 
 
 class TestCollectionValidation(unittest.TestCase):
@@ -255,6 +259,129 @@ Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,,Standard,
 
         self.assertFalse(is_valid)
         self.assertTrue(any("Duplicate sealed lot" in err for err in errors))
+
+    def test_parse_multi_lot_notes_standalone_date(self):
+        lots, err = parse_multi_lot_notes("2026-09-02", 3)
+        self.assertIsNone(err)
+        self.assertEqual(lots, [("2026-09-02", 3)])
+
+    def test_parse_multi_lot_notes_semicolon_and_comma(self):
+        lots_semi, err_semi = parse_multi_lot_notes("2026-09-02: 1; 2026-09-18: 2", 3)
+        self.assertIsNone(err_semi)
+        self.assertEqual(lots_semi, [("2026-09-02", 1), ("2026-09-18", 2)])
+
+        lots_comma, err_comma = parse_multi_lot_notes("2026-09-02: 1, 2026-09-18: 2", 3)
+        self.assertIsNone(err_comma)
+        self.assertEqual(lots_comma, [("2026-09-02", 1), ("2026-09-18", 2)])
+
+    def test_parse_multi_lot_notes_implicit_single_quantity(self):
+        # 1 copy on 2026-09-02 (implicit), 2 copies on 2026-09-18 (explicit)
+        lots, err = parse_multi_lot_notes("2026-09-02; 2026-09-18: 2", 3)
+        self.assertIsNone(err)
+        self.assertEqual(lots, [("2026-09-02", 1), ("2026-09-18", 2)])
+
+        # 1 copy on each date (both implicit)
+        lots_both, err_both = parse_multi_lot_notes("2026-09-02; 2026-09-18", 2)
+        self.assertIsNone(err_both)
+        self.assertEqual(lots_both, [("2026-09-02", 1), ("2026-09-18", 1)])
+
+    def test_parse_multi_lot_notes_empty_or_no_dates(self):
+        lots_empty, err = parse_multi_lot_notes("", 2)
+        self.assertIsNone(err)
+        self.assertEqual(lots_empty, [(None, 2)])
+
+        lots_none, err = parse_multi_lot_notes(None, 4)
+        self.assertIsNone(err)
+        self.assertEqual(lots_none, [(None, 4)])
+
+        lots_text, err = parse_multi_lot_notes("No dates here, just personal note", 1)
+        self.assertIsNone(err)
+        self.assertEqual(lots_text, [(None, 1)])
+
+    def test_parse_multi_lot_notes_sum_mismatch_error(self):
+        lots, err = parse_multi_lot_notes("2026-09-02: 1; 2026-09-18: 2", 5)
+        self.assertIsNotNone(err)
+        self.assertEqual(lots, [])
+        self.assertIn("Sum of parsed lots (3) does not equal totalQtyOwned (5)", err)
+
+        lots_implicit, err_implicit = parse_multi_lot_notes("2026-09-02; 2026-09-18", 3)
+        self.assertIsNotNone(err_implicit)
+        self.assertEqual(lots_implicit, [])
+        self.assertIn("Sum of parsed lots (2) does not equal totalQtyOwned (3)", err_implicit)
+
+    def test_parse_multi_lot_notes_non_positive_quantity_rejected(self):
+        # Explicit zero quantity in multi-lot list
+        lots_zero, err_zero = parse_multi_lot_notes("2026-09-02: 0; 2026-09-18: 2", 2)
+        self.assertIsNotNone(err_zero)
+        self.assertEqual(lots_zero, [])
+        self.assertIn("Parsed lot quantity for '2026-09-02' must be at least 1 (got 0)", err_zero)
+
+        # Explicit negative quantity in multi-lot list
+        lots_neg, err_neg = parse_multi_lot_notes("2026-09-02: -1; 2026-09-18: 2", 1)
+        self.assertIsNotNone(err_neg)
+        self.assertEqual(lots_neg, [])
+        self.assertIn("Parsed lot quantity for '2026-09-02' must be at least 1 (got -1)", err_neg)
+
+        # Explicit zero quantity in standalone single date
+        lots_single_zero, err_single_zero = parse_multi_lot_notes("2026-09-02: 0", 0)
+        self.assertIsNotNone(err_single_zero)
+        self.assertEqual(lots_single_zero, [])
+        self.assertIn("Parsed lot quantity for '2026-09-02' must be at least 1 (got 0)", err_single_zero)
+
+    def test_validate_collection_file_multi_lot_card_expansion(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026-09-18: 2"
+"""
+        path = self._create_csv("multi_lot_expansion.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 2)
+
+        self.assertEqual(rows[0]["name"], "Towerfall")
+        self.assertEqual(rows[0]["printNumber"], "B034")
+        self.assertEqual(rows[0]["totalQtyOwned"], 1)
+        self.assertEqual(rows[0]["acquisitionDate"], "2026-09-02")
+
+        self.assertEqual(rows[1]["name"], "Towerfall")
+        self.assertEqual(rows[1]["printNumber"], "B034")
+        self.assertEqual(rows[1]["totalQtyOwned"], 2)
+        self.assertEqual(rows[1]["acquisitionDate"], "2026-09-18")
+
+    def test_validate_collection_file_multi_lot_mismatch_fails_validation(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,5,1.50,"2026-09-02: 1; 2026-09-18: 2"
+"""
+        path = self._create_csv("multi_lot_mismatch.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertTrue(any("Quantity mismatch for 'Towerfall'" in err for err in errors))
+        self.assertTrue(any("Sum of parsed lots (3) does not equal totalQtyOwned (5)" in err for err in errors))
+
+    def test_duplicate_card_lot_in_unified_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,2026-09-02
+Towerfall,Welcome to Night City - Beta,B034,Standard,2,1.50,2026-09-02
+"""
+        path = self._create_csv("dupe_card_lot.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertTrue(any("Duplicate card lot" in err for err in errors))
+    def test_validate_collection_file_non_date_notes_falls_back_to_acquisition_date_col(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes,acquisitionDate
+Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,"Personal collection from local store",2026-09-05
+"""
+        path = self._create_csv("notes_fallback_acq_col.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["acquisitionDate"], "2026-09-05")
 
 
 if __name__ == "__main__":

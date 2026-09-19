@@ -42,6 +42,75 @@ def extract_date_from_text(text: Optional[str]) -> Optional[str]:
     return None
 
 
+def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tuple[Optional[str], int]], Optional[str]]:
+    """
+    Parses acquisition date(s) and lot quantities from the notes field.
+    Supports:
+    - Standalone single date: '2026-09-02' -> [(2026-09-02, total_qty)]
+    - Semicolon or comma delimited lots: '2026-09-02: 2; 2026-09-18: 3'
+    - Implicit quantities in delimited lists: '2026-09-02; 2026-09-18' (1 each)
+    - Mixed implicit/explicit: '2026-09-02; 2026-09-18: 2'
+    Returns:
+    (list_of_lots, error_message_or_None) where each lot is (date_str_or_None, qty).
+    """
+    if not notes or not str(notes).strip():
+        return [(None, total_qty)], None
+
+    text = str(notes).strip()
+    chunks = [c.strip() for c in re.split(r"[;,]", text) if c.strip()]
+    if not chunks:
+        return [(None, total_qty)], None
+
+    if len(chunks) == 1:
+        m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b(?:\s*:\s*(-?\d+))?", chunks[0])
+        if m:
+            date_candidate = m.group(1)
+            try:
+                datetime.date.fromisoformat(date_candidate)
+            except ValueError:
+                return [(None, total_qty)], None
+
+            explicit_qty_str = m.group(2)
+            if explicit_qty_str is not None:
+                qty = int(explicit_qty_str)
+                if qty < 1:
+                    return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty})."
+                if qty != total_qty:
+                    return [], f"Sum of parsed lots ({qty}) does not equal totalQtyOwned ({total_qty})."
+                return [(date_candidate, qty)], None
+            return [(date_candidate, total_qty)], None
+        return [(None, total_qty)], None
+
+    lots: List[Tuple[Optional[str], int]] = []
+    for c in chunks:
+        m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b(?:\s*:\s*(-?\d+))?", c)
+        if not m:
+            continue
+        date_candidate = m.group(1)
+        try:
+            datetime.date.fromisoformat(date_candidate)
+        except ValueError:
+            continue
+
+        explicit_qty_str = m.group(2)
+        if explicit_qty_str is not None:
+            qty = int(explicit_qty_str)
+            if qty < 1:
+                return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty})."
+        else:
+            qty = 1
+        lots.append((date_candidate, qty))
+
+    if not lots:
+        return [(None, total_qty)], None
+
+    lot_sum = sum(q for _, q in lots)
+    if lot_sum != total_qty:
+        return [], f"Sum of parsed lots ({lot_sum}) does not equal totalQtyOwned ({total_qty})."
+
+    return lots, None
+
+
 def is_sealed_product(name: str, expansion: str = "") -> bool:
     """Detects whether a product is sealed based on naming conventions."""
     clean_name = (name or "").strip().lower()
@@ -89,6 +158,7 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
             row_count = 0
             row_errors = 0
             seen_sealed_lots: Set[Tuple[str, str, str]] = set()
+            seen_card_lots: Set[Tuple[str, str, str, str]] = set()
             for row_idx, row in enumerate(reader, start=2):
                 row_count += 1
                 if missing:
@@ -133,21 +203,7 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
                     errors.append(f"Row {row_idx}: 'finish' is empty.")
                     row_errors += 1
 
-                # Acquisition date discovery from notes or dedicated column
-                acq_date = extract_date_from_text(acq_date_col) or extract_date_from_text(notes_raw)
-                if acq_date_col and not acq_date:
-                    errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format (got '{acq_date_col}').")
-                    row_errors += 1
-
-                # Prevent duplicate sealed lots sharing the same lot key
-                if is_sealed and acq_date:
-                    lot_key = (name.lower(), expansion.lower(), acq_date)
-                    if lot_key in seen_sealed_lots:
-                        errors.append(f"Row {row_idx}: Duplicate sealed lot for '{name}' and acquisitionDate '{acq_date}'. Combine quantities using 'totalQtyOwned'.")
-                        row_errors += 1
-                    else:
-                        seen_sealed_lots.add(lot_key)
-
+                # Quantity parsing
                 qty = 0
                 try:
                     qty = int(qty_raw)
@@ -169,23 +225,62 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
                         errors.append(f"Row {row_idx}: 'price' must be a valid number (got '{price_raw}').")
                         row_errors += 1
 
+                # Acquisition date discovery and multi-lot parsing
+                if acq_date_col and not extract_date_from_text(acq_date_col):
+                    errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format (got '{acq_date_col}').")
+                    row_errors += 1
+
+                lots = []
+                if qty >= 1:
+                    if notes_raw and extract_date_from_text(notes_raw):
+                        raw_to_parse = notes_raw
+                    elif acq_date_col:
+                        raw_to_parse = acq_date_col
+                    else:
+                        raw_to_parse = notes_raw
+                    parsed_lots, lot_err = parse_multi_lot_notes(raw_to_parse, qty)
+                    if lot_err:
+                        errors.append(f"Row {row_idx}: Quantity mismatch for '{name}'. {lot_err}")
+                        row_errors += 1
+                    else:
+                        lots = parsed_lots
+
                 if row_errors >= max_row_errors:
                     errors.append(f"... (truncated additional row errors after {max_row_errors} issues)")
                     break
 
-                # Prepare parsed row dictionary
-                row_copy = dict(row)
-                row_copy["name"] = name
-                row_copy["expansion"] = expansion
-                row_copy["printNumber"] = print_number or None
-                row_copy["finish"] = normalized_finish
-                row_copy["totalQtyOwned"] = qty
-                row_copy["price"] = price
-                row_copy["item_type"] = item_type
-                row_copy["acquisitionDate"] = acq_date
-                if is_sealed:
-                    row_copy["rarity"] = "Sealed"
-                validated_rows.append(row_copy)
+                if row_errors > 0 or not lots:
+                    continue
+
+                # Expand lots and enforce uniqueness per lot
+                for lot_date, lot_qty in lots:
+                    if is_sealed and lot_date:
+                        lot_key = (name.lower(), expansion.lower(), lot_date)
+                        if lot_key in seen_sealed_lots:
+                            errors.append(f"Row {row_idx}: Duplicate sealed lot for '{name}' and acquisitionDate '{lot_date}'. Combine quantities using 'totalQtyOwned'.")
+                            row_errors += 1
+                            break
+                        seen_sealed_lots.add(lot_key)
+                    elif not is_sealed and lot_date:
+                        card_lot_key = (expansion.lower(), (print_number or "").lower(), normalized_finish.lower(), lot_date)
+                        if card_lot_key in seen_card_lots:
+                            errors.append(f"Row {row_idx}: Duplicate card lot for '{name}' ({print_number}, {normalized_finish}) and acquisitionDate '{lot_date}'. Combine quantities using 'totalQtyOwned' or notes.")
+                            row_errors += 1
+                            break
+                        seen_card_lots.add(card_lot_key)
+
+                    row_copy = dict(row)
+                    row_copy["name"] = name
+                    row_copy["expansion"] = expansion
+                    row_copy["printNumber"] = print_number or None
+                    row_copy["finish"] = normalized_finish
+                    row_copy["totalQtyOwned"] = lot_qty
+                    row_copy["price"] = price
+                    row_copy["item_type"] = item_type
+                    row_copy["acquisitionDate"] = lot_date
+                    if is_sealed:
+                        row_copy["rarity"] = "Sealed"
+                    validated_rows.append(row_copy)
 
             if row_count == 0 and not errors:
                 errors.append("Collection CSV contains 0 inventory rows.")
