@@ -274,7 +274,8 @@ class TestReportGeneration(unittest.TestCase):
         else:
             singles_section = singles_section.split("## 📈 Top Gainers")[0]
         self.assertEqual(singles_section.count("Towerfall"), 1)
-        self.assertIn("| 🔵 **Towerfall** | Welcome to Night City - Beta | **◇ Rare** | Standard | 3 | `$15.00` | `$45.00` |", singles_section)
+        self.assertIn("#### Non-Iconic/Nova Rare Singles", singles_section)
+        self.assertIn("| 🔵 **Towerfall** | Unknown | Welcome to Night City - Beta | **◇ Rare** | Standard | 3 | `$15.00` | `$45.00` |", singles_section)
 
     def test_multi_lot_rarity_breakdown_distinct_card_count(self):
         conn = sqlite3.connect(self.db_path)
@@ -344,6 +345,56 @@ class TestReportGeneration(unittest.TestCase):
         # Acquisition dates must appear in the rows
         self.assertIn("| 🔴 **Card Alpha** | `2026-09-02` |", gainers_section)
         self.assertIn("| 🔵 **Card Beta** | `2026-09-10` |", gainers_section)
+
+    def test_high_value_singles_subsections_and_card_types(self):
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(card_metadata)")
+        cols = [col[1] for col in cur.fetchall()]
+        if "card_type" not in cols:
+            cur.execute("ALTER TABLE card_metadata ADD COLUMN card_type TEXT")
+
+        cur.execute("""
+        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, card_type)
+        VALUES
+        ('Exp::001::Foil::2026-09-02', 801, 'Hanako Iconic', 'B141', 'Welcome to Night City - Beta', 'Foil', 'Iconic Legend', 'Green', '2026-09-02', 40.00, 'Card', 'Legend'),
+        ('Exp::002::Foil::2026-09-02', 802, 'Mantis Nova', '008', 'Welcome to Night City - Beta', 'Foil', 'Nova Rare', 'Red', '2026-09-02', 25.00, 'Card', 'Gear'),
+        ('Exp::003::Foil::2026-09-02', 803, 'Jackie Epic', 'B050', 'Welcome to Night City - Beta', 'Foil', 'Epic', 'Blue', '2026-09-02', 10.00, 'Card', 'Unit')
+        """)
+
+        cur.execute("""
+        INSERT INTO daily_snapshots VALUES
+        ('2026-09-20', 'Exp::001::Foil::2026-09-02', 1, 50.00, 50.00, 50.00, 50.00, 50.00, 40.00, 10.00, 25.0),
+        ('2026-09-20', 'Exp::002::Foil::2026-09-02', 1, 30.00, 30.00, 30.00, 30.00, 30.00, 25.00, 5.00, 20.0),
+        ('2026-09-20', 'Exp::003::Foil::2026-09-02', 1, 15.00, 15.00, 15.00, 15.00, 15.00, 10.00, 5.00, 50.0)
+        """)
+
+        cur.execute("""
+        INSERT INTO portfolio_daily_summary VALUES
+        ('2026-09-20', 95.00, 3, 3, 0.0, 0.0, 20.00, 26.7, 0)
+        """)
+        conn.commit()
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-20")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        # Card Type breakdown table assertion
+        self.assertIn("### Card Type", content)
+        self.assertIn("| **Legend** | 1 | 1 | `$50.00` | 52.6% |", content)
+        self.assertIn("| **Gear** | 1 | 1 | `$30.00` | 31.6% |", content)
+        self.assertIn("| **Unit** | 1 | 1 | `$15.00` | 15.8% |", content)
+
+        # High-Value Singles partitioned subsections assertion
+        singles_section = content.split("### High-Value Singles")[1].split("## 📈 Top Gainers")[0]
+        self.assertIn("#### Iconic Singles", singles_section)
+        self.assertIn("| 🟢 **Hanako Iconic** | Legend | Welcome to Night City - Beta | **★ Iconic** | Foil | 1 | `$50.00` | `$50.00` |", singles_section)
+
+        self.assertIn("#### Nova Rare Singles", singles_section)
+        self.assertIn("| 🔴 **Mantis Nova** | Gear | Welcome to Night City - Beta | **▣ Nova** | Foil | 1 | `$30.00` | `$30.00` |", singles_section)
+
+        self.assertIn("#### Non-Iconic/Nova Rare Singles", singles_section)
+        self.assertIn("| 🔵 **Jackie Epic** | Unit | Welcome to Night City - Beta | **◈ Epic** | Foil | 1 | `$15.00` | `$15.00` |", singles_section)
 
 
 if __name__ == "__main__":

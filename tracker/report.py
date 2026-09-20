@@ -69,6 +69,12 @@ def generate_portfolio_report(
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
+    cur.execute("PRAGMA table_info(card_metadata)")
+    cols = [col[1] for col in cur.fetchall()]
+    if "card_type" not in cols:
+        cur.execute("ALTER TABLE card_metadata ADD COLUMN card_type TEXT")
+        conn.commit()
+
     if target_date:
         cur.execute("SELECT date FROM portfolio_daily_summary WHERE date = ?", (target_date,))
         row = cur.fetchone()
@@ -131,6 +137,20 @@ def generate_portfolio_report(
     """, (latest_date,))
     color_breakdown = cur.fetchall()
 
+    # Get breakdown by card type (cards only)
+    cur.execute("""
+    SELECT COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS clean_type,
+           COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)),
+           SUM(s.quantity),
+           SUM(s.line_total)
+    FROM daily_snapshots s
+    JOIN card_metadata m ON s.card_key = m.card_key
+    WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
+    GROUP BY clean_type
+    ORDER BY SUM(s.line_total) DESC
+    """, (latest_date,))
+    card_type_breakdown = cur.fetchall()
+
     # Get sealed products
     cur.execute("""
     SELECT m.name, m.expansion, s.quantity, s.unit_market_price, s.line_total,
@@ -169,11 +189,12 @@ def generate_portfolio_report(
 
     # Get high-value singles (>= $10.00, cards only)
     cur.execute("""
-    SELECT m.name, m.expansion, m.rarity, m.color, m.finish, SUM(s.quantity), s.unit_market_price, SUM(s.line_total)
+    SELECT m.name, m.expansion, m.rarity, m.color, m.finish, SUM(s.quantity), s.unit_market_price, SUM(s.line_total),
+           COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS card_type
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND s.unit_market_price >= 10.0 AND COALESCE(m.item_type, 'Card') = 'Card'
-    GROUP BY m.name, m.expansion, m.rarity, m.color, m.finish, s.unit_market_price
+    GROUP BY m.name, m.expansion, m.rarity, m.color, m.finish, s.unit_market_price, card_type
     ORDER BY s.unit_market_price DESC
     """, (latest_date,))
     high_value_cards = cur.fetchall()
@@ -305,18 +326,55 @@ def generate_portfolio_report(
         c_lbl = f"{dot} {color}" if dot else color
         md_content += f"| **{c_lbl}** | {entries} | {qty} | `${c_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
+    if card_type_breakdown:
+        md_content += """
+### Card Type
+
+| Card Type | Unique Items | Physical Copies | Market Value | % of Portfolio |
+| :--- | :---: | :---: | :---: | :---: |
+"""
+        for ctype, entries, qty, ct_val in card_type_breakdown:
+            pct_of_total = (ct_val / total_val * 100.0) if total_val > 0 else 0.0
+            md_content += f"| **{ctype}** | {entries} | {qty} | `${ct_val:,.2f}` | {pct_of_total:.1f}% |\n"
+
+    def render_high_value_table(cards):
+        table = """| Card Name | Type | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
+| :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: |
+"""
+        for name, exp, rarity, color, finish, qty, price, total, ctype in cards:
+            r_str = format_rarity(rarity, bold=True)
+            dot = COLOR_DOTS.get(color, "")
+            card_display = f"{dot} **{name}**" if dot else f"**{name}**"
+            table += f"| {card_display} | {ctype} | {exp} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
+        return table
+
+    iconic_singles = [c for c in high_value_cards if (c[2] or "").startswith("Iconic")]
+    nova_singles = [c for c in high_value_cards if (c[2] or "").startswith("Nova")]
+    non_iconic_nova_singles = [c for c in high_value_cards if not (c[2] or "").startswith("Iconic") and not (c[2] or "").startswith("Nova")]
+
     md_content += """
 ### High-Value Singles (`$10.00`+)
-
-| Card Name | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
-| :--- | :--- | :--- | :--- | :---: | :---: | :---: |
 """
+    if iconic_singles:
+        md_content += """
+#### Iconic Singles
 
-    for name, exp, rarity, color, finish, qty, price, total in high_value_cards:
-        r_str = format_rarity(rarity, bold=True)
-        dot = COLOR_DOTS.get(color, "")
-        card_display = f"{dot} **{name}**" if dot else f"**{name}**"
-        md_content += f"| {card_display} | {exp} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
+""" + render_high_value_table(iconic_singles)
+
+    if nova_singles:
+        md_content += """
+#### Nova Rare Singles
+
+""" + render_high_value_table(nova_singles)
+
+    if non_iconic_nova_singles:
+        md_content += """
+#### Non-Iconic/Nova Rare Singles
+
+""" + render_high_value_table(non_iconic_nova_singles)
+
+    if not high_value_cards:
+        md_content += "\n*No singles currently valued at $10.00 or higher.*\n"
 
     if sealed_section:
         md_content += sealed_section
