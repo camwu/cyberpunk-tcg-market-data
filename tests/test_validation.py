@@ -10,6 +10,7 @@ from tracker.validation import (
     parse_multi_lot_notes,
     validate_collection_file,
     validate_sealed_file,
+    format_validation_report,
 )
 
 
@@ -301,13 +302,21 @@ Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,,Standard,
     def test_parse_multi_lot_notes_sum_mismatch_error(self):
         lots, err = parse_multi_lot_notes("2026-09-02: 1; 2026-09-18: 2", 5)
         self.assertIsNotNone(err)
-        self.assertEqual(lots, [])
+        self.assertEqual(lots, [("2026-09-02", 1), ("2026-09-18", 2)])
+        self.assertEqual(sum(q for _, q in lots), 3)
         self.assertIn("Sum of parsed lots (3) does not equal totalQtyOwned (5)", err)
 
         lots_implicit, err_implicit = parse_multi_lot_notes("2026-09-02; 2026-09-18", 3)
         self.assertIsNotNone(err_implicit)
-        self.assertEqual(lots_implicit, [])
+        self.assertEqual(lots_implicit, [("2026-09-02", 1), ("2026-09-18", 1)])
+        self.assertEqual(sum(q for _, q in lots_implicit), 2)
         self.assertIn("Sum of parsed lots (2) does not equal totalQtyOwned (3)", err_implicit)
+
+        lots_single, err_single = parse_multi_lot_notes("2026-09-02: 2", 5)
+        self.assertIsNotNone(err_single)
+        self.assertEqual(lots_single, [("2026-09-02", 2)])
+        self.assertEqual(sum(q for _, q in lots_single), 2)
+        self.assertIn("Sum of parsed lots (2) does not equal totalQtyOwned (5)", err_single)
 
     def test_parse_multi_lot_notes_non_positive_quantity_rejected(self):
         # Explicit zero quantity in multi-lot list
@@ -382,6 +391,88 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,"Personal collection
         self.assertEqual(len(errors), 0)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["acquisitionDate"], "2026-09-05")
+
+    def test_validate_collection_file_diagnostics_include_print_number_and_notes(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,5,1.50,"2026-09-02: 1; 2026-09-18: 2"
+"""
+        path = self._create_csv("diagnostics_test.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path, error_export_path=None)
+
+        self.assertFalse(is_valid)
+        self.assertTrue(any("(B034)" in err for err in errors))
+        self.assertTrue(any("(notes: '2026-09-02: 1; 2026-09-18: 2')" in err for err in errors))
+
+    def test_validate_collection_file_exports_errors_to_csv_and_cleans_up_on_pass(self):
+        csv_fail = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,5,1.50,"2026-09-02: 1; 2026-09-18: 2"
+"""
+        fail_path = self._create_csv("export_fail.csv", csv_fail)
+        error_csv = str(self.test_dir / "test_errors.csv")
+
+        is_valid, errors, rows = validate_collection_file(fail_path, error_export_path=error_csv)
+        self.assertFalse(is_valid)
+        self.assertTrue(Path(error_csv).exists())
+
+        error_content = Path(error_csv).read_text(encoding="utf-8")
+        self.assertIn("row,print_number,name,parsed,qty,notes", error_content)
+        self.assertIn("2,B034,Towerfall,3,5", error_content)
+
+        csv_pass = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026-09-18: 2"
+"""
+        pass_path = self._create_csv("export_pass.csv", csv_pass)
+        is_valid_pass, errors_pass, rows_pass = validate_collection_file(pass_path, error_export_path=error_csv)
+        self.assertTrue(is_valid_pass)
+        self.assertFalse(Path(error_csv).exists())
+
+    def test_validate_collection_file_truncation_notice_with_total_count(self):
+        lines = ["name,expansion,printNumber,finish,totalQtyOwned,price,notes"]
+        for i in range(1, 31):
+            lines.append(f"Card {i},Welcome to Night City - Beta,B{i:03d},Standard,5,1.00,\"2026-09-02: 1; 2026-09-18: 2\"")
+        path = self._create_csv("overflow_test.csv", "\n".join(lines))
+        error_csv = str(self.test_dir / "overflow_errors.csv")
+
+        is_valid, errors, rows = validate_collection_file(path, max_row_errors=10, error_export_path=error_csv)
+        self.assertFalse(is_valid)
+        self.assertTrue(any("truncated 20 additional row errors; 30 total errors encountered across CSV" in err for err in errors))
+        self.assertTrue(any(f"Full error report written to: {error_csv}" in err for err in errors))
+        self.assertEqual(len([e for e in errors if e.startswith("Row ")]), 10)
+
+    def test_format_validation_report_renders_table_and_summary(self):
+        errors = [
+            "Row 12: Quantity mismatch for 'Peace Offering' (B101). Sum of parsed lots (2) does not equal totalQtyOwned (5) (notes: '2026-09-19: 2').",
+            "Row 13: Quantity mismatch for 'Delamain - Rideshare AI' (B111). Sum of parsed lots (2) does not equal totalQtyOwned (5) (notes: '2026-09-19: 2').",
+        ]
+        report = format_validation_report(errors, error_csv_path="data/validation_errors.csv")
+        self.assertIn("| Row | Print Num | Name", report)
+        self.assertIn("| 12  | B101      | Peace Offering", report)
+        self.assertIn("| 13  | B111      | Delamain - Rideshare AI", report)
+        self.assertIn("Validation found 2 total lot mismatches across the CSV.", report)
+        self.assertIn("Full error report written to: data/validation_errors.csv", report)
+
+    def test_format_validation_report_mixed_errors(self):
+        errors = [
+            "Row 2: 'printNumber' is empty.",
+            "Row 12: Quantity mismatch for 'Peace Offering' (B101). Sum of parsed lots (2) does not equal totalQtyOwned (5) (notes: '2026-09-19: 2').",
+        ]
+        report = format_validation_report(errors, error_csv_path=None)
+        self.assertIn("  - Row 2: 'printNumber' is empty.", report)
+        self.assertIn("| Row | Print Num | Name", report)
+        self.assertIn("| 12  | B101      | Peace Offering", report)
+        self.assertIn("Validation found 1 total lot mismatch across the CSV.", report)
+        self.assertNotIn("Full error report written to:", report)
+
+    def test_format_validation_report_preserves_truncation_notice(self):
+        errors = [
+            "Row 12: Quantity mismatch for 'Peace Offering' (B101). Sum of parsed lots (2) does not equal totalQtyOwned (5) (notes: '2026-09-19: 2').",
+            "... (truncated 15 additional row errors; 16 total errors encountered across CSV)",
+            "Full error report written to: data/validation_errors.csv",
+        ]
+        report = format_validation_report(errors)
+        self.assertIn("| Row | Print Num | Name", report)
+        self.assertIn("... (truncated 15 additional row errors; 16 total errors encountered across CSV)", report)
+        self.assertIn("Full error report written to: data/validation_errors.csv", report)
 
 
 if __name__ == "__main__":

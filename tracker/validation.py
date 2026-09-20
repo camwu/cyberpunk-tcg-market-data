@@ -76,7 +76,7 @@ def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tu
                 if qty < 1:
                     return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty})."
                 if qty != total_qty:
-                    return [], f"Sum of parsed lots ({qty}) does not equal totalQtyOwned ({total_qty})."
+                    return [(date_candidate, qty)], f"Sum of parsed lots ({qty}) does not equal totalQtyOwned ({total_qty})."
                 return [(date_candidate, qty)], None
             return [(date_candidate, total_qty)], None
         return [(None, total_qty)], None
@@ -106,7 +106,7 @@ def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tu
 
     lot_sum = sum(q for _, q in lots)
     if lot_sum != total_qty:
-        return [], f"Sum of parsed lots ({lot_sum}) does not equal totalQtyOwned ({total_qty})."
+        return lots, f"Sum of parsed lots ({lot_sum}) does not equal totalQtyOwned ({total_qty})."
 
     return lots, None
 
@@ -125,13 +125,104 @@ class CollectionValidationError(Exception):
         self.errors = errors or []
 
 
-def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, List[str], List[dict]]:
+def format_validation_report(
+    errors: List[str],
+    max_table_rows: int = 25,
+    error_csv_path: Optional[str] = None,
+) -> str:
+    """
+    Renders validation error diagnostics.
+    Formats lot quantity mismatches as an aligned 6-column CLI table with summary and export notice,
+    while rendering non-mismatch issues as bulleted points.
+    """
+    if not errors:
+        return ""
+
+    mismatches = []
+    other_errors = []
+    truncation_notices = []
+    discovered_csv_path = error_csv_path
+
+    mismatch_pattern = re.compile(
+        r"^Row\s+(\d+):\s+Quantity mismatch for '([^']+)'\s+\(([^)]+)\)\.\s+Sum of parsed lots \((\d+)\) does not equal totalQtyOwned \((\d+)\)\.?\s+\(notes:\s*'([^']*)'\)\.?$"
+    )
+
+    for err in errors:
+        if err.startswith("... (truncated"):
+            truncation_notices.append(err)
+            continue
+        if err.startswith("Full error report written to:"):
+            if not discovered_csv_path:
+                discovered_csv_path = err.split("Full error report written to:", 1)[1].strip()
+            continue
+        m = mismatch_pattern.match(err)
+        if m:
+            row_idx, name, print_num, parsed, total, notes = m.groups()
+            mismatches.append({
+                "row": row_idx,
+                "print_number": print_num,
+                "name": name,
+                "parsed": parsed,
+                "qty": total,
+                "notes": notes,
+            })
+        else:
+            other_errors.append(err)
+
+    output = []
+    if other_errors:
+        for err in other_errors:
+            output.append(f"  - {err}")
+        if mismatches:
+            output.append("")
+
+    if mismatches:
+        rows_to_show = mismatches[:max_table_rows]
+        col_row = max(len("Row"), max(len(r["row"]) for r in rows_to_show))
+        col_print_num = max(len("Print Num"), max(len(r["print_number"]) for r in rows_to_show))
+        col_name = max(len("Name"), max(len(r["name"]) for r in rows_to_show))
+        col_parsed = len("Parsed")
+        col_qty = len("Qty")
+        col_notes = max(len("Notes"), max(len(r["notes"]) for r in rows_to_show))
+
+        header = f"| {'Row':<{col_row}} | {'Print Num':<{col_print_num}} | {'Name':<{col_name}} | {'Parsed':<{col_parsed}} | {'Qty':<{col_qty}} | {'Notes':<{col_notes}} |"
+        sep = f"|{'-' * (col_row + 2)}|{'-' * (col_print_num + 2)}|{'-' * (col_name + 2)}|{'-' * (col_parsed + 2)}|{'-' * (col_qty + 2)}|{'-' * (col_notes + 2)}|"
+
+        output.append(header)
+        output.append(sep)
+        for r in rows_to_show:
+            row_str = f"| {r['row']:<{col_row}} | {r['print_number']:<{col_print_num}} | {r['name']:<{col_name}} | {r['parsed']:<{col_parsed}} | {r['qty']:<{col_qty}} | {r['notes']:<{col_notes}} |"
+            output.append(row_str)
+
+        output.append("")
+        total_mismatches = len(mismatches)
+        if total_mismatches > max_table_rows:
+            output.append(f"Validation found {total_mismatches} total lot mismatches ({max_table_rows} shown above).")
+        else:
+            output.append(f"Validation found {total_mismatches} total lot mismatch{'es' if total_mismatches != 1 else ''} across the CSV.")
+
+    if truncation_notices:
+        for t in truncation_notices:
+            output.append(t)
+
+    if discovered_csv_path and mismatches:
+        output.append(f"Full error report written to: {discovered_csv_path}")
+
+    return "\n".join(output)
+
+
+def validate_collection_file(
+    csv_path: str,
+    max_row_errors: Optional[int] = 25,
+    error_export_path: Optional[str] = "data/validation_errors.csv",
+) -> Tuple[bool, List[str], List[dict]]:
     """
     Validates a collection CSV file against mandatory schema and data integrity constraints.
     Supports unified CardNexus exports containing single cards and sealed products.
     Returns (is_valid, list_of_error_strings, list_of_validated_rows).
     """
     errors: List[str] = []
+    lot_mismatches: List[dict] = []
     validated_rows: List[dict] = []
 
     if not os.path.exists(csv_path):
@@ -240,14 +331,21 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
                         raw_to_parse = notes_raw
                     parsed_lots, lot_err = parse_multi_lot_notes(raw_to_parse, qty)
                     if lot_err:
-                        errors.append(f"Row {row_idx}: Quantity mismatch for '{name}'. {lot_err}")
+                        prod_id_val = (row.get("productId") or "").strip()
+                        print_num_val = print_number or prod_id_val or ("SEALED" if is_sealed else "N/A")
+                        errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({print_num_val}). {lot_err} (notes: '{raw_to_parse}')")
                         row_errors += 1
+                        parsed_qty = sum(q for _, q in parsed_lots)
+                        lot_mismatches.append({
+                            "row": str(row_idx),
+                            "print_number": print_num_val,
+                            "name": name,
+                            "parsed": str(parsed_qty),
+                            "qty": str(qty),
+                            "notes": raw_to_parse,
+                        })
                     else:
                         lots = parsed_lots
-
-                if row_errors >= max_row_errors:
-                    errors.append(f"... (truncated additional row errors after {max_row_errors} issues)")
-                    break
 
                 if row_errors > 0 or not lots:
                     continue
@@ -291,10 +389,45 @@ def validate_collection_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bo
         return False, [f"Failed to read CSV file: {e}"], []
 
     is_valid = len(errors) == 0
-    return is_valid, errors, validated_rows if is_valid else []
+    if is_valid:
+        if error_export_path and os.path.exists(error_export_path):
+            try:
+                os.remove(error_export_path)
+            except OSError:
+                pass
+        return True, [], validated_rows
+
+    if error_export_path and lot_mismatches:
+        try:
+            parent_dir = os.path.dirname(error_export_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
+            with open(error_export_path, "w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=["row", "print_number", "name", "parsed", "qty", "notes"])
+                writer.writeheader()
+                for m in lot_mismatches:
+                    writer.writerow(m)
+        except OSError:
+            pass
+
+    total_errors = len(errors)
+    if max_row_errors is not None and max_row_errors > 0 and total_errors > max_row_errors:
+        reported_errors = errors[:max_row_errors]
+        overflow = total_errors - max_row_errors
+        reported_errors.append(f"... (truncated {overflow} additional row error{'s' if overflow != 1 else ''}; {total_errors} total errors encountered across CSV)")
+    else:
+        reported_errors = list(errors)
+
+    if error_export_path and lot_mismatches:
+        reported_errors.append(f"Full error report written to: {error_export_path}")
+
+    return False, reported_errors, []
 
 
-def validate_sealed_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, List[str], List[dict]]:
+def validate_sealed_file(
+    csv_path: str,
+    max_row_errors: Optional[int] = 25,
+) -> Tuple[bool, List[str], List[dict]]:
     """
     Validates a sealed inventory CSV file against schema and data constraints.
     Returns (is_valid, list_of_error_strings, list_of_validated_rows).
@@ -395,10 +528,6 @@ def validate_sealed_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, 
                         errors.append(f"Row {row_idx}: 'price' must be a valid number (got '{price_raw}').")
                         row_errors += 1
 
-                if row_errors >= max_row_errors:
-                    errors.append(f"... (truncated additional sealed row errors after {max_row_errors} issues)")
-                    break
-
                 row_copy = dict(row)
                 row_copy["productId"] = prod_id
                 row_copy["name"] = name
@@ -416,4 +545,15 @@ def validate_sealed_file(csv_path: str, max_row_errors: int = 5) -> Tuple[bool, 
         return False, [f"Failed to read sealed CSV file: {e}"], []
 
     is_valid = len(errors) == 0
-    return is_valid, errors, validated_rows if is_valid else []
+    if is_valid:
+        return True, [], validated_rows
+
+    total_errors = len(errors)
+    if max_row_errors is not None and max_row_errors > 0 and total_errors > max_row_errors:
+        reported_errors = errors[:max_row_errors]
+        overflow = total_errors - max_row_errors
+        reported_errors.append(f"... (truncated {overflow} additional sealed row error{'s' if overflow != 1 else ''}; {total_errors} total errors encountered across CSV)")
+    else:
+        reported_errors = list(errors)
+
+    return False, reported_errors, []
