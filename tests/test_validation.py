@@ -486,6 +486,7 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,2099-01-01
         self.assertEqual(len(errors), 1)
         self.assertTrue(any("is in the future" in err for err in errors))
         self.assertTrue(any("2099-01-01" in err for err in errors))
+        self.assertTrue(any("Towerfall" in err and "B034" in err for err in errors))
 
     def test_future_acquisition_date_in_notes_rejected(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
@@ -498,6 +499,21 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,2099-01-01
         self.assertEqual(len(rows), 0)
         self.assertEqual(len(errors), 1)
         self.assertTrue(any("is in the future" in err for err in errors))
+        self.assertTrue(any("2099-01-01" in err for err in errors))
+        self.assertTrue(any("Towerfall" in err and "B034" in err and "(notes: '2099-01-01')" in err for err in errors))
+
+    def test_future_acquisition_date_sealed_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Night City Booster Box,Welcome to Night City - Beta,,Standard,1,100.00,2099-01-01
+"""
+        path = self._create_csv("future_date_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertEqual(len(errors), 1)
+        self.assertTrue(any("is in the future" in err for err in errors))
+        self.assertTrue(any("Night City Booster Box" in err and "SEALED" in err and "(notes: '2099-01-01')" in err for err in errors))
 
     def test_duplicate_dateless_card_rows_rejected(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price
