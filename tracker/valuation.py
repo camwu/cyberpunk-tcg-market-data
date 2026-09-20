@@ -390,6 +390,22 @@ def calculate_portfolio_valuation(
     else:
         all_items = card_items
 
+    # Expansion cross-reference: warn on names that don't match any catalog group
+    if prods:
+        catalog_group_names = {
+            (p.get("groupName") or "").strip().lower()
+            for p in prods.values()
+            if p.get("groupName")
+        }
+        collection_expansions = {
+            row["expansion"].strip()
+            for row in all_items
+            if row.get("expansion")
+        }
+        for exp in sorted(collection_expansions):
+            if exp.lower() not in catalog_group_names:
+                print(f"Warning: Expansion '{exp}' not found in price catalog groups — all cards from this expansion will have no market price.", flush=True)
+
     print(f"Calculating portfolio valuation for {date_str} across {len(card_items)} collection rows and {len(sealed_items)} legacy sealed items...")
 
     total_value = 0.0
@@ -397,6 +413,9 @@ def calculate_portfolio_valuation(
     total_sealed = 0
     unique_items = len(all_items)
     total_lifetime_gain = 0.0
+    unmatched_items: List[str] = []
+    zero_price_items: List[str] = []
+    matched_count = 0
 
     for row in all_items:
         item_type = row.get("item_type")
@@ -425,11 +444,14 @@ def calculate_portfolio_valuation(
 
         prod_id = prod["productId"] if prod else (int(row_pid) if row_pid else None)
         if prod:
+            matched_count += 1
             name = sanitize_card_name(prod.get("name") or name)
             expansion = prod.get("groupName") or expansion
             rarity = prod.get("rarity") or row.get("rarity")
             color = (prod.get("color") or row.get("color") or "").strip()
         else:
+            label = f"'{name}' ({print_number or 'N/A'}, {expansion})"
+            unmatched_items.append(label)
             name = sanitize_card_name(name)
             rarity = row.get("rarity")
             color = (row.get("color") or "").strip()
@@ -519,6 +541,7 @@ def calculate_portfolio_valuation(
             line_total = round(qty * market_price, 2)
             total_value += line_total
         else:
+            zero_price_items.append(f"'{name}' ({print_number or 'N/A'}, {expansion})")
             market_price = None
             unit_low = None
             unit_mid = None
@@ -656,6 +679,25 @@ def calculate_portfolio_valuation(
 
     conn.commit()
     conn.close()
+
+    # Post-loop diagnostics
+    total_rows = len(all_items)
+    match_pct = (matched_count / total_rows * 100) if total_rows > 0 else 0.0
+    print(f"Matched {matched_count}/{total_rows} collection rows to catalog products ({match_pct:.1f}%).")
+
+    if unmatched_items:
+        print(f"Warning: {len(unmatched_items)} collection row(s) had no catalog match and will use carry-forward or fallback prices:")
+        for item in unmatched_items[:10]:
+            print(f"  - {item}")
+        if len(unmatched_items) > 10:
+            print(f"  ... and {len(unmatched_items) - 10} more. Check expansion names and print numbers against cards.json.")
+
+    if zero_price_items:
+        print(f"Notice: {len(zero_price_items)} item(s) had no market price and were excluded from the portfolio total:")
+        for item in zero_price_items[:10]:
+            print(f"  - {item}")
+        if len(zero_price_items) > 10:
+            print(f"  ... and {len(zero_price_items) - 10} more.")
 
     print(f"Valuation complete: Total Value: ${total_value:,.2f} | Cards: {total_cards} | Sealed: {total_sealed} | Lifetime Gain: {'+' if total_lifetime_gain >= 0 else ''}${total_lifetime_gain:,.2f} ({'+' if lifetime_pct_gain >= 0 else ''}{lifetime_pct_gain:.2f}%)")
     return {

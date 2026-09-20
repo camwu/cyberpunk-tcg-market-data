@@ -474,6 +474,51 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026
         self.assertIn("... (truncated 15 additional row errors; 16 total errors encountered across CSV)", report)
         self.assertIn("Full error report written to: data/validation_errors.csv", report)
 
+    def test_future_acquisition_date_in_column_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,acquisitionDate
+Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,2099-01-01
+"""
+        path = self._create_csv("future_date_col.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertTrue(any("is in the future" in err for err in errors))
+        self.assertTrue(any("2099-01-01" in err for err in errors))
+
+    def test_future_acquisition_date_in_notes_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,2099-01-01
+"""
+        path = self._create_csv("future_date_notes.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertTrue(any("is in the future" in err for err in errors))
+
+    def test_duplicate_dateless_card_rows_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price
+Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50
+Towerfall,Welcome to Night City - Beta,B034,Standard,2,1.50
+"""
+        path = self._create_csv("dupe_dateless.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertTrue(any("Duplicate card" in err and "no acquisition date" in err for err in errors))
+
+    def test_different_finishes_dateless_not_flagged_as_duplicate(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price
+Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50
+Towerfall,Welcome to Night City - Beta,B034,Foil,1,5.00
+"""
+        path = self._create_csv("different_finish_dateless.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertTrue(is_valid)
+        self.assertEqual(len(rows), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
