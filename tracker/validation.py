@@ -276,9 +276,21 @@ def validate_collection_file(
                 # Determine item type (Sealed vs Card)
                 is_sealed = (row.get("item_type") == "Sealed") or is_sealed_product(name, expansion)
                 item_type = "Sealed" if is_sealed else "Card"
+                prod_id_val = (row.get("productId") or "").strip()
+                print_num_val = print_number or prod_id_val or ("SEALED" if is_sealed else "N/A")
+                item_desc = f" for '{name}' ({print_num_val})" if name else (f" ({print_num_val})" if print_num_val != "N/A" else "")
+
+                if not name:
+                    name_ctx = f" (printNumber: '{print_number}')" if print_number else (f" (productId: '{prod_id_val}')" if prod_id_val else "")
+                    errors.append(f"Row {row_idx}: 'name' is empty{name_ctx}.")
+                    row_errors += 1
+                if not expansion:
+                    errors.append(f"Row {row_idx}: 'expansion' is empty{item_desc}.")
+                    row_errors += 1
 
                 if not is_sealed and not print_number:
-                    errors.append(f"Row {row_idx}: 'printNumber' is empty.")
+                    pn_desc = f" for '{name}'" if name else ""
+                    errors.append(f"Row {row_idx}: 'printNumber' is empty{pn_desc}.")
                     row_errors += 1
 
                 # Normalize finish
@@ -290,10 +302,10 @@ def validate_collection_file(
                     elif finish_key in VALID_FINISHES:
                         normalized_finish = "Foil" if finish_key == "foil" else "Standard"
                     else:
-                        errors.append(f"Row {row_idx}: 'finish' must be 'Standard' or 'Foil' (got '{finish}').")
+                        errors.append(f"Row {row_idx}: 'finish' must be 'Standard' or 'Foil'{item_desc} (got '{finish}').")
                         row_errors += 1
                 elif not is_sealed:
-                    errors.append(f"Row {row_idx}: 'finish' is empty.")
+                    errors.append(f"Row {row_idx}: 'finish' is empty{item_desc}.")
                     row_errors += 1
 
                 # Quantity parsing
@@ -301,10 +313,10 @@ def validate_collection_file(
                 try:
                     qty = int(qty_raw)
                     if qty < 1:
-                        errors.append(f"Row {row_idx}: 'totalQtyOwned' must be at least 1 (got '{qty_raw}').")
+                        errors.append(f"Row {row_idx}: 'totalQtyOwned' must be at least 1{item_desc} (got '{qty_raw}').")
                         row_errors += 1
                 except (ValueError, TypeError):
-                    errors.append(f"Row {row_idx}: 'totalQtyOwned' must be an integer (got '{qty_raw}').")
+                    errors.append(f"Row {row_idx}: 'totalQtyOwned' must be an integer{item_desc} (got '{qty_raw}').")
                     row_errors += 1
 
                 price = 0.0
@@ -312,20 +324,20 @@ def validate_collection_file(
                     try:
                         price = float(price_raw)
                         if price < 0.0:
-                            errors.append(f"Row {row_idx}: 'price' must be non-negative (got '{price_raw}').")
+                            errors.append(f"Row {row_idx}: 'price' must be non-negative{item_desc} (got '{price_raw}').")
                             row_errors += 1
                     except (ValueError, TypeError):
-                        errors.append(f"Row {row_idx}: 'price' must be a valid number (got '{price_raw}').")
+                        errors.append(f"Row {row_idx}: 'price' must be a valid number{item_desc} (got '{price_raw}').")
                         row_errors += 1
 
                 # Acquisition date discovery and multi-lot parsing
                 today_str = datetime.date.today().isoformat()
                 acq_date_future_flagged = False
                 if acq_date_col and not extract_date_from_text(acq_date_col):
-                    errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format (got '{acq_date_col}').")
+                    errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format{item_desc} (got '{acq_date_col}').")
                     row_errors += 1
                 elif acq_date_col and acq_date_col > today_str:
-                    errors.append(f"Row {row_idx}: 'acquisitionDate' is in the future (got '{acq_date_col}'). No price data exists for future dates.")
+                    errors.append(f"Row {row_idx}: Acquisition date '{acq_date_col}' for '{name}' ({print_num_val}) is in the future.")
                     row_errors += 1
                     acq_date_future_flagged = True
 
@@ -339,8 +351,6 @@ def validate_collection_file(
                         raw_to_parse = notes_raw
                     parsed_lots, lot_err = parse_multi_lot_notes(raw_to_parse, qty)
                     if lot_err:
-                        prod_id_val = (row.get("productId") or "").strip()
-                        print_num_val = print_number or prod_id_val or ("SEALED" if is_sealed else "N/A")
                         errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({print_num_val}). {lot_err} (notes: '{raw_to_parse}')")
                         row_errors += 1
                         parsed_qty = sum(q for _, q in parsed_lots)
@@ -360,7 +370,9 @@ def validate_collection_file(
                         ]
                         if future_lot_dates:
                             for fdate in future_lot_dates:
-                                errors.append(f"Row {row_idx}: Acquisition date '{fdate}' is in the future. No price data exists for future dates.")
+                                errors.append(
+                                    f"Row {row_idx}: Acquisition date '{fdate}' for '{name}' ({print_num_val}) is in the future (notes: '{raw_to_parse}')."
+                                )
                                 row_errors += 1
                         else:
                             lots = parsed_lots

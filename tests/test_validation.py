@@ -95,8 +95,8 @@ Jackie,Promo,002,,1
 
         self.assertFalse(is_valid)
         self.assertEqual(len(rows), 0)
-        self.assertTrue(any("must be 'Standard' or 'Foil'" in err for err in errors))
-        self.assertTrue(any("'finish' is empty" in err for err in errors))
+        self.assertTrue(any("must be 'Standard' or 'Foil'" in err and "'V' (001)" in err for err in errors))
+        self.assertTrue(any("'finish' is empty for 'Jackie' (002)" in err for err in errors))
 
     def test_missing_required_columns(self):
         csv_content = """name,printNumber,finish,totalQtyOwned
@@ -120,8 +120,9 @@ Viktor,Promo,003,Standard,many
 
         self.assertFalse(is_valid)
         self.assertEqual(len(rows), 0)
-        self.assertTrue(any("must be at least 1" in err for err in errors))
-        self.assertTrue(any("must be an integer" in err for err in errors))
+        self.assertTrue(any("must be at least 1" in err and "'V' (001)" in err for err in errors))
+        self.assertTrue(any("must be at least 1" in err and "'Jackie' (002)" in err for err in errors))
+        self.assertTrue(any("must be an integer" in err and "'Viktor' (003)" in err for err in errors))
 
     def test_invalid_price(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price
@@ -133,8 +134,8 @@ Jackie,Promo,002,Standard,1,expensive
 
         self.assertFalse(is_valid)
         self.assertEqual(len(rows), 0)
-        self.assertTrue(any("must be non-negative" in err for err in errors))
-        self.assertTrue(any("must be a valid number" in err for err in errors))
+        self.assertTrue(any("must be non-negative" in err and "'V' (001)" in err for err in errors))
+        self.assertTrue(any("must be a valid number" in err and "'Jackie' (002)" in err for err in errors))
 
     def test_empty_and_nonexistent_file(self):
         empty_path = self._create_csv("empty.csv", "")
@@ -248,7 +249,7 @@ Johnny Silverhand,Welcome to Night City - Beta,,Standard,1,10.00
 
         self.assertFalse(is_valid)
         self.assertEqual(len(rows), 0)
-        self.assertTrue(any("Row 2: 'printNumber' is empty" in err for err in errors))
+        self.assertTrue(any("Row 2: 'printNumber' is empty for 'Johnny Silverhand'" in err for err in errors))
 
     def test_duplicate_sealed_lot_in_unified_rejected(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
@@ -486,6 +487,7 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,2099-01-01
         self.assertEqual(len(errors), 1)
         self.assertTrue(any("is in the future" in err for err in errors))
         self.assertTrue(any("2099-01-01" in err for err in errors))
+        self.assertTrue(any("Towerfall" in err and "B034" in err for err in errors))
 
     def test_future_acquisition_date_in_notes_rejected(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
@@ -498,6 +500,21 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,2099-01-01
         self.assertEqual(len(rows), 0)
         self.assertEqual(len(errors), 1)
         self.assertTrue(any("is in the future" in err for err in errors))
+        self.assertTrue(any("2099-01-01" in err for err in errors))
+        self.assertTrue(any("Towerfall" in err and "B034" in err and "(notes: '2099-01-01')" in err for err in errors))
+
+    def test_future_acquisition_date_sealed_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Night City Booster Box,Welcome to Night City - Beta,,Standard,1,100.00,2099-01-01
+"""
+        path = self._create_csv("future_date_sealed.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertEqual(len(errors), 1)
+        self.assertTrue(any("is in the future" in err for err in errors))
+        self.assertTrue(any("Night City Booster Box" in err and "SEALED" in err and "(notes: '2099-01-01')" in err for err in errors))
 
     def test_duplicate_dateless_card_rows_rejected(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price
@@ -531,6 +548,28 @@ Towerfall,Welcome to Night City - Beta,B034,Foil,1,5.00
 
         self.assertTrue(is_valid)
         self.assertEqual(len(rows), 2)
+
+    def test_empty_expansion_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price
+Towerfall,,B034,Standard,1,1.50
+"""
+        path = self._create_csv("empty_expansion.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertTrue(any("'expansion' is empty for 'Towerfall' (B034)" in err for err in errors))
+
+    def test_malformed_acquisition_date_in_column_rejected(self):
+        csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,acquisitionDate
+Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,not-a-date
+"""
+        path = self._create_csv("bad_acq_date_col.csv", csv_content)
+        is_valid, errors, rows = validate_collection_file(path)
+
+        self.assertFalse(is_valid)
+        self.assertEqual(len(rows), 0)
+        self.assertTrue(any("must be in YYYY-MM-DD format for 'Towerfall' (B034)" in err for err in errors))
 
 
 if __name__ == "__main__":
