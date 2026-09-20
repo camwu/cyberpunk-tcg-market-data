@@ -16,15 +16,19 @@ from tracker.config import load_config
 from tracker.sync import sync_market_prices, backfill_market_prices
 from tracker.valuation import calculate_portfolio_valuation
 from tracker.report import generate_portfolio_report
-from tracker.validation import validate_collection_file, validate_sealed_file, CollectionValidationError
+from tracker.validation import (
+    validate_collection_file,
+    validate_sealed_file,
+    format_validation_report,
+    CollectionValidationError,
+)
 
 
 def import_collection_file(source_path: str, target_path: str, backup_dir: str) -> bool:
     is_valid, errors, rows = validate_collection_file(source_path)
     if not is_valid:
-        print(f"Error: Collection file validation failed for '{source_path}':", file=sys.stderr)
-        for err in errors:
-            print(f"  - {err}", file=sys.stderr)
+        print(f"\nError: Collection file validation failed for '{source_path}':\n", file=sys.stderr)
+        print(format_validation_report(errors), file=sys.stderr)
         return False
 
     total_items = len(rows)
@@ -98,9 +102,8 @@ def main():
     if cfg.sealed_csv and os.path.isfile(cfg.sealed_csv):
         is_sealed_valid, sealed_errors, sealed_rows = validate_sealed_file(cfg.sealed_csv)
         if not is_sealed_valid:
-            print(f"\nError: Sealed inventory validation failed for '{cfg.sealed_csv}':", file=sys.stderr)
-            for err in sealed_errors:
-                print(f"  - {err}", file=sys.stderr)
+            print(f"\nError: Sealed inventory validation failed for '{cfg.sealed_csv}':\n", file=sys.stderr)
+            print(format_validation_report(sealed_errors), file=sys.stderr)
             sys.exit(1)
 
     if args.backfill_date:
@@ -108,9 +111,8 @@ def main():
         print(f"\n--- Backfilling Cyberpunk TCG Market Data for {date_str} ---")
         is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)
         if not is_valid:
-            print(f"\nError: Collection validation failed for '{cfg.collection_csv}':", file=sys.stderr)
-            for err in validation_errors:
-                print(f"  - {err}", file=sys.stderr)
+            print(f"\nError: Collection validation failed for '{cfg.collection_csv}':\n", file=sys.stderr)
+            print(format_validation_report(validation_errors), file=sys.stderr)
             sys.exit(1)
 
         backfill_market_prices(date_str, price_dir=cfg.price_cache_dir)
@@ -150,9 +152,8 @@ def main():
 
     is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)
     if not is_valid:
-        print(f"\nError: Collection validation failed for '{cfg.collection_csv}':", file=sys.stderr)
-        for err in validation_errors:
-            print(f"  - {err}", file=sys.stderr)
+        print(f"\nError: Collection validation failed for '{cfg.collection_csv}':\n", file=sys.stderr)
+        print(format_validation_report(validation_errors), file=sys.stderr)
         sys.exit(1)
 
     cards_count = sum(1 for r in collection_rows if r.get("item_type") != "Sealed")

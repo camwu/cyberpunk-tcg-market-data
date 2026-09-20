@@ -15,6 +15,7 @@ from typing import Dict, Any, List, Optional
 from tracker.validation import (
     validate_collection_file,
     validate_sealed_file,
+    format_validation_report,
     is_sealed_product,
     extract_date_from_text,
     CollectionValidationError,
@@ -257,13 +258,13 @@ def calculate_portfolio_valuation(
     if collection_rows is None:
         is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
         if not is_valid:
-            error_msg = f"Collection validation failed for '{collection_path}':\n" + "\n".join(f" - {err}" for err in validation_errors)
+            error_msg = f"Collection validation failed for '{collection_path}':\n" + format_validation_report(validation_errors)
             raise CollectionValidationError(error_msg, errors=validation_errors)
 
     if sealed_rows is None and sealed_path and os.path.exists(sealed_path):
         is_valid_sealed, sealed_errors, sealed_rows = validate_sealed_file(sealed_path)
         if not is_valid_sealed:
-            error_msg = f"Sealed inventory validation failed for '{sealed_path}':\n" + "\n".join(f" - {err}" for err in sealed_errors)
+            error_msg = f"Sealed inventory validation failed for '{sealed_path}':\n" + format_validation_report(sealed_errors)
             raise CollectionValidationError(error_msg, errors=sealed_errors)
 
     conn = init_database(db_path)
