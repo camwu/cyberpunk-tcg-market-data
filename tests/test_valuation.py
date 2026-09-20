@@ -1267,6 +1267,37 @@ class TestPortfolioValuation(unittest.TestCase):
         )
         self.assertEqual(p_sealed, 220.00)
 
+    def test_card_type_column_migration_and_population(self):
+        # Create a database with legacy card_metadata missing card_type
+        legacy_db = os.path.join(self.test_dir, "legacy_card_type.db")
+        conn = sqlite3.connect(legacy_db)
+        cur = conn.cursor()
+        cur.execute("""
+        CREATE TABLE card_metadata (
+            card_key TEXT PRIMARY KEY,
+            product_id INTEGER,
+            name TEXT,
+            print_number TEXT,
+            expansion TEXT,
+            finish TEXT,
+            rarity TEXT,
+            color TEXT,
+            first_seen_date TEXT,
+            baseline_market_price REAL,
+            item_type TEXT DEFAULT 'Card'
+        )
+        """)
+        conn.commit()
+        conn.close()
+
+        # init_database should add card_type column via ALTER TABLE
+        conn2 = init_database(legacy_db)
+        cur2 = conn2.cursor()
+        cur2.execute("PRAGMA table_info(card_metadata)")
+        cols = [c[1] for c in cur2.fetchall()]
+        self.assertIn("card_type", cols)
+        conn2.close()
+
 
 class TestReportFormatting(unittest.TestCase):
 

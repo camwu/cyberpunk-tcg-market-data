@@ -173,6 +173,8 @@ def init_database(db_path: str):
         cur.execute("ALTER TABLE card_metadata ADD COLUMN color TEXT")
     if "item_type" not in cols:
         cur.execute("ALTER TABLE card_metadata ADD COLUMN item_type TEXT DEFAULT 'Card'")
+    if "card_type" not in cols:
+        cur.execute("ALTER TABLE card_metadata ADD COLUMN card_type TEXT")
 
     # Migrate legacy 3-part sealed keys (SEALED::{expansion}::{productId}) to lot keys with acquisitionDate
     cur.execute("SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed'")
@@ -458,6 +460,7 @@ def calculate_portfolio_valuation(
             expansion = prod.get("groupName") or expansion
             rarity = prod.get("rarity") or row.get("rarity")
             color = (prod.get("color") or row.get("color") or "").strip()
+            card_type = prod.get("cardType") or row.get("card_type")
         else:
             label = f"'{name}' ({print_number or 'N/A'}, {expansion})"
             if distinct_key not in seen_distinct:
@@ -465,6 +468,7 @@ def calculate_portfolio_valuation(
             name = sanitize_card_name(name)
             rarity = row.get("rarity")
             color = (row.get("color") or "").strip()
+            card_type = row.get("card_type")
         seen_distinct.add(distinct_key)
 
         acq_date_raw = (row.get("acquisitionDate") or "").strip()
@@ -565,7 +569,7 @@ def calculate_portfolio_valuation(
         else:
             total_cards += qty
 
-        cur.execute("SELECT baseline_market_price, color, item_type, name, rarity FROM card_metadata WHERE card_key = ?", (card_key,))
+        cur.execute("SELECT baseline_market_price, color, item_type, name, rarity, card_type FROM card_metadata WHERE card_key = ?", (card_key,))
         meta_res = cur.fetchone()
         if meta_res:
             baseline_price = meta_res[0]
@@ -573,6 +577,7 @@ def calculate_portfolio_valuation(
             existing_item_type = meta_res[2] if len(meta_res) > 2 else "Card"
             existing_name = meta_res[3] if len(meta_res) > 3 else None
             existing_rarity = meta_res[4] if len(meta_res) > 4 else None
+            existing_card_type = meta_res[5] if len(meta_res) > 5 else None
             if color and existing_color != color:
                 cur.execute("UPDATE card_metadata SET color = ? WHERE card_key = ?", (color, card_key))
             if name and existing_name != name:
@@ -581,6 +586,8 @@ def calculate_portfolio_valuation(
                 cur.execute("UPDATE card_metadata SET rarity = ? WHERE card_key = ?", (rarity, card_key))
             if not existing_item_type or existing_item_type != item_type:
                 cur.execute("UPDATE card_metadata SET item_type = ? WHERE card_key = ?", (item_type, card_key))
+            if card_type and existing_card_type != card_type:
+                cur.execute("UPDATE card_metadata SET card_type = ? WHERE card_key = ?", (card_type, card_key))
             if baseline_price is None or baseline_price <= 0.0:
                 if fallback_price > 0.0:
                     baseline_price = fallback_price
@@ -616,9 +623,9 @@ def calculate_portfolio_valuation(
 
             first_seen = effective_acq_date
             cur.execute("""
-            INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (card_key, prod_id, name, print_number, expansion, finish, rarity, color, first_seen, baseline_price, item_type))
+            INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, card_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (card_key, prod_id, name, print_number, expansion, finish, rarity, color, first_seen, baseline_price, item_type, card_type))
 
         if market_price is not None and baseline_price is not None and market_price > 0.0 and baseline_price > 0.0:
             card_gain_dollar = round((market_price - baseline_price) * qty, 2)
