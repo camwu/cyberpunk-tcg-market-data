@@ -384,7 +384,7 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,"Personal collection
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["acquisitionDate"], "2026-09-05")
 
-    def test_validate_collection_file_diagnostics_include_card_id_and_notes(self):
+    def test_validate_collection_file_diagnostics_include_print_number_and_notes(self):
         csv_content = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
 Towerfall,Welcome to Night City - Beta,B034,Standard,5,1.50,"2026-09-02: 1; 2026-09-18: 2"
 """
@@ -407,7 +407,7 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,5,1.50,"2026-09-02: 1; 2026
         self.assertTrue(Path(error_csv).exists())
 
         error_content = Path(error_csv).read_text(encoding="utf-8")
-        self.assertIn("row,card_id,name,parsed,qty,notes", error_content)
+        self.assertIn("row,print_number,name,parsed,qty,notes", error_content)
         self.assertIn("2,B034,Towerfall,3,5", error_content)
 
         csv_pass = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
@@ -437,9 +437,9 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026
             "Row 13: Quantity mismatch for 'Delamain - Rideshare AI' (B111). Sum of parsed lots (2) does not equal totalQtyOwned (5) (notes: '2026-09-19: 2').",
         ]
         report = format_validation_report(errors, error_csv_path="data/validation_errors.csv")
-        self.assertIn("| Row | Card ID | Name", report)
-        self.assertIn("| 12  | B101    | Peace Offering", report)
-        self.assertIn("| 13  | B111    | Delamain - Rideshare AI", report)
+        self.assertIn("| Row | Print Num | Name", report)
+        self.assertIn("| 12  | B101      | Peace Offering", report)
+        self.assertIn("| 13  | B111      | Delamain - Rideshare AI", report)
         self.assertIn("Validation found 2 total lot mismatches across the CSV.", report)
         self.assertIn("Full error report written to: data/validation_errors.csv", report)
 
@@ -450,8 +450,8 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026
         ]
         report = format_validation_report(errors, error_csv_path=None)
         self.assertIn("  - Row 2: 'printNumber' is empty.", report)
-        self.assertIn("| Row | Card ID | Name", report)
-        self.assertIn("| 12  | B101    | Peace Offering", report)
+        self.assertIn("| Row | Print Num | Name", report)
+        self.assertIn("| 12  | B101      | Peace Offering", report)
         self.assertIn("Validation found 1 total lot mismatch across the CSV.", report)
 
 

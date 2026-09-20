@@ -150,10 +150,10 @@ def format_validation_report(
             continue
         m = mismatch_pattern.match(err)
         if m:
-            row_idx, name, card_id, parsed, total, notes = m.groups()
+            row_idx, name, print_num, parsed, total, notes = m.groups()
             mismatches.append({
                 "row": row_idx,
-                "card_id": card_id,
+                "print_number": print_num,
                 "name": name,
                 "parsed": parsed,
                 "qty": total,
@@ -172,19 +172,19 @@ def format_validation_report(
     if mismatches:
         rows_to_show = mismatches[:max_table_rows]
         col_row = max(len("Row"), max(len(r["row"]) for r in rows_to_show))
-        col_id = max(len("Card ID"), max(len(r["card_id"]) for r in rows_to_show))
+        col_print_num = max(len("Print Num"), max(len(r["print_number"]) for r in rows_to_show))
         col_name = max(len("Name"), max(len(r["name"]) for r in rows_to_show))
         col_parsed = len("Parsed")
         col_qty = len("Qty")
         col_notes = max(len("Notes"), max(len(r["notes"]) for r in rows_to_show))
 
-        header = f"| {'Row':<{col_row}} | {'Card ID':<{col_id}} | {'Name':<{col_name}} | {'Parsed':<{col_parsed}} | {'Qty':<{col_qty}} | {'Notes':<{col_notes}} |"
-        sep = f"|{'-' * (col_row + 2)}|{'-' * (col_id + 2)}|{'-' * (col_name + 2)}|{'-' * (col_parsed + 2)}|{'-' * (col_qty + 2)}|{'-' * (col_notes + 2)}|"
+        header = f"| {'Row':<{col_row}} | {'Print Num':<{col_print_num}} | {'Name':<{col_name}} | {'Parsed':<{col_parsed}} | {'Qty':<{col_qty}} | {'Notes':<{col_notes}} |"
+        sep = f"|{'-' * (col_row + 2)}|{'-' * (col_print_num + 2)}|{'-' * (col_name + 2)}|{'-' * (col_parsed + 2)}|{'-' * (col_qty + 2)}|{'-' * (col_notes + 2)}|"
 
         output.append(header)
         output.append(sep)
         for r in rows_to_show:
-            row_str = f"| {r['row']:<{col_row}} | {r['card_id']:<{col_id}} | {r['name']:<{col_name}} | {r['parsed']:<{col_parsed}} | {r['qty']:<{col_qty}} | {r['notes']:<{col_notes}} |"
+            row_str = f"| {r['row']:<{col_row}} | {r['print_number']:<{col_print_num}} | {r['name']:<{col_name}} | {r['parsed']:<{col_parsed}} | {r['qty']:<{col_qty}} | {r['notes']:<{col_notes}} |"
             output.append(row_str)
 
         output.append("")
@@ -321,8 +321,8 @@ def validate_collection_file(
                     parsed_lots, lot_err = parse_multi_lot_notes(raw_to_parse, qty)
                     if lot_err:
                         prod_id_val = (row.get("productId") or "").strip()
-                        card_id = print_number or prod_id_val or ("SEALED" if is_sealed else "N/A")
-                        errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({card_id}). {lot_err} (notes: '{raw_to_parse}')")
+                        print_num_val = print_number or prod_id_val or ("SEALED" if is_sealed else "N/A")
+                        errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({print_num_val}). {lot_err} (notes: '{raw_to_parse}')")
                         row_errors += 1
                         parsed_qty = 0
                         m_parsed = re.search(r"Sum of parsed lots \((\d+)\)", lot_err)
@@ -330,7 +330,7 @@ def validate_collection_file(
                             parsed_qty = int(m_parsed.group(1))
                         lot_mismatches.append({
                             "row": str(row_idx),
-                            "card_id": card_id,
+                            "print_number": print_num_val,
                             "name": name,
                             "parsed": str(parsed_qty),
                             "qty": str(qty),
@@ -395,7 +395,7 @@ def validate_collection_file(
             if parent_dir:
                 os.makedirs(parent_dir, exist_ok=True)
             with open(error_export_path, "w", encoding="utf-8", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=["row", "card_id", "name", "parsed", "qty", "notes"])
+                writer = csv.DictWriter(f, fieldnames=["row", "print_number", "name", "parsed", "qty", "notes"])
                 writer.writeheader()
                 for m in lot_mismatches:
                     writer.writerow(m)
