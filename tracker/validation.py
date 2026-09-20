@@ -251,6 +251,7 @@ def validate_collection_file(
             seen_sealed_lots: Set[Tuple[str, str, str]] = set()
             seen_card_lots: Set[Tuple[str, str, str, str]] = set()
             seen_dateless_cards: Set[Tuple[str, str, str]] = set()
+            seen_dateless_sealed: Set[Tuple[str, str]] = set()
             for row_idx, row in enumerate(reader, start=2):
                 row_count += 1
                 if missing:
@@ -319,12 +320,14 @@ def validate_collection_file(
 
                 # Acquisition date discovery and multi-lot parsing
                 today_str = datetime.date.today().isoformat()
+                acq_date_future_flagged = False
                 if acq_date_col and not extract_date_from_text(acq_date_col):
                     errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format (got '{acq_date_col}').")
                     row_errors += 1
                 elif acq_date_col and acq_date_col > today_str:
                     errors.append(f"Row {row_idx}: 'acquisitionDate' is in the future (got '{acq_date_col}'). No price data exists for future dates.")
                     row_errors += 1
+                    acq_date_future_flagged = True
 
                 lots = []
                 if qty >= 1:
@@ -350,8 +353,11 @@ def validate_collection_file(
                             "notes": raw_to_parse,
                         })
                     else:
-                        # Check parsed lot dates for future dates
-                        future_lot_dates = [d for d, _ in parsed_lots if d and d > today_str]
+                        # Check parsed lot dates for future dates; skip if acq_date_col already flagged this date
+                        future_lot_dates = [
+                            d for d, _ in parsed_lots
+                            if d and d > today_str and not (acq_date_future_flagged and d == acq_date_col)
+                        ]
                         if future_lot_dates:
                             for fdate in future_lot_dates:
                                 errors.append(f"Row {row_idx}: Acquisition date '{fdate}' is in the future. No price data exists for future dates.")
@@ -385,11 +391,24 @@ def validate_collection_file(
                         if dateless_key in seen_dateless_cards:
                             errors.append(
                                 f"Row {row_idx}: Duplicate card '{name}' ({print_number}, {normalized_finish}) with no acquisition date. "
-                                f"Add a date to the notes field to distinguish lots, or combine quantities using 'totalQtyOwned'."
+                                f"Add an acquisition date to the notes field to distinguish purchase lots, or combine quantities using 'totalQtyOwned'."
                             )
                             row_errors += 1
                             break
                         seen_dateless_cards.add(dateless_key)
+                    elif is_sealed and not lot_date:
+                        # No acquisition date — two dateless sealed rows with the same (name, expansion) produce
+                        # the same card_key in the DB and the second silently overwrites the first.
+                        dateless_sealed_key = (name.lower(), expansion.lower())
+                        if dateless_sealed_key in seen_dateless_sealed:
+                            errors.append(
+                                f"Row {row_idx}: Duplicate sealed item '{name}' ({expansion}) with no acquisition date. "
+                                f"Add an acquisition date to the notes field to distinguish purchase lots, or combine quantities using 'totalQtyOwned'."
+                            )
+                            row_errors += 1
+                            break
+                        seen_dateless_sealed.add(dateless_sealed_key)
+
 
                     row_copy = dict(row)
                     row_copy["name"] = name
