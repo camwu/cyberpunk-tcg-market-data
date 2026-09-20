@@ -302,13 +302,21 @@ Welcome to Night City - Beta Booster Box,Welcome to Night City - Beta,,Standard,
     def test_parse_multi_lot_notes_sum_mismatch_error(self):
         lots, err = parse_multi_lot_notes("2026-09-02: 1; 2026-09-18: 2", 5)
         self.assertIsNotNone(err)
-        self.assertEqual(lots, [])
+        self.assertEqual(lots, [("2026-09-02", 1), ("2026-09-18", 2)])
+        self.assertEqual(sum(q for _, q in lots), 3)
         self.assertIn("Sum of parsed lots (3) does not equal totalQtyOwned (5)", err)
 
         lots_implicit, err_implicit = parse_multi_lot_notes("2026-09-02; 2026-09-18", 3)
         self.assertIsNotNone(err_implicit)
-        self.assertEqual(lots_implicit, [])
+        self.assertEqual(lots_implicit, [("2026-09-02", 1), ("2026-09-18", 1)])
+        self.assertEqual(sum(q for _, q in lots_implicit), 2)
         self.assertIn("Sum of parsed lots (2) does not equal totalQtyOwned (3)", err_implicit)
+
+        lots_single, err_single = parse_multi_lot_notes("2026-09-02: 2", 5)
+        self.assertIsNotNone(err_single)
+        self.assertEqual(lots_single, [("2026-09-02", 2)])
+        self.assertEqual(sum(q for _, q in lots_single), 2)
+        self.assertIn("Sum of parsed lots (2) does not equal totalQtyOwned (5)", err_single)
 
     def test_parse_multi_lot_notes_non_positive_quantity_rejected(self):
         # Explicit zero quantity in multi-lot list
@@ -453,6 +461,18 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026
         self.assertIn("| Row | Print Num | Name", report)
         self.assertIn("| 12  | B101      | Peace Offering", report)
         self.assertIn("Validation found 1 total lot mismatch across the CSV.", report)
+        self.assertNotIn("Full error report written to:", report)
+
+    def test_format_validation_report_preserves_truncation_notice(self):
+        errors = [
+            "Row 12: Quantity mismatch for 'Peace Offering' (B101). Sum of parsed lots (2) does not equal totalQtyOwned (5) (notes: '2026-09-19: 2').",
+            "... (truncated 15 additional row errors; 16 total errors encountered across CSV)",
+            "Full error report written to: data/validation_errors.csv",
+        ]
+        report = format_validation_report(errors)
+        self.assertIn("| Row | Print Num | Name", report)
+        self.assertIn("... (truncated 15 additional row errors; 16 total errors encountered across CSV)", report)
+        self.assertIn("Full error report written to: data/validation_errors.csv", report)
 
 
 if __name__ == "__main__":
