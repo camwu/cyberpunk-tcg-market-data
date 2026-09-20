@@ -390,6 +390,25 @@ def calculate_portfolio_valuation(
     else:
         all_items = card_items
 
+    # Expansion cross-reference: warn on names that don't match any catalog group.
+    # Only run when catalog_group_names is non-empty; an empty set means cards.json
+    # lacks groupName metadata, which would false-alarm on every expansion.
+    if prods:
+        catalog_group_names = {
+            (p.get("groupName") or "").strip().lower()
+            for p in prods.values()
+            if p.get("groupName")
+        }
+        if catalog_group_names:
+            collection_expansions = {
+                row["expansion"].strip()
+                for row in all_items
+                if row.get("expansion")
+            }
+            for exp in sorted(collection_expansions):
+                if exp.lower() not in catalog_group_names:
+                    print(f"Warning: Expansion '{exp}' not found in price catalog groups — cards from this expansion may fail price lookup.", flush=True)
+
     print(f"Calculating portfolio valuation for {date_str} across {len(card_items)} collection rows and {len(sealed_items)} legacy sealed items...")
 
     total_value = 0.0
@@ -397,6 +416,11 @@ def calculate_portfolio_valuation(
     total_sealed = 0
     unique_items = len(all_items)
     total_lifetime_gain = 0.0
+    # Use sets of distinct item keys to avoid counting multi-lot tranches as separate entries.
+    unmatched_item_labels: dict = {}   # key -> label (ordered insertion)
+    zero_price_item_labels: dict = {}  # key -> label (ordered insertion)
+    matched_distinct: set = set()
+    seen_distinct: set = set()
 
     for row in all_items:
         item_type = row.get("item_type")
@@ -424,15 +448,24 @@ def calculate_portfolio_valuation(
             prod = catalog_by_pid.get(int(row_pid)) or catalog_by_pid.get(str(row_pid))
 
         prod_id = prod["productId"] if prod else (int(row_pid) if row_pid else None)
+        # Build a key that identifies this item independent of lot tranche, so multi-lot
+        # expansions don't count as multiple distinct entries in diagnostics.
+        distinct_key = (item_type, expansion.lower(), (print_number or name).lower(), finish.lower())
         if prod:
+            if distinct_key not in seen_distinct:
+                matched_distinct.add(distinct_key)
             name = sanitize_card_name(prod.get("name") or name)
             expansion = prod.get("groupName") or expansion
             rarity = prod.get("rarity") or row.get("rarity")
             color = (prod.get("color") or row.get("color") or "").strip()
         else:
+            label = f"'{name}' ({print_number or 'N/A'}, {expansion})"
+            if distinct_key not in seen_distinct:
+                unmatched_item_labels[distinct_key] = label
             name = sanitize_card_name(name)
             rarity = row.get("rarity")
             color = (row.get("color") or "").strip()
+        seen_distinct.add(distinct_key)
 
         acq_date_raw = (row.get("acquisitionDate") or "").strip()
         if not acq_date_raw and row.get("notes"):
@@ -519,6 +552,8 @@ def calculate_portfolio_valuation(
             line_total = round(qty * market_price, 2)
             total_value += line_total
         else:
+            if distinct_key not in zero_price_item_labels:
+                zero_price_item_labels[distinct_key] = f"'{name}' ({print_number or 'N/A'}, {expansion})"
             market_price = None
             unit_low = None
             unit_mid = None
@@ -656,6 +691,28 @@ def calculate_portfolio_valuation(
 
     conn.commit()
     conn.close()
+
+    # Post-loop diagnostics — all counts and lists are over distinct items, not expanded lot tranches.
+    total_distinct = len(seen_distinct)
+    n_matched = len(matched_distinct)
+    match_pct = (n_matched / total_distinct * 100) if total_distinct > 0 else 0.0
+    print(f"Matched {n_matched}/{total_distinct} distinct collection items to catalog products ({match_pct:.1f}%).")
+
+    unmatched_labels = list(unmatched_item_labels.values())
+    if unmatched_labels:
+        print(f"Warning: {len(unmatched_labels)} collection item(s) had no catalog match and will use carry-forward or fallback prices:")
+        for item in unmatched_labels[:10]:
+            print(f"  - {item}")
+        if len(unmatched_labels) > 10:
+            print(f"  ... and {len(unmatched_labels) - 10} more. Check expansion names and print numbers against cards.json.")
+
+    zero_price_labels = list(zero_price_item_labels.values())
+    if zero_price_labels:
+        print(f"Notice: {len(zero_price_labels)} item(s) had no market price and were excluded from the portfolio total:")
+        for item in zero_price_labels[:10]:
+            print(f"  - {item}")
+        if len(zero_price_labels) > 10:
+            print(f"  ... and {len(zero_price_labels) - 10} more.")
 
     print(f"Valuation complete: Total Value: ${total_value:,.2f} | Cards: {total_cards} | Sealed: {total_sealed} | Lifetime Gain: {'+' if total_lifetime_gain >= 0 else ''}${total_lifetime_gain:,.2f} ({'+' if lifetime_pct_gain >= 0 else ''}{lifetime_pct_gain:.2f}%)")
     return {
