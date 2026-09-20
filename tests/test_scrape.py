@@ -276,6 +276,7 @@ class TestScraperSkipBehavior(unittest.TestCase):
                             {"name": "Number", "value": "B057"},
                             {"name": "Rarity", "value": "Epic"},
                             {"name": "Color", "value": "Yellow"},
+                            {"name": "CardType", "value": "Legend"},
                         ],
                     }
                 ]
@@ -293,6 +294,7 @@ class TestScraperSkipBehavior(unittest.TestCase):
         self.assertEqual(saved_cards["101"]["color"], "Yellow")
         self.assertEqual(saved_cards["101"]["printNumber"], "B057")
         self.assertEqual(saved_cards["101"]["rarity"], "Epic")
+        self.assertEqual(saved_cards["101"]["cardType"], "Legend")
 
 
 if __name__ == "__main__":

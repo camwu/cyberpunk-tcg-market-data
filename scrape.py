@@ -135,6 +135,7 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
                     print_number = None
                     rarity = None
                     color = None
+                    card_type = None
                     for ext in p.get("extendedData", []):
                         if ext.get("name") == "Number":
                             print_number = ext.get("value")
@@ -142,6 +143,8 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
                             rarity = ext.get("value")
                         elif ext.get("name") == "Color":
                             color = ext.get("value")
+                        elif ext.get("name") == "CardType":
+                            card_type = ext.get("value")
 
                     catalog[str(pid)] = {
                         "productId": pid,
@@ -152,6 +155,7 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
                         "printNumber": print_number,
                         "rarity": rarity,
                         "color": color,
+                        "cardType": card_type,
                     }
         else:
             print(f"Fetching group {group_id}: {group_name} (prices only, metadata unchanged)...")
