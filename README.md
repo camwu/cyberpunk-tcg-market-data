@@ -92,6 +92,9 @@ python -m unittest discover tests -v
 - `--backfill <YYYY-MM-DD>`: Backfill historical market prices from TCGCSV archive bundles (requires 7-Zip).
 - `--report-only`: Render the markdown portfolio report from existing database records without syncing prices or running valuation calculations.
 - `--date <YYYY-MM-DD>`: Generate the portfolio report for a specific historical snapshot date.
+- `--sync-collection`: Synchronize collection directly from the CardNexus Public API using the authenticated `CARDNEXUS_API_KEY` environment variable before running valuation.
+- `--refresh-catalog`: Force an immediate fresh download of the CardNexus Cyberpunk catalogue feed (bypasses 24-hour local cache).
+- `--include-marketplace`, `--no-include-marketplace`: Control whether active CardNexus Marketplace listings are included alongside collection cards (default: `--include-marketplace`).
 
 ---
 
@@ -121,6 +124,12 @@ python run_tracker.py --import path/to/export.csv
 
 # Backfill historical prices for an archive date
 python run_tracker.py --backfill 2026-09-11
+
+# Synchronize collection directly from CardNexus API
+python run_tracker.py --sync-collection
+
+# Synchronize collection and force fresh catalogue feed download
+python run_tracker.py --sync-collection --refresh-catalog
 
 # Use custom configuration file
 python run_tracker.py --config custom_config.json

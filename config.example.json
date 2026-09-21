@@ -3,5 +3,6 @@
   "database_path": "data/price_history.db",
   "price_cache_dir": "prices",
   "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
-  "backup_dir": "data/backups"
+  "backup_dir": "data/backups",
+  "cardnexus_api_key": null
 }
