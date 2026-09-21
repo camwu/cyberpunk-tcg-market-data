@@ -14,6 +14,7 @@ import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from tracker.validation import validate_collection_file, is_sealed_product
@@ -210,6 +211,7 @@ class CardNexusClient:
                     if not expansion_name and eslug:
                         expansion_name = expansions_by_slug.get(str(eslug).strip())
                     if not expansion_name:
+                        # Fallback guarantees expansion_name is always a string
                         expansion_name = str(exp_val or "").strip()
 
                 catalog_map[int(pid)] = {

@@ -136,7 +136,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
         adjacent_sealed = Path(resolved_collection).parent / "sealed_inventory.csv"
         resolved_sealed = str(adjacent_sealed.resolve()) if adjacent_sealed.is_file() else None
 
-    cardnexus_key = cli_overrides.get("cardnexus_api_key") or os.getenv("CARDNEXUS_API_KEY") or cfg_data.get("cardnexus_api_key")
+    cardnexus_key = cli_overrides.get("cardnexus_api_key") or os.getenv("CARDNEXUS_API_KEY")
     if not cardnexus_key and sys.platform == "win32":
         try:
             import winreg

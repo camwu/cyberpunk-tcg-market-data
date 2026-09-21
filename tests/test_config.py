@@ -5,6 +5,7 @@ Automated unit tests for configuration loading and path resolution.
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from tracker.config import load_config, resolve_collection_file, TrackerConfig
@@ -69,14 +70,22 @@ class TestTrackerConfig(unittest.TestCase):
         self.assertEqual(Path(cfg.price_cache_dir).resolve(), Path(expected).resolve())
 
     def test_load_config_resolves_cardnexus_api_key(self):
-        cfg_file = self.test_dir / "custom_key.json"
-        cfg_file.write_text('{"cardnexus_api_key": "json_key_789"}', encoding="utf-8")
-        cfg = load_config(config_path=str(cfg_file))
-        self.assertEqual(cfg.cardnexus_api_key, "json_key_789")
+        # Environment variable resolution
+        with patch.dict(os.environ, {"CARDNEXUS_API_KEY": "env_key_789"}):
+            cfg = load_config(config_path=str(self.test_dir / "non_existent.json"))
+            self.assertEqual(cfg.cardnexus_api_key, "env_key_789")
 
-        # CLI override takes precedence
-        cfg_override = load_config(config_path=str(cfg_file), cardnexus_api_key="cli_override_key")
-        self.assertEqual(cfg_override.cardnexus_api_key, "cli_override_key")
+            # CLI override takes precedence over environment variable
+            cfg_override = load_config(cardnexus_api_key="cli_override_key")
+            self.assertEqual(cfg_override.cardnexus_api_key, "cli_override_key")
+
+        # JSON file does not populate API key
+        cfg_file = self.test_dir / "custom_key.json"
+        cfg_file.write_text('{"cardnexus_api_key": "json_key_should_be_ignored"}', encoding="utf-8")
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("winreg.OpenKey", side_effect=FileNotFoundError):
+                cfg_no_env = load_config(config_path=str(cfg_file))
+                self.assertIsNone(cfg_no_env.cardnexus_api_key)
 
 
 if __name__ == "__main__":

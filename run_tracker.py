@@ -104,7 +104,15 @@ def main():
 
     if args.sync_collection:
         print("\n--- Synchronizing Collection from CardNexus API ---")
-        target_path = os.path.join(cfg.collection_csv, "active_collection.csv") if os.path.isdir(cfg.collection_csv) else cfg.collection_csv
+        if args.collection_csv or args.collection_target:
+            explicit_target = args.collection_csv or args.collection_target
+            target_path = os.path.join(explicit_target, "active_collection.csv") if os.path.isdir(explicit_target) else explicit_target
+        elif os.path.isdir(cfg.collection_csv):
+            target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
+        else:
+            collection_dir = os.path.dirname(cfg.collection_csv) or "data"
+            target_path = os.path.join(collection_dir, "active_collection.csv")
+
         success, snapshot_file, total_units = sync_cardnexus_collection(
             target_csv=target_path,
             backup_dir=cfg.backup_dir,
@@ -114,8 +122,7 @@ def main():
         )
         if not success:
             sys.exit(1)
-        if os.path.isdir(cfg.collection_csv):
-            cfg.collection_csv = target_path
+        cfg.collection_csv = target_path
 
     sealed_rows = []
     if cfg.sealed_csv and os.path.isfile(cfg.sealed_csv):

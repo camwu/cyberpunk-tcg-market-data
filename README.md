@@ -7,7 +7,7 @@ Automated daily market price scraper and portfolio valuation CLI tool for the Cy
 ## ✨ Features
 
 - **Automated Daily Price Sync**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:17 UTC to update card metadata (`cards.json`) and record daily TCGplayer market prices under `prices/`.
-- **Unified Portfolio Tracking**: Ingests cards and sealed products (Booster Boxes, Starter Decks) from CardNexus CSV exports into a local SQLite database (`data/price_history.db`).
+- **Unified Portfolio Tracking & Direct Sync**: Ingests cards and sealed products (Booster Boxes, Starter Decks) via direct CardNexus Public API synchronization or offline CSV exports into a local SQLite database (`data/price_history.db`).
 - **Historical Performance & ROI**: Calculates rolling 7-day price deltas and lifetime gain/loss against purchase prices or initial market baselines.
 - **Rarity, Finish & Color Breakdowns**: Summarizes collection distribution across official rarity tiers (`▽ Common` through `▣ Nova Rare`), standard/foil finishes, and card colors.
 - **1-Click & Drag-and-Drop Launchers**: Update portfolios via Windows batch (`update_portfolio.bat`), Unix shell (`update_portfolio.sh`), or the Python CLI with automatic CSV detection.
@@ -34,6 +34,24 @@ python scrape.py --force
 
 ### 2. Portfolio Valuation
 
+#### Option A: Direct API Synchronization (Recommended)
+Configure your CardNexus Public API Bearer token (`cnk_live_...` from CardNexus Settings > API Keys) via environment variable:
+- **Windows (PowerShell)**:
+  ```powershell
+  [Environment]::SetEnvironmentVariable("CARDNEXUS_API_KEY", "<API_KEY>", "User")
+  ```
+- **macOS / Linux**:
+  ```bash
+  export CARDNEXUS_API_KEY="<API_KEY>"
+  ```
+
+Run the tracker with `--sync-collection`:
+```bash
+python run_tracker.py --sync-collection
+```
+This fetches active inventory lines, downloads and caches the Cyberpunk catalogue feed, validates snapshot schema and lot integrity, backs up the existing active collection to `data/backups/`, and promotes the changes to `data/active_collection.csv`. If `CARDNEXUS_API_KEY` is not configured, execution halts with a configuration error while preserving existing collection files.
+
+#### Option B: Offline CSV Export
 1. **Add your collection CSV**:
    Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The pipeline ingests both cards and sealed products (e.g. Booster Boxes, Starter Decks) from a unified CardNexus export.
    - **Sealed Products**: Identified by product catalog matching and naming conventions; `printNumber` is optional for sealed items.
@@ -130,6 +148,9 @@ python run_tracker.py --sync-collection
 
 # Synchronize collection and force fresh catalogue feed download
 python run_tracker.py --sync-collection --refresh-catalog
+
+# Synchronize collection excluding cards actively listed on CardNexus Marketplace
+python run_tracker.py --sync-collection --no-include-marketplace
 
 # Use custom configuration file
 python run_tracker.py --config custom_config.json

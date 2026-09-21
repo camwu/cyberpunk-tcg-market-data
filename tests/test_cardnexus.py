@@ -79,6 +79,10 @@ class TestCardNexusClient(unittest.TestCase):
         self.assertEqual(items[1]["productId"], 102)
         mock_sleep.assert_called_with(STEADY_STATE_SLEEP_SECONDS)
 
+        # Verify page 2 request contains quoted cursor
+        req_2 = mock_urlopen.call_args_list[1][0][0]
+        self.assertIn("cursor=cursor_page_2", req_2.full_url)
+
     @patch("time.sleep", return_value=None)
     @patch("urllib.request.urlopen")
     def test_fetch_inventory_for_sale_query_param(self, mock_urlopen, mock_sleep):
