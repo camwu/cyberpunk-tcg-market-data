@@ -3,6 +3,7 @@ Automated unit tests for configuration loading and path resolution.
 """
 
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -83,7 +84,12 @@ class TestTrackerConfig(unittest.TestCase):
         cfg_file = self.test_dir / "custom_key.json"
         cfg_file.write_text('{"cardnexus_api_key": "json_key_should_be_ignored"}', encoding="utf-8")
         with patch.dict(os.environ, {}, clear=True):
-            with patch("winreg.OpenKey", side_effect=FileNotFoundError):
+            if sys.platform == "win32":
+                import winreg
+                with patch.object(winreg, "OpenKey", side_effect=FileNotFoundError):
+                    cfg_no_env = load_config(config_path=str(cfg_file))
+                    self.assertIsNone(cfg_no_env.cardnexus_api_key)
+            else:
                 cfg_no_env = load_config(config_path=str(cfg_file))
                 self.assertIsNone(cfg_no_env.cardnexus_api_key)
 
