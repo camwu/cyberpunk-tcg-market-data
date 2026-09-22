@@ -209,7 +209,6 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.test_dir = Path(self.temp_dir.name)
         self.target_csv = str(self.test_dir / "active_collection.csv")
-        self.backup_dir = str(self.test_dir / "backups")
 
     def tearDown(self):
         self.temp_dir.cleanup()
@@ -242,7 +241,6 @@ class TestSyncCardNexusCollection(unittest.TestCase):
 
         success, snapshot_path, total_units = sync_cardnexus_collection(
             target_csv=self.target_csv,
-            backup_dir=self.backup_dir,
             api_key="test_key",
         )
 
@@ -257,7 +255,7 @@ class TestSyncCardNexusCollection(unittest.TestCase):
 
     @patch.object(CardNexusClient, "fetch_catalog")
     @patch.object(CardNexusClient, "fetch_inventory")
-    def test_successful_sync_promotes_and_backs_up(self, mock_fetch_inv, mock_fetch_cat):
+    def test_successful_sync_promotes_and_cleans_staging(self, mock_fetch_inv, mock_fetch_cat):
         mock_fetch_inv.return_value = [
             {
                 "id": "line_ok",
@@ -282,7 +280,6 @@ class TestSyncCardNexusCollection(unittest.TestCase):
 
         success, promoted_path, total_units = sync_cardnexus_collection(
             target_csv=self.target_csv,
-            backup_dir=self.backup_dir,
             api_key="test_key",
         )
 
@@ -301,12 +298,8 @@ class TestSyncCardNexusCollection(unittest.TestCase):
             self.assertIn("Panam Palmer", content)
             self.assertNotIn("productId", content)
 
-        # Verify backup was created
-        backups = list(Path(self.backup_dir).glob("*.csv"))
-        self.assertEqual(len(backups), 1)
-        with open(backups[0], "r", encoding="utf-8") as f:
-            backup_content = f.read()
-            self.assertIn("Old", backup_content)
+        # Verify no backups directory or backup files were created
+        self.assertFalse(os.path.exists(str(self.test_dir / "backups")))
 
     @patch.object(CardNexusClient, "fetch_catalog")
     @patch.object(CardNexusClient, "fetch_inventory")
@@ -318,12 +311,26 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
             success, promoted_path, total_units = sync_cardnexus_collection(
                 target_csv=self.target_csv,
-                backup_dir=self.backup_dir,
                 api_key="test_key",
             )
             self.assertTrue(success)
             self.assertEqual(promoted_path, self.target_csv)
             self.assertIn("Warning: Could not remove temporary staging file", mock_stderr.getvalue())
+
+    @patch("tracker.cardnexus.CardNexusClient")
+    def test_sync_scopes_catalog_cache_to_target_dir(self, mock_client_cls):
+        mock_instance = MagicMock()
+        mock_instance.api_key = "test_key"
+        mock_instance.fetch_inventory.return_value = []
+        mock_client_cls.return_value = mock_instance
+
+        custom_dir = self.test_dir / "custom_data"
+        custom_dir.mkdir()
+        custom_target = str(custom_dir / "my_collection.csv")
+
+        sync_cardnexus_collection(target_csv=custom_target, api_key="test_key")
+
+        mock_client_cls.assert_called_once_with(api_key="test_key", cache_dir=str(custom_dir))
 
 
 class TestTrackerMissingKeyFallback(unittest.TestCase):

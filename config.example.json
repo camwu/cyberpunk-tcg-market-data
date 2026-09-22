@@ -2,6 +2,5 @@
   "collection_csv": "data",
   "database_path": "data/price_history.db",
   "price_cache_dir": "prices",
-  "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
-  "backup_dir": "data/backups"
+  "output_report": "LATEST_PORTFOLIO_SUMMARY.md"
 }

@@ -121,7 +121,6 @@ def main():
 
             success, promoted_file, total_units = sync_cardnexus_collection(
                 target_csv=target_path,
-                backup_dir=cfg.backup_dir,
                 api_key=cfg.cardnexus_api_key,
                 include_marketplace=args.include_marketplace,
                 refresh_catalog=args.refresh_catalog,

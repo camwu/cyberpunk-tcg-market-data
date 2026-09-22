@@ -49,7 +49,7 @@ Run the tracker with `--sync-collection`:
 ```bash
 python run_tracker.py --sync-collection
 ```
-This fetches active inventory lines, downloads and caches the Cyberpunk catalog feed, validates snapshot schema and lot integrity, backs up the existing active collection to `data/backups/`, and promotes the validated data to `data/active_collection.csv` while automatically cleaning up temporary staging files. If `CARDNEXUS_API_KEY` is not configured, the tracker logs a diagnostic warning and falls back to offline collection CSV ingestion.
+This fetches active inventory lines, downloads and caches the Cyberpunk catalog feed, validates snapshot schema and lot integrity, and promotes the validated data directly to `data/active_collection.csv` while automatically cleaning up temporary staging files. If `CARDNEXUS_API_KEY` is not configured, the tracker logs a diagnostic warning and falls back to offline collection CSV ingestion.
 
 #### Option B: Offline CSV Export
 1. **Add your collection CSV**:
@@ -77,8 +77,7 @@ This fetches active inventory lines, downloads and caches the Cyberpunk catalog 
      "collection_csv": "data",
      "database_path": "data/price_history.db",
      "price_cache_dir": "prices",
-     "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
-     "backup_dir": "data/backups"
+     "output_report": "LATEST_PORTFOLIO_SUMMARY.md"
    }
    ```
 

@@ -364,7 +364,8 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026
 Towerfall,Welcome to Night City - Beta,B034,Standard,5,1.50,"2026-09-02: 1; 2026-09-18: 2"
 """
         path = self._create_csv("multi_lot_mismatch.csv", csv_content)
-        is_valid, errors, rows = validate_collection_file(path)
+        error_csv = str(self.test_dir / "mismatch_errors.csv")
+        is_valid, errors, rows = validate_collection_file(path, error_export_path=error_csv)
 
         self.assertFalse(is_valid)
         self.assertEqual(len(rows), 0)
