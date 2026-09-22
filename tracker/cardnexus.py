@@ -298,7 +298,7 @@ def sync_cardnexus_collection(
     3. Emits unified collection CSV snapshot.
     4. Validates snapshot via validate_collection_file().
     5. Only upon successful validation, promotes snapshot to target_csv (backing up prior version).
-    Returns (success, snapshot_path, total_physical_units).
+    Returns (success, promoted_csv_path, total_physical_units).
     """
     client = CardNexusClient(api_key=api_key)
     if not client.api_key:
@@ -350,8 +350,8 @@ def sync_cardnexus_collection(
     shutil.copyfile(snapshot_path, target_csv)
     try:
         os.remove(snapshot_path)
-    except OSError:
-        pass
+    except OSError as e:
+        print(f"Warning: Could not remove temporary staging file '{snapshot_path}': {e}", file=sys.stderr)
 
     total_qty = sum(int(r.get("totalQtyOwned", 1)) for r in validated_rows)
     card_count = sum(1 for r in validated_rows if r.get("item_type") != "Sealed")
@@ -359,4 +359,4 @@ def sync_cardnexus_collection(
     sealed_info = f" and {sealed_count} sealed items" if sealed_count else ""
 
     print(f"Promoted to {target_csv}: {len(validated_rows)} entries ({card_count} cards{sealed_info}, {total_qty} physical units).")
-    return True, snapshot_path, total_qty
+    return True, target_csv, total_qty

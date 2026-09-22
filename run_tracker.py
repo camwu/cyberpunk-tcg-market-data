@@ -119,7 +119,7 @@ def main():
                 collection_dir = os.path.dirname(cfg.collection_csv) or "data"
                 target_path = os.path.join(collection_dir, "active_collection.csv")
 
-            success, snapshot_file, total_units = sync_cardnexus_collection(
+            success, promoted_file, total_units = sync_cardnexus_collection(
                 target_csv=target_path,
                 backup_dir=cfg.backup_dir,
                 api_key=cfg.cardnexus_api_key,
