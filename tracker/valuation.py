@@ -241,6 +241,8 @@ def init_database(db_path: str):
     sum_cols = [col[1] for col in cur.fetchall()]
     if "total_sealed" not in sum_cols:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN total_sealed INTEGER DEFAULT 0")
+    if "collection_updated_at" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_updated_at TEXT")
 
     conn.commit()
     return conn
@@ -256,6 +258,7 @@ def calculate_portfolio_valuation(
     sealed_path: Optional[str] = None,
     sealed_rows: Optional[List[Dict[str, Any]]] = None,
     price_file: Optional[str] = None,
+    collection_updated_at: Optional[str] = None,
 ) -> Dict[str, Any]:
     if collection_rows is None:
         is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
@@ -684,16 +687,20 @@ def calculate_portfolio_valuation(
         l7d_dollar_delta = 0.0
         l7d_pct_delta = 0.0
 
+    if not collection_updated_at and collection_path and os.path.isfile(collection_path):
+        mtime = datetime.datetime.fromtimestamp(os.path.getmtime(collection_path)).astimezone()
+        collection_updated_at = mtime.strftime("%Y-%m-%d %I:%M %p")
+
     cur.execute("""
     INSERT OR REPLACE INTO portfolio_daily_summary (
         date, total_value, total_cards, unique_items,
         l7d_dollar_delta, l7d_pct_delta, lifetime_dollar_gain, lifetime_pct_gain,
-        total_sealed
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        total_sealed, collection_updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         date_str, total_value, total_cards, unique_items,
         l7d_dollar_delta, l7d_pct_delta, total_lifetime_gain, lifetime_pct_gain,
-        total_sealed
+        total_sealed, collection_updated_at
     ))
 
     conn.commit()
