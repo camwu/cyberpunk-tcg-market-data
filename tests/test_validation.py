@@ -2,6 +2,7 @@
 Automated unit tests for collection CSV schema and data integrity validation.
 """
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -427,6 +428,33 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026
         is_valid_pass, errors_pass, rows_pass = validate_collection_file(pass_path, error_export_path=error_csv)
         self.assertTrue(is_valid_pass)
         self.assertFalse(Path(error_csv).exists())
+
+    def test_validate_collection_file_default_error_export_scopes_to_collection_dir(self):
+        nested_dir = self.test_dir / "nested_collection"
+        nested_dir.mkdir()
+        csv_fail = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,5,1.50,"2026-09-02: 1; 2026-09-18: 2"
+"""
+        csv_path = str(nested_dir / "test_collection.csv")
+        Path(csv_path).write_text(csv_fail, encoding="utf-8")
+
+        expected_error_csv = nested_dir / "validation_errors.csv"
+        self.assertFalse(expected_error_csv.exists())
+
+        is_valid, errors, rows = validate_collection_file(csv_path)
+        self.assertFalse(is_valid)
+        self.assertTrue(expected_error_csv.exists())
+        self.assertTrue(any(f"Full error report written to: {expected_error_csv}" in err for err in errors))
+        self.assertFalse(os.path.exists("data"))
+
+        # Test cleanup on subsequent valid run
+        csv_pass = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
+Towerfall,Welcome to Night City - Beta,B034,Standard,3,1.50,"2026-09-02: 1; 2026-09-18: 2"
+"""
+        Path(csv_path).write_text(csv_pass, encoding="utf-8")
+        is_valid_pass, errors_pass, rows_pass = validate_collection_file(csv_path)
+        self.assertTrue(is_valid_pass)
+        self.assertFalse(expected_error_csv.exists())
 
     def test_validate_collection_file_truncation_notice_with_total_count(self):
         lines = ["name,expansion,printNumber,finish,totalQtyOwned,price,notes"]
