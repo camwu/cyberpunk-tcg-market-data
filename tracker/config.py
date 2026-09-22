@@ -21,7 +21,6 @@ class TrackerConfig:
     database_path: str = "data/price_history.db"
     price_cache_dir: str = DEFAULT_PRICES_DIR
     output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
-    backup_dir: str = "data/backups"
     sealed_csv: Optional[str] = None
     cardnexus_api_key: Optional[str] = None
 
@@ -123,7 +122,6 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
     database_path = cli_overrides.get("database_path") or os.getenv("CYBERPUNK_DATABASE_PATH") or cfg_data.get("database_path")
     price_cache_dir = cli_overrides.get("price_cache_dir") or os.getenv("CYBERPUNK_PRICE_CACHE_DIR") or cfg_data.get("price_cache_dir")
     output_report = cli_overrides.get("output_report") or os.getenv("CYBERPUNK_OUTPUT_REPORT") or cfg_data.get("output_report")
-    backup_dir = cli_overrides.get("backup_dir") or os.getenv("CYBERPUNK_BACKUP_DIR") or cfg_data.get("backup_dir")
 
     resolved_collection = resolve_collection_file(resolve(collection_csv, "data"), is_explicit_file=is_explicit)
 
@@ -152,7 +150,6 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
         database_path=resolve(database_path, "data/price_history.db"),
         price_cache_dir=resolve_repo_asset(price_cache_dir, "prices"),
         output_report=resolve(output_report, "LATEST_PORTFOLIO_SUMMARY.md"),
-        backup_dir=resolve(backup_dir, "data/backups"),
         sealed_csv=resolved_sealed,
         cardnexus_api_key=cardnexus_key,
     )

@@ -286,7 +286,6 @@ class CardNexusClient:
 
 def sync_cardnexus_collection(
     target_csv: str = "data/active_collection.csv",
-    backup_dir: str = "data/backups",
     api_key: Optional[str] = None,
     include_marketplace: bool = True,
     refresh_catalog: bool = False,
@@ -297,10 +296,11 @@ def sync_cardnexus_collection(
     2. Resolves card metadata via Cyberpunk catalog feed.
     3. Emits unified collection CSV snapshot.
     4. Validates snapshot via validate_collection_file().
-    5. Only upon successful validation, promotes snapshot to target_csv (backing up prior version).
+    5. Only upon successful validation, promotes snapshot directly to target_csv.
     Returns (success, promoted_csv_path, total_physical_units).
     """
-    client = CardNexusClient(api_key=api_key)
+    cache_dir = os.path.dirname(target_csv) or "data"
+    client = CardNexusClient(api_key=api_key, cache_dir=cache_dir)
     if not client.api_key:
         print("Error: CardNexus API key is not configured.", file=sys.stderr)
         return False, "", 0
@@ -332,20 +332,17 @@ def sync_cardnexus_collection(
     print(f"Saved authenticated API snapshot to {snapshot_path}")
 
     # Validate snapshot before promotion
-    is_valid, validation_errors, validated_rows = validate_collection_file(snapshot_path)
+    error_csv = os.path.join(cache_dir, "validation_errors.csv")
+    is_valid, validation_errors, validated_rows = validate_collection_file(
+        snapshot_path,
+        error_export_path=error_csv,
+    )
     if not is_valid:
         from tracker.validation import format_validation_report
         print(f"\nError: API collection validation failed for snapshot '{snapshot_path}':\n", file=sys.stderr)
         print(format_validation_report(validation_errors), file=sys.stderr)
         print("Promotion aborted: existing active collection was not modified.", file=sys.stderr)
         return False, snapshot_path, 0
-
-    # Promotion guard: Backup existing active collection before overwriting
-    os.makedirs(backup_dir, exist_ok=True)
-    if os.path.exists(target_csv):
-        backup_file = os.path.join(backup_dir, f"active_collection_{timestamp}.csv")
-        shutil.copyfile(target_csv, backup_file)
-        print(f"Backed up prior active collection to {backup_file}")
 
     shutil.copyfile(snapshot_path, target_csv)
     try:

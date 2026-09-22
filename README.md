@@ -49,13 +49,13 @@ Run the tracker with `--sync-collection`:
 ```bash
 python run_tracker.py --sync-collection
 ```
-This fetches active inventory lines, downloads and caches the Cyberpunk catalog feed, validates snapshot schema and lot integrity, backs up the existing active collection to `data/backups/`, and promotes the validated data to `data/active_collection.csv` while automatically cleaning up temporary staging files. If `CARDNEXUS_API_KEY` is not configured, the tracker logs a diagnostic warning and falls back to offline collection CSV ingestion.
+This fetches active inventory lines, downloads and caches the Cyberpunk catalog feed, validates snapshot schema and lot integrity, and promotes the validated data directly to `data/active_collection.csv` while automatically cleaning up temporary staging files. If `CARDNEXUS_API_KEY` is not configured, the tracker logs a diagnostic warning and falls back to offline collection CSV ingestion.
 
 #### Option B: Offline CSV Export
 1. **Add your collection CSV**:
    Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The pipeline ingests both cards and sealed products (e.g. Booster Boxes, Starter Decks) from a unified CardNexus export.
    - **Sealed Products**: Identified by product catalog matching and naming conventions; `printNumber` is optional for sealed items.
-   - **Acquisition Dates & Multi-Lot Entries**: Extracted from the CardNexus `notes` field. Multiple purchase dates are recorded as semicolon-delimited lots (e.g. `2026-09-02: 1; 2026-09-18: 2`). In multi-lot lists, dates lacking an explicit `: <qty>` default to 1 unit (e.g. `2026-09-02; 2026-09-18: 2` assigns 1 unit to 2026-09-02). If only a single date appears without semicolons, the entire `totalQtyOwned` is attributed to that date. The sum of parsed lots must strictly equal `totalQtyOwned`; any mismatch raises a validation error displaying an aligned 6-column CLI table and exporting failing entries to `data/validation_errors.csv` for single-pass resolution in CardNexus. If an acquisition date predates the earliest available price history, the baseline clamps to the oldest market price date. If the `notes` field omits an acquisition date entirely, the database defaults the item's acquisition date to the snapshot date when it first appears in an imported collection CSV.
+   - **Acquisition Dates & Multi-Lot Entries**: Extracted from the CardNexus `notes` field. Multiple purchase dates are recorded as semicolon-delimited lots (e.g. `2026-09-02: 1; 2026-09-18: 2`). In multi-lot lists, dates lacking an explicit `: <qty>` default to 1 unit (e.g. `2026-09-02; 2026-09-18: 2` assigns 1 unit to 2026-09-02). If only a single date appears without semicolons, the entire `totalQtyOwned` is attributed to that date. The sum of parsed lots must strictly equal `totalQtyOwned`; any mismatch raises a validation error displaying an aligned 6-column CLI table and exporting failing entries to `validation_errors.csv` (adjacent to the collection file) for single-pass resolution in CardNexus. If an acquisition date predates the earliest available price history, the baseline clamps to the oldest market price date. If the `notes` field omits an acquisition date entirely, the database defaults the item's acquisition date to the snapshot date when it first appears in an imported collection CSV.
    - **Auto-Discovery**: The pipeline validates required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) and automatically selects the newest CSV by modification timestamp.
 
 2. **Run the tracker**:
@@ -77,8 +77,7 @@ This fetches active inventory lines, downloads and caches the Cyberpunk catalog 
      "collection_csv": "data",
      "database_path": "data/price_history.db",
      "price_cache_dir": "prices",
-     "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
-     "backup_dir": "data/backups"
+     "output_report": "LATEST_PORTFOLIO_SUMMARY.md"
    }
    ```
 
@@ -104,7 +103,7 @@ python -m unittest discover tests -v
 - `--db <path>`: Path to SQLite historical database (default: `data/price_history.db`).
 - `--prices <path>`: Path to daily price cache directory (default: `prices`).
 - `--output <path>`: Path to markdown summary report (default: `LATEST_PORTFOLIO_SUMMARY.md`).
-- `--import <path>`, `--import-file <path>`: Validate, back up, and import a new CardNexus CSV export.
+- `--import <path>`, `--import-file <path>`: Validate and promote a new CardNexus CSV export to the active collection.
 - `--live`: Scrape live market prices directly from TCGCSV endpoints instead of using cached local files or remote GitHub snapshots. When omitted and today's remote snapshot has not yet been published (daily cloud sync runs at 20:17 UTC, subject to standard GitHub Actions queue latency of up to 3 hours during peak load), the pipeline falls back cleanly to `prices/latest.json` with an informational notice.
 - `--force`: Force a fresh price sync and recalculate/overwrite the portfolio valuation snapshot for the target date.
 - `--backfill <YYYY-MM-DD>`: Backfill historical market prices from TCGCSV archive bundles (requires 7-Zip).
@@ -137,7 +136,7 @@ python run_tracker.py --report-only
 # Generate report for a specific snapshot date
 python run_tracker.py --report-only --date 2026-09-13
 
-# Import a new CardNexus export with automatic backup
+# Import and promote a new CardNexus export directly
 python run_tracker.py --import path/to/export.csv
 
 # Backfill historical prices for an archive date

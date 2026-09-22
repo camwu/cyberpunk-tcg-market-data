@@ -211,16 +211,23 @@ def format_validation_report(
     return "\n".join(output)
 
 
+DEFAULT_ERROR_EXPORT = "__DEFAULT__"
+
+
 def validate_collection_file(
     csv_path: str,
     max_row_errors: Optional[int] = 25,
-    error_export_path: Optional[str] = "data/validation_errors.csv",
+    error_export_path: Optional[str] = DEFAULT_ERROR_EXPORT,
 ) -> Tuple[bool, List[str], List[dict]]:
     """
     Validates a collection CSV file against mandatory schema and data integrity constraints.
     Supports unified CardNexus exports containing single cards and sealed products.
     Returns (is_valid, list_of_error_strings, list_of_validated_rows).
     """
+    if error_export_path == DEFAULT_ERROR_EXPORT:
+        parent_dir = os.path.dirname(os.path.abspath(csv_path)) if csv_path else "."
+        error_export_path = os.path.join(parent_dir, "validation_errors.csv")
+
     errors: List[str] = []
     lot_mismatches: List[dict] = []
     validated_rows: List[dict] = []
