@@ -25,7 +25,7 @@ from tracker.validation import (
 from tracker.cardnexus import sync_cardnexus_collection
 
 
-def import_collection_file(source_path: str, target_path: str, backup_dir: str) -> bool:
+def import_collection_file(source_path: str, target_path: str) -> bool:
     is_valid, errors, rows = validate_collection_file(source_path)
     if not is_valid:
         print(f"\nError: Collection file validation failed for '{source_path}':\n", file=sys.stderr)
@@ -37,15 +37,7 @@ def import_collection_file(source_path: str, target_path: str, backup_dir: str) 
     sealed_items = sum(1 for r in rows if r.get("item_type") == "Sealed")
     total_qty = sum(int(r.get("totalQtyOwned", 1)) for r in rows)
 
-    os.makedirs(backup_dir, exist_ok=True)
     os.makedirs(os.path.dirname(target_path) or ".", exist_ok=True)
-
-    if os.path.exists(target_path):
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_file = os.path.join(backup_dir, f"active_collection_{timestamp}.csv")
-        shutil.copyfile(target_path, backup_file)
-        print(f"Backed up existing collection to {backup_file}")
-
     shutil.copyfile(source_path, target_path)
     sealed_info = f" and {sealed_items} sealed items" if sealed_items else ""
     print(f"Successfully imported active collection: {total_items} entries ({card_items} cards{sealed_info}, {total_qty} physical units).")
@@ -97,7 +89,6 @@ def main():
         success = import_collection_file(
             source_path=args.import_path,
             target_path=cfg.collection_csv,
-            backup_dir=cfg.backup_dir,
         )
         if not success:
             sys.exit(1)

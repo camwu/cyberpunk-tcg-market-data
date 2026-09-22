@@ -371,6 +371,39 @@ class TestTrackerMissingKeyFallback(unittest.TestCase):
             )
 
 
+class TestImportCollectionFile(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.test_dir = Path(self.temp_dir.name)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_import_collection_file_promotes_without_backup(self):
+        from run_tracker import import_collection_file
+
+        source_csv = self.test_dir / "new_export.csv"
+        source_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            "Judy Alvarez,Welcome to Night City - Beta,002,Standard,2,2026-09-02: 2\n",
+            encoding="utf-8",
+        )
+
+        target_csv = self.test_dir / "active_collection.csv"
+        target_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            "Old Card,Welcome to Night City - Beta,001,Standard,1,2026-09-01: 1\n",
+            encoding="utf-8",
+        )
+
+        success = import_collection_file(str(source_csv), str(target_csv))
+        self.assertTrue(success)
+
+        self.assertIn("Judy Alvarez", target_csv.read_text(encoding="utf-8"))
+        self.assertFalse((self.test_dir / "backups").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
 

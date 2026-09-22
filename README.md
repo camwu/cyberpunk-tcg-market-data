@@ -103,7 +103,7 @@ python -m unittest discover tests -v
 - `--db <path>`: Path to SQLite historical database (default: `data/price_history.db`).
 - `--prices <path>`: Path to daily price cache directory (default: `prices`).
 - `--output <path>`: Path to markdown summary report (default: `LATEST_PORTFOLIO_SUMMARY.md`).
-- `--import <path>`, `--import-file <path>`: Validate, back up, and import a new CardNexus CSV export.
+- `--import <path>`, `--import-file <path>`: Validate and promote a new CardNexus CSV export to the active collection.
 - `--live`: Scrape live market prices directly from TCGCSV endpoints instead of using cached local files or remote GitHub snapshots. When omitted and today's remote snapshot has not yet been published (daily cloud sync runs at 20:17 UTC, subject to standard GitHub Actions queue latency of up to 3 hours during peak load), the pipeline falls back cleanly to `prices/latest.json` with an informational notice.
 - `--force`: Force a fresh price sync and recalculate/overwrite the portfolio valuation snapshot for the target date.
 - `--backfill <YYYY-MM-DD>`: Backfill historical market prices from TCGCSV archive bundles (requires 7-Zip).
@@ -136,7 +136,7 @@ python run_tracker.py --report-only
 # Generate report for a specific snapshot date
 python run_tracker.py --report-only --date 2026-09-13
 
-# Import a new CardNexus export with automatic backup
+# Import and promote a new CardNexus export directly
 python run_tracker.py --import path/to/export.csv
 
 # Backfill historical prices for an archive date
