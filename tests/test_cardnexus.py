@@ -252,6 +252,8 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         with open(self.target_csv, "r", encoding="utf-8") as f:
             content = f.read()
             self.assertIn("Prior", content)
+        # Failed validation retains staging snapshot for inspection
+        self.assertTrue(os.path.exists(snapshot_path))
 
     @patch.object(CardNexusClient, "fetch_catalog")
     @patch.object(CardNexusClient, "fetch_inventory")
@@ -286,6 +288,8 @@ class TestSyncCardNexusCollection(unittest.TestCase):
 
         self.assertTrue(success)
         self.assertEqual(total_units, 4)
+        # Staging snapshot must be removed after successful promotion
+        self.assertFalse(os.path.exists(snapshot_path))
 
         # Verify active_collection.csv was promoted
         with open(self.target_csv, "r", encoding="utf-8") as f:
