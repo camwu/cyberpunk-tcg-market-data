@@ -2,7 +2,7 @@
   "_groups": {
     "24845": {
       "name": "Welcome to Night City - Beta",
-      "modifiedOn": "2026-09-14T15:24:34.933"
+      "modifiedOn": "2026-09-22T19:36:31.407"
     },
     "24846": {
       "name": "Embracing Power - Beta Starter Deck",
@@ -10,31 +10,31 @@
     },
     "24847": {
       "name": "The Heist - Beta Starter Deck",
-      "modifiedOn": "2026-09-02T20:11:18.173"
+      "modifiedOn": "2026-09-22T19:36:01.7"
     },
     "24848": {
       "name": "Box Toppers - Beta",
-      "modifiedOn": "2026-09-03T18:17:36.753"
+      "modifiedOn": "2026-09-22T19:34:39.3"
     },
     "24855": {
       "name": "Welcome to Night City - Retail",
-      "modifiedOn": "2026-09-03T15:19:21.117"
+      "modifiedOn": "2026-09-22T19:47:17.667"
     },
     "24857": {
       "name": "Box Toppers - Retail",
-      "modifiedOn": "2026-09-03T18:28:10.553"
+      "modifiedOn": "2026-09-22T19:34:53.097"
     },
     "24858": {
       "name": "Embracing Power - Retail Starter Deck",
-      "modifiedOn": "2026-09-03T19:06:42.527"
+      "modifiedOn": "2026-09-22T19:48:19.15"
     },
     "24859": {
       "name": "The Heist - Retail Starter Deck",
-      "modifiedOn": "2026-09-03T19:46:50.067"
+      "modifiedOn": "2026-09-22T19:49:07.137"
     },
     "24860": {
       "name": "Set 1 Promos",
-      "modifiedOn": "2026-09-03T19:34:57.447"
+      "modifiedOn": "2026-09-22T19:35:48.99"
     },
     "24880": {
       "name": "Pre-Release Beta",
@@ -5068,5 +5068,16 @@
     "rarity": "Nova Rare",
     "color": null,
     "cardType": "Legend"
+  },
+  "719653": {
+    "productId": 719653,
+    "name": "Misty Olszewski - Mender of Broken Spirits",
+    "cleanName": "Misty Olszewski Mender of Broken Spirits",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "006",
+    "rarity": "Nova Rare",
+    "color": "Blue",
+    "cardType": "Unit"
   }
 }
