@@ -1,6 +1,6 @@
 """
 CardNexus Public API client and inventory synchronization module.
-Fetches inventory lines, resolves card metadata from catalogue feeds, and emits validated CSVs.
+Fetches inventory lines, resolves card metadata from catalog feeds, and emits validated CSVs.
 """
 
 import csv
@@ -146,7 +146,7 @@ class CardNexusClient:
 
     def fetch_catalog(self, refresh: bool = False, game: str = "cyberpunk") -> Dict[int, Dict[str, Any]]:
         """
-        Retrieves and caches the Cyberpunk catalogue feed to map internal productIds to metadata.
+        Retrieves and caches the Cyberpunk catalog feed to map internal productIds to metadata.
         Caches locally for 24 hours unless refresh=True.
         """
         cache_file = self.cache_dir / f"cardnexus_catalog_{game}.json"
@@ -294,11 +294,11 @@ def sync_cardnexus_collection(
     """
     Orchestrates live CardNexus inventory sync:
     1. Fetches inventory lines from CardNexus API.
-    2. Resolves card metadata via Cyberpunk catalogue feed.
+    2. Resolves card metadata via Cyberpunk catalog feed.
     3. Emits unified collection CSV snapshot.
     4. Validates snapshot via validate_collection_file().
     5. Only upon successful validation, promotes snapshot to target_csv (backing up prior version).
-    Returns (success, snapshot_path, total_physical_units).
+    Returns (success, promoted_csv_path, total_physical_units).
     """
     client = CardNexusClient(api_key=api_key)
     if not client.api_key:
@@ -309,9 +309,9 @@ def sync_cardnexus_collection(
     inventory_items = client.fetch_inventory(include_marketplace=include_marketplace)
     print(f"Retrieved {len(inventory_items)} raw inventory line items.")
 
-    print("Resolving catalogue metadata...")
+    print("Resolving catalog metadata...")
     catalog_map = client.fetch_catalog(refresh=refresh_catalog)
-    print(f"Loaded {len(catalog_map)} catalogue products from CardNexus feed.")
+    print(f"Loaded {len(catalog_map)} catalog products from CardNexus feed.")
 
     rows = client.transform_inventory_rows(inventory_items, catalog_map)
     if not rows:
@@ -348,10 +348,15 @@ def sync_cardnexus_collection(
         print(f"Backed up prior active collection to {backup_file}")
 
     shutil.copyfile(snapshot_path, target_csv)
+    try:
+        os.remove(snapshot_path)
+    except OSError as e:
+        print(f"Warning: Could not remove temporary staging file '{snapshot_path}': {e}", file=sys.stderr)
+
     total_qty = sum(int(r.get("totalQtyOwned", 1)) for r in validated_rows)
     card_count = sum(1 for r in validated_rows if r.get("item_type") != "Sealed")
     sealed_count = sum(1 for r in validated_rows if r.get("item_type") == "Sealed")
     sealed_info = f" and {sealed_count} sealed items" if sealed_count else ""
 
     print(f"Promoted to {target_csv}: {len(validated_rows)} entries ({card_count} cards{sealed_info}, {total_qty} physical units).")
-    return True, snapshot_path, total_qty
+    return True, target_csv, total_qty

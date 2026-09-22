@@ -252,6 +252,8 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         with open(self.target_csv, "r", encoding="utf-8") as f:
             content = f.read()
             self.assertIn("Prior", content)
+        # Failed validation retains staging snapshot for inspection
+        self.assertTrue(os.path.exists(snapshot_path))
 
     @patch.object(CardNexusClient, "fetch_catalog")
     @patch.object(CardNexusClient, "fetch_inventory")
@@ -278,7 +280,7 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         with open(self.target_csv, "w", encoding="utf-8") as f:
             f.write("name,expansion,printNumber,finish,totalQtyOwned,notes\nOld,Exp,001,Standard,1,2026-09-01\n")
 
-        success, snapshot_path, total_units = sync_cardnexus_collection(
+        success, promoted_path, total_units = sync_cardnexus_collection(
             target_csv=self.target_csv,
             backup_dir=self.backup_dir,
             api_key="test_key",
@@ -286,6 +288,12 @@ class TestSyncCardNexusCollection(unittest.TestCase):
 
         self.assertTrue(success)
         self.assertEqual(total_units, 4)
+        self.assertEqual(promoted_path, self.target_csv)
+        self.assertTrue(os.path.exists(promoted_path))
+
+        # Staging snapshot must be removed after successful promotion
+        staging_files = list(Path(self.temp_dir.name).glob("cardnexus_collection_*.csv"))
+        self.assertEqual(len(staging_files), 0)
 
         # Verify active_collection.csv was promoted
         with open(self.target_csv, "r", encoding="utf-8") as f:
@@ -300,6 +308,62 @@ class TestSyncCardNexusCollection(unittest.TestCase):
             backup_content = f.read()
             self.assertIn("Old", backup_content)
 
+    @patch.object(CardNexusClient, "fetch_catalog")
+    @patch.object(CardNexusClient, "fetch_inventory")
+    @patch("os.remove", side_effect=OSError("Lock contention"))
+    def test_sync_warns_if_staging_removal_fails(self, mock_remove, mock_fetch_inv, mock_fetch_cat):
+        mock_fetch_inv.return_value = [{"id": "1", "productId": 101, "quantity": 1, "finish": "Standard", "notes": "2026-09-02: 1"}]
+        mock_fetch_cat.return_value = {101: {"name": "Panam Palmer", "expansion": "Welcome to Night City - Beta", "printNumber": "010", "productType": "card"}}
+
+        with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
+            success, promoted_path, total_units = sync_cardnexus_collection(
+                target_csv=self.target_csv,
+                backup_dir=self.backup_dir,
+                api_key="test_key",
+            )
+            self.assertTrue(success)
+            self.assertEqual(promoted_path, self.target_csv)
+            self.assertIn("Warning: Could not remove temporary staging file", mock_stderr.getvalue())
+
+
+class TestTrackerMissingKeyFallback(unittest.TestCase):
+
+    @patch("run_tracker.calculate_portfolio_valuation")
+    @patch("run_tracker.generate_portfolio_report")
+    @patch("run_tracker.validate_collection_file", return_value=(True, [], [{"name": "Panam"}]))
+    @patch("run_tracker.sync_market_prices", return_value="fake_prices.json")
+    @patch("run_tracker.sync_cardnexus_collection")
+    @patch("run_tracker.load_config")
+    def test_sync_collection_without_api_key_warns_and_falls_back(
+        self,
+        mock_load_config,
+        mock_sync_cn,
+        mock_sync_prices,
+        mock_validate,
+        mock_report,
+        mock_valuation,
+    ):
+        from tracker.config import TrackerConfig
+        import run_tracker
+
+        mock_load_config.return_value = TrackerConfig(
+            collection_csv="fake_collection.csv",
+            cardnexus_api_key=None,
+        )
+
+        with patch("sys.argv", ["run_tracker.py", "--sync-collection"]), \
+             patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
+            run_tracker.main()
+
+            mock_sync_cn.assert_not_called()
+            mock_validate.assert_called_once_with("fake_collection.csv")
+            mock_valuation.assert_called_once()
+            self.assertIn(
+                "Warning: CARDNEXUS_API_KEY is not configured. Falling back to offline collection CSV ingestion.",
+                mock_stderr.getvalue(),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
+
