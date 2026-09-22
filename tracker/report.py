@@ -80,6 +80,9 @@ def generate_portfolio_report(
     if "collection_updated_at" not in sum_cols:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_updated_at TEXT")
         conn.commit()
+    if "collection_source" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_source TEXT")
+        conn.commit()
 
     if target_date:
         cur.execute("SELECT date FROM portfolio_daily_summary WHERE date = ?", (target_date,))
@@ -101,16 +104,17 @@ def generate_portfolio_report(
     cur.execute("""
     SELECT total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
            lifetime_dollar_gain, lifetime_pct_gain, COALESCE(total_sealed, 0),
-           collection_updated_at
+           collection_updated_at, collection_source
     FROM portfolio_daily_summary
     WHERE date = ?
     """, (latest_date,))
     summary = cur.fetchone()
 
-    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at = summary
+    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at, collection_source = summary
 
     price_timestamp_display = latest_date
     portfolio_timestamp_display = collection_updated_at or latest_date
+    collection_source_display = collection_source or "—"
 
     # Get breakdown by rarity (cards only, collapsed into 7 tiers)
     cur.execute("""
@@ -121,7 +125,7 @@ def generate_portfolio_report(
            END AS clean_rarity,
            COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)), 
            SUM(s.quantity), 
-           SUM(s.line_total)
+           COALESCE(SUM(s.line_total), 0.0)
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
@@ -136,7 +140,7 @@ def generate_portfolio_report(
     SELECT COALESCE(NULLIF(m.color, ''), 'Unknown') AS clean_color,
            COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)),
            SUM(s.quantity),
-           SUM(s.line_total)
+           COALESCE(SUM(s.line_total), 0.0)
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
@@ -150,7 +154,7 @@ def generate_portfolio_report(
     SELECT COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS clean_type,
            COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)),
            SUM(s.quantity),
-           SUM(s.line_total)
+           COALESCE(SUM(s.line_total), 0.0)
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
@@ -158,6 +162,20 @@ def generate_portfolio_report(
     ORDER BY SUM(s.line_total) DESC
     """, (latest_date,))
     card_type_breakdown = cur.fetchall()
+
+    # Get breakdown by expansion (cards only)
+    cur.execute("""
+    SELECT COALESCE(NULLIF(m.expansion, ''), 'Unknown') AS clean_expansion,
+           COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)),
+           SUM(s.quantity),
+           COALESCE(SUM(s.line_total), 0.0)
+    FROM daily_snapshots s
+    JOIN card_metadata m ON s.card_key = m.card_key
+    WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
+    GROUP BY clean_expansion
+    ORDER BY SUM(s.line_total) DESC
+    """, (latest_date,))
+    expansion_breakdown = cur.fetchall()
 
     # Get sealed products
     cur.execute("""
@@ -293,6 +311,7 @@ def generate_portfolio_report(
 
 **Portfolio Last Updated**: `{portfolio_timestamp_display}`  
 **Prices Last Updated**: `{price_timestamp_display}`  
+**Collection Source**: `{collection_source_display}`  
 **Report Generated**: `{report_generated}`
 
 ---
@@ -345,6 +364,17 @@ def generate_portfolio_report(
         for ctype, entries, qty, ct_val in card_type_breakdown:
             pct_of_total = (ct_val / total_val * 100.0) if total_val > 0 else 0.0
             md_content += f"| **{ctype}** | {entries} | {qty} | `${ct_val:,.2f}` | {pct_of_total:.1f}% |\n"
+
+    if expansion_breakdown:
+        md_content += """
+### Expansion
+
+| Expansion | Unique Items | Physical Copies | Market Value | % of Portfolio |
+| :--- | :---: | :---: | :---: | :---: |
+"""
+        for exp, entries, qty, exp_val in expansion_breakdown:
+            pct_of_total = (exp_val / total_val * 100.0) if total_val > 0 else 0.0
+            md_content += f"| **{exp}** | {entries} | {qty} | `${exp_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
     def render_high_value_table(cards):
         table = """| Card Name | Type | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
