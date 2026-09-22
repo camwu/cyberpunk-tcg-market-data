@@ -3,8 +3,10 @@ Automated unit tests for configuration loading and path resolution.
 """
 
 import os
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from tracker.config import load_config, resolve_collection_file, TrackerConfig
@@ -67,6 +69,29 @@ class TestTrackerConfig(unittest.TestCase):
         repo_root = Path(__file__).resolve().parent.parent
         expected = str((repo_root / "prices").resolve())
         self.assertEqual(Path(cfg.price_cache_dir).resolve(), Path(expected).resolve())
+
+    def test_load_config_resolves_cardnexus_api_key(self):
+        # Environment variable resolution
+        with patch.dict(os.environ, {"CARDNEXUS_API_KEY": "env_key_789"}):
+            cfg = load_config(config_path=str(self.test_dir / "non_existent.json"))
+            self.assertEqual(cfg.cardnexus_api_key, "env_key_789")
+
+            # CLI override takes precedence over environment variable
+            cfg_override = load_config(cardnexus_api_key="cli_override_key")
+            self.assertEqual(cfg_override.cardnexus_api_key, "cli_override_key")
+
+        # JSON file does not populate API key
+        cfg_file = self.test_dir / "custom_key.json"
+        cfg_file.write_text('{"cardnexus_api_key": "json_key_should_be_ignored"}', encoding="utf-8")
+        with patch.dict(os.environ, {}, clear=True):
+            if sys.platform == "win32":
+                import winreg
+                with patch.object(winreg, "OpenKey", side_effect=FileNotFoundError):
+                    cfg_no_env = load_config(config_path=str(cfg_file))
+                    self.assertIsNone(cfg_no_env.cardnexus_api_key)
+            else:
+                cfg_no_env = load_config(config_path=str(cfg_file))
+                self.assertIsNone(cfg_no_env.cardnexus_api_key)
 
 
 if __name__ == "__main__":

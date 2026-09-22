@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import sys
 from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -22,6 +23,7 @@ class TrackerConfig:
     output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
     backup_dir: str = "data/backups"
     sealed_csv: Optional[str] = None
+    cardnexus_api_key: Optional[str] = None
 
 
 def resolve_collection_file(target_path: str, is_explicit_file: bool = False) -> str:
@@ -134,6 +136,17 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
         adjacent_sealed = Path(resolved_collection).parent / "sealed_inventory.csv"
         resolved_sealed = str(adjacent_sealed.resolve()) if adjacent_sealed.is_file() else None
 
+    cardnexus_key = cli_overrides.get("cardnexus_api_key") or os.getenv("CARDNEXUS_API_KEY")
+    if not cardnexus_key and sys.platform == "win32":
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as reg_key:
+                val, _ = winreg.QueryValueEx(reg_key, "CARDNEXUS_API_KEY")
+                if val:
+                    cardnexus_key = str(val).strip()
+        except Exception:
+            pass
+
     return TrackerConfig(
         collection_csv=resolved_collection,
         database_path=resolve(database_path, "data/price_history.db"),
@@ -141,4 +154,5 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
         output_report=resolve(output_report, "LATEST_PORTFOLIO_SUMMARY.md"),
         backup_dir=resolve(backup_dir, "data/backups"),
         sealed_csv=resolved_sealed,
+        cardnexus_api_key=cardnexus_key,
     )
