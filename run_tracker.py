@@ -85,6 +85,7 @@ def main():
         )
         return
 
+    collection_source = None
     if args.import_path:
         success = import_collection_file(
             source_path=args.import_path,
@@ -92,6 +93,7 @@ def main():
         )
         if not success:
             sys.exit(1)
+        collection_source = f"CSV ({Path(args.import_path).name})"
 
     if args.sync_collection:
         if not cfg.cardnexus_api_key:
@@ -119,6 +121,10 @@ def main():
             if not success:
                 sys.exit(1)
             cfg.collection_csv = target_path
+            collection_source = "CardNexus API"
+
+    if not collection_source:
+        collection_source = f"CSV ({Path(cfg.collection_csv).name})"
 
     sealed_rows = []
     if cfg.sealed_csv and os.path.isfile(cfg.sealed_csv):
@@ -147,6 +153,7 @@ def main():
                 force=args.force,
                 collection_rows=collection_rows,
                 sealed_rows=sealed_rows,
+                collection_source=collection_source,
             )
         except CollectionValidationError as e:
             print(f"\nError: {e}", file=sys.stderr)
@@ -164,10 +171,10 @@ def main():
     print(f"\n--- Running Cyberpunk TCG Valuation Pipeline ({today}) ---")
     if os.path.isfile(cfg.collection_csv):
         mtime_str = datetime.datetime.fromtimestamp(os.path.getmtime(cfg.collection_csv)).astimezone().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"Collection source: {Path(cfg.collection_csv).name} (modified {mtime_str})")
+        print(f"Collection source: {collection_source} (modified {mtime_str})")
         print(f"Full path: {cfg.collection_csv}")
     else:
-        print(f"Collection source: {cfg.collection_csv}")
+        print(f"Collection source: {collection_source}")
 
     if cfg.sealed_csv and os.path.isfile(cfg.sealed_csv):
         print(f"Sealed source: {Path(cfg.sealed_csv).name} ({len(sealed_rows)} items)")
@@ -206,6 +213,7 @@ def main():
             collection_rows=collection_rows,
             sealed_rows=sealed_rows,
             price_file=price_file,
+            collection_source=collection_source,
         )
     except CollectionValidationError as e:
         print(f"\nError: {e}", file=sys.stderr)
