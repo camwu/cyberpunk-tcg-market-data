@@ -68,7 +68,7 @@ def main():
     parser.add_argument("--date", dest="report_date", help="Optional specific snapshot date (YYYY-MM-DD) for report generation")
     parser.add_argument("--live", action="store_true", help="Scrape live market prices from TCGCSV instead of using cached or remote daily snapshots")
     parser.add_argument("--sync-collection", action="store_true", help="Sync collection directly from CardNexus API before running valuation")
-    parser.add_argument("--refresh-catalog", action="store_true", help="Force fresh download of CardNexus catalogue feed (bypasses 24h cache)")
+    parser.add_argument("--refresh-catalog", action="store_true", help="Force fresh download of CardNexus catalog feed (bypasses 24h cache)")
     parser.add_argument("--include-marketplace", action=argparse.BooleanOptionalAction, default=True, help="Include cards listed for sale on CardNexus Marketplace (default: True)")
 
     args = parser.parse_args()
@@ -103,26 +103,32 @@ def main():
             sys.exit(1)
 
     if args.sync_collection:
-        print("\n--- Synchronizing Collection from CardNexus API ---")
-        if args.collection_csv or args.collection_target:
-            explicit_target = args.collection_csv or args.collection_target
-            target_path = os.path.join(explicit_target, "active_collection.csv") if os.path.isdir(explicit_target) else explicit_target
-        elif os.path.isdir(cfg.collection_csv):
-            target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
+        if not cfg.cardnexus_api_key:
+            print(
+                "Warning: CARDNEXUS_API_KEY is not configured. Falling back to offline collection CSV ingestion.",
+                file=sys.stderr,
+            )
         else:
-            collection_dir = os.path.dirname(cfg.collection_csv) or "data"
-            target_path = os.path.join(collection_dir, "active_collection.csv")
+            print("\n--- Synchronizing Collection from CardNexus API ---")
+            if args.collection_csv or args.collection_target:
+                explicit_target = args.collection_csv or args.collection_target
+                target_path = os.path.join(explicit_target, "active_collection.csv") if os.path.isdir(explicit_target) else explicit_target
+            elif os.path.isdir(cfg.collection_csv):
+                target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
+            else:
+                collection_dir = os.path.dirname(cfg.collection_csv) or "data"
+                target_path = os.path.join(collection_dir, "active_collection.csv")
 
-        success, snapshot_file, total_units = sync_cardnexus_collection(
-            target_csv=target_path,
-            backup_dir=cfg.backup_dir,
-            api_key=cfg.cardnexus_api_key,
-            include_marketplace=args.include_marketplace,
-            refresh_catalog=args.refresh_catalog,
-        )
-        if not success:
-            sys.exit(1)
-        cfg.collection_csv = target_path
+            success, snapshot_file, total_units = sync_cardnexus_collection(
+                target_csv=target_path,
+                backup_dir=cfg.backup_dir,
+                api_key=cfg.cardnexus_api_key,
+                include_marketplace=args.include_marketplace,
+                refresh_catalog=args.refresh_catalog,
+            )
+            if not success:
+                sys.exit(1)
+            cfg.collection_csv = target_path
 
     sealed_rows = []
     if cfg.sealed_csv and os.path.isfile(cfg.sealed_csv):

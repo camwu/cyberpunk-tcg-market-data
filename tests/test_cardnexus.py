@@ -305,5 +305,44 @@ class TestSyncCardNexusCollection(unittest.TestCase):
             self.assertIn("Old", backup_content)
 
 
+class TestTrackerMissingKeyFallback(unittest.TestCase):
+
+    @patch("run_tracker.calculate_portfolio_valuation")
+    @patch("run_tracker.generate_portfolio_report")
+    @patch("run_tracker.validate_collection_file", return_value=(True, [], [{"name": "Panam"}]))
+    @patch("run_tracker.sync_market_prices", return_value="fake_prices.json")
+    @patch("run_tracker.sync_cardnexus_collection")
+    @patch("run_tracker.load_config")
+    def test_sync_collection_without_api_key_warns_and_falls_back(
+        self,
+        mock_load_config,
+        mock_sync_cn,
+        mock_sync_prices,
+        mock_validate,
+        mock_report,
+        mock_valuation,
+    ):
+        from tracker.config import TrackerConfig
+        import run_tracker
+
+        mock_load_config.return_value = TrackerConfig(
+            collection_csv="fake_collection.csv",
+            cardnexus_api_key=None,
+        )
+
+        with patch("sys.argv", ["run_tracker.py", "--sync-collection"]), \
+             patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
+            run_tracker.main()
+
+            mock_sync_cn.assert_not_called()
+            mock_validate.assert_called_once_with("fake_collection.csv")
+            mock_valuation.assert_called_once()
+            self.assertIn(
+                "Warning: CARDNEXUS_API_KEY is not configured. Falling back to offline collection CSV ingestion.",
+                mock_stderr.getvalue(),
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
+
