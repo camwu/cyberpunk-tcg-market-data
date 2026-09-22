@@ -125,6 +125,7 @@ class TestReportGeneration(unittest.TestCase):
         # Verify header labels and clean formatting
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
         content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Portfolio Last Updated**: `2026-09-14`", content)
         self.assertIn("**Prices Last Updated**: `2026-09-14`", content)
         self.assertIn("**Report Generated**:", content)
         self.assertNotIn("**Snapshot Date**:", content)
@@ -132,6 +133,31 @@ class TestReportGeneration(unittest.TestCase):
         # Ensure verbose seconds and timezone string are excluded
         self.assertNotIn("Pacific Daylight Time", content)
         self.assertNotIn("PDT", content)
+
+        # Verify ordering: Portfolio Last Updated before Prices Last Updated before Report Generated
+        idx_portfolio = content.index("**Portfolio Last Updated**:")
+        idx_prices = content.index("**Prices Last Updated**:")
+        idx_report = content.index("**Report Generated**:")
+        self.assertTrue(idx_portfolio < idx_prices < idx_report)
+
+    def test_report_custom_collection_updated_at(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute("PRAGMA table_info(portfolio_daily_summary)")
+            cols = [c[1] for c in cur.fetchall()]
+            if "collection_updated_at" not in cols:
+                cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_updated_at TEXT")
+            cur.execute("UPDATE portfolio_daily_summary SET collection_updated_at = '2026-09-14 03:45 PM' WHERE date = '2026-09-14'")
+            conn.commit()
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Portfolio Last Updated**: `2026-09-14 03:45 PM`", content)
+        self.assertIn("**Prices Last Updated**: `2026-09-14`", content)
+        self.assertIn("**Report Generated**:", content)
 
     def test_report_target_date_historical(self):
         # Insert historical 2026-09-13 record
@@ -155,6 +181,7 @@ class TestReportGeneration(unittest.TestCase):
             target_date="2026-09-13",
         )
         content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Portfolio Last Updated**: `2026-09-13", content)
         self.assertIn("**Prices Last Updated**: `2026-09-13", content)
         self.assertIn("**Report Generated**:", content)
         self.assertIn("$200.00", content)

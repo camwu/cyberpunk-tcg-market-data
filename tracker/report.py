@@ -75,6 +75,12 @@ def generate_portfolio_report(
         cur.execute("ALTER TABLE card_metadata ADD COLUMN card_type TEXT")
         conn.commit()
 
+    cur.execute("PRAGMA table_info(portfolio_daily_summary)")
+    sum_cols = [col[1] for col in cur.fetchall()]
+    if "collection_updated_at" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_updated_at TEXT")
+        conn.commit()
+
     if target_date:
         cur.execute("SELECT date FROM portfolio_daily_summary WHERE date = ?", (target_date,))
         row = cur.fetchone()
@@ -92,17 +98,19 @@ def generate_portfolio_report(
             return
         latest_date = latest_row[0]
 
-    price_timestamp_display = latest_date
-
     cur.execute("""
     SELECT total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
-           lifetime_dollar_gain, lifetime_pct_gain, COALESCE(total_sealed, 0)
+           lifetime_dollar_gain, lifetime_pct_gain, COALESCE(total_sealed, 0),
+           collection_updated_at
     FROM portfolio_daily_summary
     WHERE date = ?
     """, (latest_date,))
     summary = cur.fetchone()
 
-    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed = summary
+    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at = summary
+
+    price_timestamp_display = latest_date
+    portfolio_timestamp_display = collection_updated_at or latest_date
 
     # Get breakdown by rarity (cards only, collapsed into 7 tiers)
     cur.execute("""
@@ -283,6 +291,7 @@ def generate_portfolio_report(
     # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
 
+**Portfolio Last Updated**: `{portfolio_timestamp_display}`  
 **Prices Last Updated**: `{price_timestamp_display}`  
 **Report Generated**: `{report_generated}`
 
