@@ -233,7 +233,9 @@ def init_database(db_path: str):
         l7d_pct_delta REAL,
         lifetime_dollar_gain REAL,
         lifetime_pct_gain REAL,
-        total_sealed INTEGER DEFAULT 0
+        total_sealed INTEGER DEFAULT 0,
+        collection_updated_at TEXT,
+        collection_source TEXT
     )
     """)
 
@@ -243,6 +245,8 @@ def init_database(db_path: str):
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN total_sealed INTEGER DEFAULT 0")
     if "collection_updated_at" not in sum_cols:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_updated_at TEXT")
+    if "collection_source" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_source TEXT")
 
     conn.commit()
     return conn
@@ -259,6 +263,7 @@ def calculate_portfolio_valuation(
     sealed_rows: Optional[List[Dict[str, Any]]] = None,
     price_file: Optional[str] = None,
     collection_updated_at: Optional[str] = None,
+    collection_source: Optional[str] = None,
 ) -> Dict[str, Any]:
     if collection_rows is None:
         is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
@@ -691,16 +696,22 @@ def calculate_portfolio_valuation(
         mtime = datetime.datetime.fromtimestamp(os.path.getmtime(collection_path)).astimezone()
         collection_updated_at = mtime.strftime("%Y-%m-%d %I:%M %p")
 
+    if not collection_source:
+        if collection_path:
+            collection_source = f"CSV ({Path(collection_path).name})"
+        else:
+            collection_source = "CSV"
+
     cur.execute("""
     INSERT OR REPLACE INTO portfolio_daily_summary (
         date, total_value, total_cards, unique_items,
         l7d_dollar_delta, l7d_pct_delta, lifetime_dollar_gain, lifetime_pct_gain,
-        total_sealed, collection_updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        total_sealed, collection_updated_at, collection_source
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         date_str, total_value, total_cards, unique_items,
         l7d_dollar_delta, l7d_pct_delta, total_lifetime_gain, lifetime_pct_gain,
-        total_sealed, collection_updated_at
+        total_sealed, collection_updated_at, collection_source
     ))
 
     conn.commit()
