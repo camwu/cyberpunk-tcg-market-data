@@ -214,10 +214,15 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
     def test_api_failure_falls_back_to_existing_collection(self, mock_calc, mock_sync_cn, mock_sync_prices, mock_report):
         mock_sync_prices.return_value = self.dummy_price_file
         mock_sync_cn.return_value = (False, None, 0)
+        target_csv = self.test_dir / "active_collection.csv"
+        target_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\nJohnny Silverhand,Welcome to Night City - Beta,001,Standard,1,\n",
+            encoding="utf-8",
+        )
 
         test_args = [
             "run_tracker.py",
-            "--collection", str(self.collection_csv),
+            "--collection", str(target_csv),
             "--sync-collection",
             "--db", self.db_path,
             "--prices", self.price_dir,
@@ -229,6 +234,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_sync_cn.assert_called_once()
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CardNexus API (fallback)")
+        self.assertEqual(mock_calc.call_args.kwargs.get("collection_path"), str(target_csv))
         self.assertIn("Warning: CardNexus API sync failed. Falling back to cached collection:", mock_stderr.getvalue())
 
     @patch("run_tracker.sync_cardnexus_collection")
