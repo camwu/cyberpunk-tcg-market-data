@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
@@ -19,7 +20,7 @@ try:
 except ImportError:
     pypdf = None
 
-SUPPORTED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
+SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".txt", ".json"}
 
 
 @dataclass
@@ -41,24 +42,36 @@ def compute_file_sha256(filepath: str) -> str:
     return hasher.hexdigest()
 
 
-def extract_text_from_pdf(filepath: str) -> str:
-    """Extracts text content across all pages of a PDF file using pypdf."""
-    if pypdf is None:
-        return ""
-    try:
-        reader = pypdf.PdfReader(filepath)
-        texts = []
-        for page in reader.pages:
-            t = page.extract_text() or ""
-            texts.append(t)
-        return "\n".join(texts)
-    except Exception:
-        return ""
+def extract_text_from_document(filepath: str) -> str:
+    """Extracts raw text content from PDF, CSV, TXT, or JSON file."""
+    p = Path(filepath)
+    ext = p.suffix.lower()
+
+    if ext == ".pdf":
+        if pypdf is None:
+            return ""
+        try:
+            reader = pypdf.PdfReader(filepath)
+            texts = []
+            for page in reader.pages:
+                t = page.extract_text() or ""
+                texts.append(t)
+            return "\n".join(texts)
+        except Exception:
+            return ""
+
+    if ext in {".txt", ".csv", ".json"}:
+        try:
+            with open(filepath, "r", encoding="utf-8-sig", errors="ignore") as f:
+                return f.read()
+        except Exception:
+            return ""
+
+    return ""
 
 
 def parse_date_candidate(text: str) -> Optional[str]:
-    """Finds first ISO date (YYYY-MM-DD) or converts common date formats."""
-    # Try YYYY-MM-DD
+    """Finds first ISO date (YYYY-MM-DD) or converts written dates (Month DD, YYYY)."""
     m_iso = re.search(r"(?<!\d)(20\d{2}-\d{2}-\d{2})(?!\d)", text)
     if m_iso:
         d_str = m_iso.group(1)
@@ -68,7 +81,6 @@ def parse_date_candidate(text: str) -> Optional[str]:
         except ValueError:
             pass
 
-    # Try Month DD, YYYY or Day, Month DD, YYYY
     months = {
         "jan": "01", "feb": "02", "mar": "03", "apr": "04", "may": "05", "jun": "06",
         "jul": "07", "aug": "08", "sep": "09", "oct": "10", "nov": "11", "dec": "12",
@@ -89,29 +101,104 @@ def parse_date_candidate(text: str) -> Optional[str]:
     return None
 
 
-def parse_receipt_document(filepath: str) -> Optional[Tuple[str, str, float, str]]:
+def validate_amount_string(val_str: str) -> Optional[float]:
     """
-    Parses date, merchant, amount, and description from a receipt PDF.
+    Validates that val_str represents a positive currency amount.
+    Accepts positive integers (e.g. '10') or exactly two decimals (e.g. '10.00', '43.90').
+    Rejects negatives, three+ decimals, spaces, or non-numeric characters.
+    """
+    if not isinstance(val_str, str):
+        return None
+    s = val_str.strip()
+    if s.startswith("$"):
+        s = s[1:].strip()
+    if not re.match(r"^\d+(\.\d{2})?$", s):
+        return None
+    try:
+        val = float(s)
+        return round(val, 2) if val > 0 else None
+    except ValueError:
+        return None
+
+
+def prompt_for_amount(
+    filename: str,
+    candidates: List[float],
+    interactive: Optional[bool] = None,
+) -> Optional[float]:
+    """
+    Prompts user interactively to resolve missing or ambiguous receipt totals.
+    Falls back to bottom-most candidate or None in non-interactive environments.
+    """
+    if interactive is None:
+        interactive = sys.stdin.isatty()
+
+    if not interactive:
+        if candidates:
+            return candidates[-1]
+        return None
+
+    print(f"\n[Action Required] Total resolution needed for '{filename}':")
+    if candidates:
+        print(f"Detected {len(candidates)} candidate amounts in document text:")
+        for idx, cand in enumerate(candidates, 1):
+            suffix = " (recommended: bottom-most)" if idx == len(candidates) else ""
+            print(f"  [{idx}] ${cand:,.2f}{suffix}")
+        print("  [c] Enter custom amount")
+        print("  [s] Skip this file")
+
+        while True:
+            choice = input("Select option or enter amount: ").strip()
+            if choice.lower() in ("s", "skip"):
+                return None
+            if choice.isdigit() and 1 <= int(choice) <= len(candidates):
+                return candidates[int(choice) - 1]
+            if choice.lower() == "c":
+                raw_amt = input("Enter total amount (e.g. 10 or 10.00): ").strip()
+                val = validate_amount_string(raw_amt)
+                if val is not None:
+                    return val
+                print("Invalid amount. Must be > 0 and formatted as an integer or two decimals (e.g. 10 or 10.00).")
+                continue
+            val = validate_amount_string(choice)
+            if val is not None:
+                return val
+            print(f"Invalid input. Select a listed number [1-{len(candidates)}], enter an amount (e.g. 10.00), or 's' to skip.")
+    else:
+        print(f"No dollar amounts detected in document text for '{filename}'.")
+        while True:
+            choice = input("Enter total amount (e.g. 10 or 10.00), or 's' to skip: ").strip()
+            if choice.lower() in ("s", "skip"):
+                return None
+            val = validate_amount_string(choice)
+            if val is not None:
+                return val
+            print("Invalid amount. Must be > 0 and formatted as an integer or two decimals (e.g. 10 or 10.00).")
+
+
+def parse_receipt_document(
+    filepath: str,
+    interactive: Optional[bool] = None,
+) -> Optional[Tuple[str, str, float, str]]:
+    """
+    Parses date, merchant, amount, and description strictly from document text.
     Returns (date, merchant, amount, description) or None.
     """
-    p = Path(filepath)
-    ext = p.suffix.lower()
-    filename = p.name
+    filename = Path(filepath).name
+    text = extract_text_from_document(filepath)
+    if not text.strip():
+        print(f"Warning: Could not parse purchase details from '{filename}' (empty text). Skipping file.")
+        return None
 
-    date_cand = parse_date_candidate(filename)
-
-    text = ""
-    if ext == ".pdf":
-        text = extract_text_from_pdf(filepath)
-
-    if not date_cand and text:
-        date_cand = parse_date_candidate(text)
-
+    # 1. Date extraction strictly from text
+    date_cand = parse_date_candidate(text)
     if not date_cand:
-        date_cand = datetime.date.today().isoformat()
+        print(f"Warning: Could not extract purchase date from '{filename}'. Skipping file.")
+        return None
 
+    # 2. Merchant identification from text
+    lower_text = text.lower()
     merchant = "Unknown"
-    lower_text = (text + " " + filename).lower()
     if "kickstarter" in lower_text:
         merchant = "Kickstarter"
     elif "backerkit" in lower_text:
@@ -122,10 +209,16 @@ def parse_receipt_document(filepath: str) -> Optional[Tuple[str, str, float, str
         merchant = "eBay"
     elif "paper hero" in lower_text or "paperhero" in lower_text:
         merchant = "Paper Hero's Games"
+    else:
+        # Check for Statement name header in payment receipts
+        m_stmt = re.search(r"Statement name\s*\n\s*([^\n\r]+)", text, re.IGNORECASE)
+        if m_stmt:
+            merchant = m_stmt.group(1).strip()
 
+    # 3. Amount extraction
     amount: Optional[float] = None
 
-    # Priority regex patterns for total amounts
+    # Rule A: Explicit standard accounting labels
     patterns = [
         r"(?:Pledge total|Total charged to|Grand Total|Order Total)[\s:\$]*\$?([\d,]+\.\d{2})",
         r"(?:Total|Amount Paid|Final Total)[\s:\$]*\$?([\d,]+\.\d{2})",
@@ -139,19 +232,29 @@ def parse_receipt_document(filepath: str) -> Optional[Tuple[str, str, float, str
             except ValueError:
                 pass
 
-    # Fallback to filename amount pattern: e.g. _10.50.pdf or _$349.00
+    # Rule B: Unambiguous single-amount check (exactly one dollar amount in document)
     if amount is None:
-        m_fname = re.search(r"[\$_]([\d]+\.\d{2})\b", filename)
-        if m_fname:
+        all_dollars_raw = re.findall(r"\$\s*([0-9,]+\.\d{2})", text)
+        all_dollars: List[float] = []
+        for d_str in all_dollars_raw:
             try:
-                amount = float(m_fname.group(1))
+                val = float(d_str.replace(",", ""))
+                if val > 0:
+                    all_dollars.append(val)
             except ValueError:
                 pass
 
+        if len(all_dollars) == 1:
+            amount = all_dollars[0]
+        else:
+            amount = prompt_for_amount(filename, all_dollars, interactive=interactive)
+
+    # Rule C: Ambiguous or missing amount -> warn and skip
     if amount is None:
+        print(f"Warning: Could not extract purchase total from '{filename}'. Skipping file.")
         return None
 
-    desc = filename.rsplit(".", 1)[0].replace("_", " ")
+    desc = f"{merchant} Purchase ({date_cand})"
     return date_cand, merchant, amount, desc
 
 
@@ -222,13 +325,14 @@ def sync_purchase_history(
     cache_path: Optional[str] = None,
     ledger_path: Optional[str] = None,
     seed_records: Optional[Dict[str, Dict[str, Any]]] = None,
+    interactive: Optional[bool] = None,
 ) -> Tuple[float, List[PurchaseRecord]]:
     """
     Synchronizes purchase documents against SHA-256 cache and CSV ledger:
-    1. Scans purchase_dir for receipt files (.pdf, .png, .jpg, .jpeg).
+    1. Scans purchase_dir for receipt files (.pdf, .csv, .txt, .json).
     2. Compares SHA-256 checksums to avoid re-parsing cached files.
     3. Re-uses cached records or loads explicit ledger overrides.
-    4. Automatically parses new PDF receipts or checks seed_records.
+    4. Automatically parses new receipts or checks seed_records.
     5. Updates cache and CSV ledger.
     Returns (total_invested_amount, list_of_records).
     """
@@ -303,8 +407,8 @@ def sync_purchase_history(
             )
             continue
 
-        # Check 4: Automated document parsing for PDFs
-        parsed = parse_receipt_document(str(fpath))
+        # Check 4: Automated document parsing for supported formats
+        parsed = parse_receipt_document(str(fpath), interactive=interactive)
         if parsed:
             p_date, p_merchant, p_amount, p_desc = parsed
             discovered_records[fname] = PurchaseRecord(
@@ -317,19 +421,9 @@ def sync_purchase_history(
             )
         else:
             unparsed_files.append(fname)
-            discovered_records[fname] = PurchaseRecord(
-                date=parse_date_candidate(fname) or datetime.date.today().isoformat(),
-                merchant="Unknown",
-                amount=0.0,
-                description=fname.rsplit(".", 1)[0].replace("_", " "),
-                filename=fname,
-                sha256=file_sha256,
-            )
 
     if unparsed_files:
-        print(f"Notice: {len(unparsed_files)} receipt file(s) require manual amount verification in '{ledger_path}':")
-        for u in unparsed_files[:5]:
-            print(f"  - {u}")
+        print(f"Skipped {len(unparsed_files)} unparseable or bad receipt file(s): {', '.join(unparsed_files[:5])}")
 
     all_records = list(discovered_records.values())
     total_invested = round(sum(r.amount for r in all_records), 2)

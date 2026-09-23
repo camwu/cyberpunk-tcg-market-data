@@ -9,11 +9,14 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tracker.purchases import (
     PurchaseRecord,
     compute_file_sha256,
     parse_date_candidate,
+    validate_amount_string,
+    prompt_for_amount,
     parse_receipt_document,
     load_purchase_ledger,
     save_purchase_ledger,
@@ -51,15 +54,90 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(parse_date_candidate("Date: Sep 21, 2026"), "2026-09-21")
         self.assertIsNone(parse_date_candidate("no date in this string"))
 
-    def test_parse_receipt_document_filename_amount_fallback(self):
-        receipt_file = self.purchase_dir / "2026-09-18_PaperHeroGames_43.90.png"
-        receipt_file.write_bytes(b"dummy image bytes")
+    def test_validate_amount_string(self):
+        # Valid amounts
+        self.assertEqual(validate_amount_string("10"), 10.0)
+        self.assertEqual(validate_amount_string("10.00"), 10.0)
+        self.assertEqual(validate_amount_string("43.90"), 43.9)
+        self.assertEqual(validate_amount_string("$10"), 10.0)
+        self.assertEqual(validate_amount_string("$43.90"), 43.9)
+        self.assertEqual(validate_amount_string("  $10.50  "), 10.5)
+
+        # Invalid amounts
+        self.assertIsNone(validate_amount_string("-1"))
+        self.assertIsNone(validate_amount_string("-10.00"))
+        self.assertIsNone(validate_amount_string("3.001"))
+        self.assertIsNone(validate_amount_string("3 . 01"))
+        self.assertIsNone(validate_amount_string("abc"))
+        self.assertIsNone(validate_amount_string(""))
+        self.assertIsNone(validate_amount_string("0"))
+        self.assertIsNone(validate_amount_string("0.00"))
+        self.assertIsNone(validate_amount_string("10.5"))
+        self.assertIsNone(validate_amount_string(None))
+
+    def test_parse_receipt_document_labeled_total(self):
+        receipt_file = self.purchase_dir / "kickstarter_order.txt"
+        receipt_file.write_text(
+            "Kickstarter Pledge Confirmed\n"
+            "Date: 2026-04-17\n"
+            "Backer #100\n"
+            "Pledge total: $349.00\n",
+            encoding="utf-8"
+        )
+        parsed = parse_receipt_document(str(receipt_file))
+        self.assertIsNotNone(parsed)
+        p_date, p_merchant, p_amount, p_desc = parsed
+        self.assertEqual(p_date, "2026-04-17")
+        self.assertEqual(p_merchant, "Kickstarter")
+        self.assertEqual(p_amount, 349.00)
+
+    def test_parse_receipt_document_single_unlabeled_amount(self):
+        receipt_file = self.purchase_dir / "2026-09-18_GooglePay.txt"
+        receipt_file.write_text(
+            "Google Pay\n"
+            "Paper Hero's Games\n"
+            "Sep 18, 2026 at 3:57 PM\n"
+            "Total charged: None\n"
+            "$43.90\n"
+            "Paid with Visa\n",
+            encoding="utf-8"
+        )
         parsed = parse_receipt_document(str(receipt_file))
         self.assertIsNotNone(parsed)
         p_date, p_merchant, p_amount, p_desc = parsed
         self.assertEqual(p_date, "2026-09-18")
         self.assertEqual(p_merchant, "Paper Hero's Games")
         self.assertEqual(p_amount, 43.90)
+
+    def test_prompt_for_amount_interactive_candidate_selection(self):
+        with patch("builtins.input", return_value="2"):
+            amt = prompt_for_amount("doc.pdf", [10.0, 50.0], interactive=True)
+            self.assertEqual(amt, 50.0)
+
+    def test_prompt_for_amount_interactive_custom_amount(self):
+        with patch("builtins.input", side_effect=["invalid", "43.90"]):
+            amt = prompt_for_amount("doc.pdf", [], interactive=True)
+            self.assertEqual(amt, 43.90)
+
+    def test_prompt_for_amount_interactive_skip(self):
+        with patch("builtins.input", return_value="s"):
+            amt = prompt_for_amount("doc.pdf", [10.0], interactive=True)
+            self.assertIsNone(amt)
+
+    def test_prompt_for_amount_non_interactive(self):
+        # Multiple candidates: bottom-most
+        self.assertEqual(prompt_for_amount("doc.pdf", [10.0, 43.90], interactive=False), 43.90)
+        # Zero candidates: None
+        self.assertIsNone(prompt_for_amount("doc.pdf", [], interactive=False))
+
+    def test_parse_receipt_document_unparseable_skips(self):
+        empty_file = self.purchase_dir / "empty.txt"
+        empty_file.write_text("", encoding="utf-8")
+        self.assertIsNone(parse_receipt_document(str(empty_file)))
+
+        no_date_file = self.purchase_dir / "nodate.txt"
+        no_date_file.write_text("Just some text without any date: $10.00", encoding="utf-8")
+        self.assertIsNone(parse_receipt_document(str(no_date_file)))
 
     def test_ledger_save_and_load_roundtrip(self):
         rec1 = PurchaseRecord(
@@ -87,17 +165,18 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(loaded["receipt2.pdf"].merchant, "TCGplayer")
 
     def test_sync_purchase_history_cache_and_idempotency(self):
-        file1 = self.purchase_dir / "2026-04-17_Kickstarter_349.00.png"
-        file1.write_bytes(b"invoice 1 content")
+        file1 = self.purchase_dir / "kickstarter_receipt.txt"
+        file1.write_text("Kickstarter\nDate: 2026-04-17\nTotal: $349.00\n", encoding="utf-8")
 
-        file2 = self.purchase_dir / "2026-09-13_eBay_11.52.png"
-        file2.write_bytes(b"invoice 2 content")
+        file2 = self.purchase_dir / "ebay_receipt.txt"
+        file2.write_text("eBay order\nDate: 2026-09-13\nOrder Total: $11.52\n", encoding="utf-8")
 
         # Initial sync: should parse and create cache + ledger
         total, records = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
+            interactive=False,
         )
         self.assertEqual(total, 360.52)
         self.assertEqual(len(records), 2)
@@ -110,6 +189,7 @@ class TestPurchaseHistory(unittest.TestCase):
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
+            interactive=False,
         )
         self.assertEqual(total2, 360.52)
         self.assertEqual(len(records2), 2)
@@ -117,8 +197,8 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(cache_data_before["files"], cache_data_after["files"])
 
     def test_sync_purchase_history_ledger_override(self):
-        file1 = self.purchase_dir / "2026-09-18_Event_Entry.png"
-        file1.write_bytes(b"image bytes without clear amount")
+        file1 = self.purchase_dir / "2026-09-18_Event_Entry.txt"
+        file1.write_text("Paper Hero's Games\nDate: 2026-09-18\n", encoding="utf-8")
 
         # Pre-seed ledger with manual user entry
         initial_rec = PurchaseRecord(
@@ -126,7 +206,7 @@ class TestPurchaseHistory(unittest.TestCase):
             merchant="Paper Hero's Games",
             amount=43.90,
             description="Beta Event Entry",
-            filename="2026-09-18_Event_Entry.png",
+            filename="2026-09-18_Event_Entry.txt",
             sha256="",
         )
         save_purchase_ledger(self.ledger_path, [initial_rec])
@@ -135,6 +215,7 @@ class TestPurchaseHistory(unittest.TestCase):
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
+            interactive=False,
         )
         self.assertEqual(total, 43.90)
         self.assertEqual(len(records), 1)
@@ -142,6 +223,29 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(records[0].merchant, "Paper Hero's Games")
         # Ensure sha256 was updated
         self.assertTrue(len(records[0].sha256) > 0)
+
+    def test_sync_purchase_history_zero_reliance_on_filenames(self):
+        # Filename has arbitrary non-date, non-amount name
+        arbitrary_file = self.purchase_dir / "receipt_random_payload.txt"
+        arbitrary_file.write_text(
+            "TCGplayer order\n"
+            "Date: 2026-09-11\n"
+            "Blue Yellow lot\n"
+            "Amount Paid: $32.78\n",
+            encoding="utf-8"
+        )
+
+        total, records = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(total, 32.78)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].date, "2026-09-11")
+        self.assertEqual(records[0].amount, 32.78)
+        self.assertEqual(records[0].merchant, "TCGplayer")
 
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
