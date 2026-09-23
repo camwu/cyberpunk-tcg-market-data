@@ -113,26 +113,17 @@ def main():
                     file=sys.stderr,
                 )
         else:
-            explicit_target = args.collection_csv or args.collection_target
-            if (
-                explicit_target
-                and not os.path.isdir(explicit_target)
-                and Path(explicit_target).name != "active_collection.csv"
-                and args.sync_collection is not True
-            ):
-                # Explicit custom collection file provided without forced API sync: evaluate offline CSV
-                pass
+            if args.collection_csv or args.collection_target:
+                explicit_target = args.collection_csv or args.collection_target
+                target_dir = explicit_target if os.path.isdir(explicit_target) else (os.path.dirname(explicit_target) or "data")
+                target_path = os.path.join(target_dir, "active_collection.csv")
+            elif os.path.isdir(cfg.collection_csv):
+                target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
             else:
-                if explicit_target:
-                    target_dir = explicit_target if os.path.isdir(explicit_target) else (os.path.dirname(explicit_target) or "data")
-                    target_path = os.path.join(target_dir, "active_collection.csv")
-                elif os.path.isdir(cfg.collection_csv):
-                    target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
-                else:
-                    collection_dir = os.path.dirname(cfg.collection_csv) or "data"
-                    target_path = os.path.join(collection_dir, "active_collection.csv")
+                collection_dir = os.path.dirname(cfg.collection_csv) or "data"
+                target_path = os.path.join(collection_dir, "active_collection.csv")
 
-                cache_valid = False
+            cache_valid = False
             file_age_seconds = None
             if os.path.isfile(target_path):
                 file_age_seconds = time.time() - os.path.getmtime(target_path)
