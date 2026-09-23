@@ -92,6 +92,9 @@ def generate_portfolio_report(
     if "net_unrealized_pct" not in sum_cols:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN net_unrealized_pct REAL DEFAULT 0.0")
         conn.commit()
+    if "purchases_updated_at" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
+        conn.commit()
 
     if target_date:
         cur.execute("SELECT date FROM portfolio_daily_summary WHERE date = ?", (target_date,))
@@ -114,17 +117,19 @@ def generate_portfolio_report(
     SELECT total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
            lifetime_dollar_gain, lifetime_pct_gain, COALESCE(total_sealed, 0),
            collection_updated_at, collection_source,
-           COALESCE(total_cost_basis, 0.0), COALESCE(net_unrealized_gain, 0.0), COALESCE(net_unrealized_pct, 0.0)
+           COALESCE(total_cost_basis, 0.0), COALESCE(net_unrealized_gain, 0.0), COALESCE(net_unrealized_pct, 0.0),
+           purchases_updated_at
     FROM portfolio_daily_summary
     WHERE date = ?
     """, (latest_date,))
     summary = cur.fetchone()
 
-    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at, collection_source, cost_basis, net_gain, net_pct = summary
+    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at, collection_source, cost_basis, net_gain, net_pct, purchases_updated_at = summary
 
     price_timestamp_display = latest_date
-    portfolio_timestamp_display = collection_updated_at or latest_date
+    collection_timestamp_display = collection_updated_at or latest_date
     collection_source_display = collection_source or "—"
+    purchases_timestamp_display = purchases_updated_at or collection_timestamp_display
 
     # Get breakdown by rarity (cards only, collapsed into 7 tiers)
     cur.execute("""
@@ -317,14 +322,15 @@ def generate_portfolio_report(
             sealed_section += f"| **{name}** | {exp} | {acq_display} | {qty} | `${u_price:,.2f}` | `${total:,.2f}` | `${base:,.2f}` | {gain_str} |\n"
 
     report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
+    purchases_line = f"**Purchases Last Updated**: `{purchases_timestamp_display}`  \n" if cost_basis > 0 else ""
 
     # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
 
-**Portfolio Last Updated**: `{portfolio_timestamp_display}`  
-**Prices Last Updated**: `{price_timestamp_display}`  
+**Collection Last Updated**: `{collection_timestamp_display}`  
 **Collection Source**: `{collection_source_display}`  
-**Report Generated**: `{report_generated}`
+**Prices Last Updated**: `{price_timestamp_display}`  
+{purchases_line}**Report Generated**: `{report_generated}`
 
 ---
 

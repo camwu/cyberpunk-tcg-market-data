@@ -253,6 +253,8 @@ def init_database(db_path: str):
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN net_unrealized_gain REAL DEFAULT 0.0")
     if "net_unrealized_pct" not in sum_cols:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN net_unrealized_pct REAL DEFAULT 0.0")
+    if "purchases_updated_at" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
 
     conn.commit()
     return conn
@@ -275,6 +277,7 @@ def calculate_portfolio_valuation(
     purchase_cache_path: Optional[str] = None,
     total_cost_basis: Optional[float] = None,
     reparse_purchases: bool = False,
+    purchases_updated_at: Optional[str] = None,
 ) -> Dict[str, Any]:
     if collection_rows is None:
         is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
@@ -717,12 +720,13 @@ def calculate_portfolio_valuation(
         else:
             collection_source = "CSV"
 
+    p_dir = purchase_history_dir
+    if not p_dir and collection_path:
+        cand = Path(collection_path).parent / "purchase_history"
+        if cand.is_dir():
+            p_dir = str(cand.resolve())
+
     if total_cost_basis is None:
-        p_dir = purchase_history_dir
-        if not p_dir and collection_path:
-            cand = Path(collection_path).parent / "purchase_history"
-            if cand.is_dir():
-                p_dir = str(cand.resolve())
         if p_dir:
             from tracker.purchases import sync_purchase_history
             total_cost_basis, _ = sync_purchase_history(
@@ -752,18 +756,48 @@ def calculate_portfolio_valuation(
         net_unrealized_gain = 0.0
         net_unrealized_pct = 0.0
 
+    if not purchases_updated_at and total_cost_basis > 0:
+        cache_file = purchase_cache_path
+        if not cache_file and p_dir:
+            cache_file = os.path.join(p_dir, "purchase_history_cache.json")
+        if cache_file and os.path.isfile(cache_file):
+            try:
+                from tracker.purchases import load_purchase_cache
+                c_data = load_purchase_cache(cache_file)
+                raw_updated = c_data.get("last_updated")
+                if raw_updated:
+                    try:
+                        dt = datetime.datetime.fromisoformat(raw_updated)
+                        purchases_updated_at = dt.strftime("%Y-%m-%d %I:%M %p")
+                    except ValueError:
+                        try:
+                            dt = datetime.datetime.strptime(raw_updated, "%Y-%m-%d %H:%M:%S")
+                            purchases_updated_at = dt.strftime("%Y-%m-%d %I:%M %p")
+                        except ValueError:
+                            purchases_updated_at = raw_updated
+                else:
+                    mtime = datetime.datetime.fromtimestamp(os.path.getmtime(cache_file)).astimezone()
+                    purchases_updated_at = mtime.strftime("%Y-%m-%d %I:%M %p")
+            except Exception:
+                pass
+        elif purchase_ledger_path and os.path.isfile(purchase_ledger_path):
+            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(purchase_ledger_path)).astimezone()
+            purchases_updated_at = mtime.strftime("%Y-%m-%d %I:%M %p")
+
     cur.execute("""
     INSERT OR REPLACE INTO portfolio_daily_summary (
         date, total_value, total_cards, unique_items,
         l7d_dollar_delta, l7d_pct_delta, lifetime_dollar_gain, lifetime_pct_gain,
         total_sealed, collection_updated_at, collection_source,
-        total_cost_basis, net_unrealized_gain, net_unrealized_pct
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        total_cost_basis, net_unrealized_gain, net_unrealized_pct,
+        purchases_updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         date_str, total_value, total_cards, unique_items,
         l7d_dollar_delta, l7d_pct_delta, total_lifetime_gain, lifetime_pct_gain,
         total_sealed, collection_updated_at, collection_source,
-        total_cost_basis, net_unrealized_gain, net_unrealized_pct
+        total_cost_basis, net_unrealized_gain, net_unrealized_pct,
+        purchases_updated_at
     ))
 
     conn.commit()
@@ -803,4 +837,5 @@ def calculate_portfolio_valuation(
         "total_cost_basis": total_cost_basis,
         "net_unrealized_gain": net_unrealized_gain,
         "net_unrealized_pct": net_unrealized_pct,
+        "purchases_updated_at": purchases_updated_at,
     }

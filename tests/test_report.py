@@ -125,22 +125,23 @@ class TestReportGeneration(unittest.TestCase):
         # Verify header labels and clean formatting
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
         content = Path(self.output_md).read_text(encoding="utf-8")
-        self.assertIn("**Portfolio Last Updated**: `2026-09-14`", content)
+        self.assertIn("**Collection Last Updated**: `2026-09-14`", content)
+        self.assertIn("**Collection Source**: `—`", content)
         self.assertIn("**Prices Last Updated**: `2026-09-14`", content)
         self.assertIn("**Report Generated**:", content)
+        self.assertNotIn("**Portfolio Last Updated**:", content)
         self.assertNotIn("**Snapshot Date**:", content)
         self.assertNotIn("**Last Updated**:", content)
         # Ensure verbose seconds and timezone string are excluded
         self.assertNotIn("Pacific Daylight Time", content)
         self.assertNotIn("PDT", content)
 
-        # Verify ordering: Portfolio Last Updated before Prices Last Updated before Collection Source before Report Generated
-        self.assertIn("**Collection Source**: `—`", content)
-        idx_portfolio = content.index("**Portfolio Last Updated**:")
-        idx_prices = content.index("**Prices Last Updated**:")
+        # Verify ordering: Collection Last Updated before Collection Source before Prices Last Updated before Report Generated
+        idx_collection = content.index("**Collection Last Updated**:")
         idx_source = content.index("**Collection Source**:")
+        idx_prices = content.index("**Prices Last Updated**:")
         idx_report = content.index("**Report Generated**:")
-        self.assertTrue(idx_portfolio < idx_prices < idx_source < idx_report)
+        self.assertTrue(idx_collection < idx_source < idx_prices < idx_report)
 
     def test_report_custom_collection_source(self):
         conn = sqlite3.connect(self.db_path)
@@ -208,7 +209,7 @@ class TestReportGeneration(unittest.TestCase):
 
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
         content = Path(self.output_md).read_text(encoding="utf-8")
-        self.assertIn("**Portfolio Last Updated**: `2026-09-14 03:45 PM`", content)
+        self.assertIn("**Collection Last Updated**: `2026-09-14 03:45 PM`", content)
         self.assertIn("**Prices Last Updated**: `2026-09-14`", content)
         self.assertIn("**Report Generated**:", content)
 
@@ -234,7 +235,7 @@ class TestReportGeneration(unittest.TestCase):
             target_date="2026-09-13",
         )
         content = Path(self.output_md).read_text(encoding="utf-8")
-        self.assertIn("**Portfolio Last Updated**: `2026-09-13", content)
+        self.assertIn("**Collection Last Updated**: `2026-09-13", content)
         self.assertIn("**Prices Last Updated**: `2026-09-13", content)
         self.assertIn("**Report Generated**:", content)
         self.assertIn("$200.00", content)
@@ -475,6 +476,47 @@ class TestReportGeneration(unittest.TestCase):
 
         self.assertIn("#### Non-Iconic/Nova Rare Singles", singles_section)
         self.assertIn("| 🔵 **Jackie Epic** | Unit | Welcome to Night City - Beta | **◈ Epic** | Foil | 1 | `$15.00` | `$15.00` |", singles_section)
+
+
+    def test_report_header_with_purchases_updated_at(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute("PRAGMA table_info(portfolio_daily_summary)")
+            cols = [c[1] for c in cur.fetchall()]
+            if "total_cost_basis" not in cols:
+                cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN total_cost_basis REAL DEFAULT 0.0")
+            if "purchases_updated_at" not in cols:
+                cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
+            cur.execute("""
+                UPDATE portfolio_daily_summary 
+                SET total_cost_basis = 489.21,
+                    purchases_updated_at = '2026-09-14 04:00 PM'
+                WHERE date = '2026-09-14'
+            """)
+            conn.commit()
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Collection Last Updated**:", content)
+        self.assertIn("**Collection Source**:", content)
+        self.assertIn("**Prices Last Updated**:", content)
+        self.assertIn("**Purchases Last Updated**: `2026-09-14 04:00 PM`", content)
+        self.assertIn("**Report Generated**:", content)
+
+        idx_collection = content.index("**Collection Last Updated**:")
+        idx_source = content.index("**Collection Source**:")
+        idx_prices = content.index("**Prices Last Updated**:")
+        idx_purchases = content.index("**Purchases Last Updated**:")
+        idx_report = content.index("**Report Generated**:")
+        self.assertTrue(idx_collection < idx_source < idx_prices < idx_purchases < idx_report)
+
+    def test_report_header_omits_purchases_when_cost_basis_zero(self):
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertNotIn("**Purchases Last Updated**:", content)
 
 
 if __name__ == "__main__":
