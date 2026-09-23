@@ -102,6 +102,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CardNexus API")
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_path"), str(target_csv))
+        self.assertTrue(mock_calc.call_args.kwargs.get("force"))
 
     @patch("run_tracker.generate_portfolio_report")
     @patch("run_tracker.sync_market_prices")
@@ -130,6 +131,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CardNexus API (cached)")
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_path"), str(target_csv))
+        self.assertFalse(mock_calc.call_args.kwargs.get("force"))
 
     @patch("run_tracker.generate_portfolio_report")
     @patch("run_tracker.sync_market_prices")
@@ -160,6 +162,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_sync_cn.assert_called_once()
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CardNexus API")
+        self.assertTrue(mock_calc.call_args.kwargs.get("force"))
 
     @patch("run_tracker.generate_portfolio_report")
     @patch("run_tracker.sync_market_prices")
@@ -180,6 +183,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_sync_cn.assert_not_called()
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CSV (my_collection.csv)")
+        self.assertFalse(mock_calc.call_args.kwargs.get("force"))
 
     @patch("run_tracker.generate_portfolio_report")
     @patch("run_tracker.sync_market_prices")
@@ -206,6 +210,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_sync_cn.assert_not_called()
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CSV (export_september.csv)")
+        self.assertTrue(mock_calc.call_args.kwargs.get("force"))
 
     @patch("run_tracker.generate_portfolio_report")
     @patch("run_tracker.sync_market_prices")
@@ -235,6 +240,39 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CardNexus API (fallback)")
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_path"), str(target_csv))
+        self.assertTrue(mock_calc.call_args.kwargs.get("force"))
+        self.assertIn("Warning: CardNexus API sync failed. Falling back to cached collection:", mock_stderr.getvalue())
+
+    @patch("run_tracker.generate_portfolio_report")
+    @patch("run_tracker.sync_market_prices")
+    @patch("run_tracker.sync_cardnexus_collection")
+    @patch("run_tracker.calculate_portfolio_valuation")
+    def test_auto_sync_failure_preserves_force_false(self, mock_calc, mock_sync_cn, mock_sync_prices, mock_report):
+        mock_sync_prices.return_value = self.dummy_price_file
+        mock_sync_cn.return_value = (False, None, 0)
+        target_csv = self.test_dir / "active_collection.csv"
+        target_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\nJohnny Silverhand,Welcome to Night City - Beta,001,Standard,1,\n",
+            encoding="utf-8",
+        )
+        stale_time = time.time() - 90000
+        os.utime(target_csv, (stale_time, stale_time))
+
+        test_args = [
+            "run_tracker.py",
+            "--collection", str(target_csv),
+            "--db", self.db_path,
+            "--prices", self.price_dir,
+        ]
+        with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr, \
+             patch.object(sys, "argv", test_args):
+            run_tracker.main()
+
+        mock_sync_cn.assert_called_once()
+        mock_calc.assert_called_once()
+        self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CardNexus API (fallback)")
+        self.assertEqual(mock_calc.call_args.kwargs.get("collection_path"), str(target_csv))
+        self.assertFalse(mock_calc.call_args.kwargs.get("force"))
         self.assertIn("Warning: CardNexus API sync failed. Falling back to cached collection:", mock_stderr.getvalue())
 
     @patch("run_tracker.sync_cardnexus_collection")
