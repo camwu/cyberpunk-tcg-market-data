@@ -70,6 +70,9 @@ def main():
     )
     parser.add_argument("--refresh-catalog", action="store_true", help="Force fresh download of CardNexus catalog feed (bypasses 24h cache)")
     parser.add_argument("--include-marketplace", action=argparse.BooleanOptionalAction, default=True, help="Include cards listed for sale on CardNexus Marketplace (default: True)")
+    parser.add_argument("--purchase-dir", dest="purchase_history_dir", help="Path to purchase history receipts directory")
+    parser.add_argument("--purchase-ledger", dest="purchase_history_ledger", help="Path to purchase history CSV ledger")
+    parser.add_argument("--purchase-cache", dest="purchase_history_cache", help="Path to purchase history cache JSON")
 
     args = parser.parse_args()
 
@@ -82,6 +85,9 @@ def main():
         price_cache_dir=args.price_cache_dir,
         output_report=args.output_report,
         sealed_csv=args.sealed_csv,
+        purchase_history_dir=args.purchase_history_dir,
+        purchase_history_ledger=args.purchase_history_ledger,
+        purchase_history_cache=args.purchase_history_cache,
     )
 
     if args.report_only:
@@ -196,6 +202,9 @@ def main():
                 collection_rows=collection_rows,
                 sealed_rows=sealed_rows,
                 collection_source=collection_source,
+                purchase_history_dir=cfg.purchase_history_dir,
+                purchase_ledger_path=cfg.purchase_history_ledger,
+                purchase_cache_path=cfg.purchase_history_cache,
             )
         except CollectionValidationError as e:
             print(f"\nError: {e}", file=sys.stderr)
@@ -256,6 +265,9 @@ def main():
             sealed_rows=sealed_rows,
             price_file=price_file,
             collection_source=collection_source,
+            purchase_history_dir=cfg.purchase_history_dir,
+            purchase_ledger_path=cfg.purchase_history_ledger,
+            purchase_cache_path=cfg.purchase_history_cache,
         )
     except CollectionValidationError as e:
         print(f"\nError: {e}", file=sys.stderr)

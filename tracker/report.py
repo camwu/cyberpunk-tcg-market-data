@@ -83,6 +83,15 @@ def generate_portfolio_report(
     if "collection_source" not in sum_cols:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_source TEXT")
         conn.commit()
+    if "total_cost_basis" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN total_cost_basis REAL DEFAULT 0.0")
+        conn.commit()
+    if "net_unrealized_gain" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN net_unrealized_gain REAL DEFAULT 0.0")
+        conn.commit()
+    if "net_unrealized_pct" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN net_unrealized_pct REAL DEFAULT 0.0")
+        conn.commit()
 
     if target_date:
         cur.execute("SELECT date FROM portfolio_daily_summary WHERE date = ?", (target_date,))
@@ -104,13 +113,14 @@ def generate_portfolio_report(
     cur.execute("""
     SELECT total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
            lifetime_dollar_gain, lifetime_pct_gain, COALESCE(total_sealed, 0),
-           collection_updated_at, collection_source
+           collection_updated_at, collection_source,
+           COALESCE(total_cost_basis, 0.0), COALESCE(net_unrealized_gain, 0.0), COALESCE(net_unrealized_pct, 0.0)
     FROM portfolio_daily_summary
     WHERE date = ?
     """, (latest_date,))
     summary = cur.fetchone()
 
-    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at, collection_source = summary
+    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at, collection_source, cost_basis, net_gain, net_pct = summary
 
     price_timestamp_display = latest_date
     portfolio_timestamp_display = collection_updated_at or latest_date
@@ -288,8 +298,10 @@ def generate_portfolio_report(
     conn.close()
 
     sealed_summary_line = f"\n| **Total Sealed Items** | **{total_sealed}** {'unit' if total_sealed == 1 else 'units'} |" if total_sealed > 0 else ""
+    cost_summary_lines = f"\n| **Total Invested Cost Basis** | **`${cost_basis:,.2f}`** |\n| **Net Unrealized Gain / Loss** | **{'+' if net_gain >= 0 else ''}${net_gain:,.2f}** ({'+' if net_pct >= 0 else ''}{net_pct:.2f}%) |" if cost_basis > 0 else ""
 
-    print(f"\nPortfolio valuation report generated for {latest_date}: ${total_val:,.2f} across {total_cards} cards and {total_sealed} sealed items.")
+    cost_print = f" | Cost Basis: ${cost_basis:,.2f} | Net Unrealized Gain: {'+' if net_gain >= 0 else ''}${net_gain:,.2f} ({'+' if net_pct >= 0 else ''}{net_pct:.2f}%)" if cost_basis > 0 else ""
+    print(f"\nPortfolio valuation report generated for {latest_date}: ${total_val:,.2f}{cost_print} across {total_cards} cards and {total_sealed} sealed items.")
 
     sealed_section = ""
     if sealed_products:
@@ -320,11 +332,11 @@ def generate_portfolio_report(
 
 | Metric | Value |
 | :--- | :--- |
-| **Total Portfolio Market Value** | **`${total_val:,.2f}`** |
+| **Total Portfolio Market Value** | **`${total_val:,.2f}`** |{cost_summary_lines}
 | **Total Physical Cards** | **{total_cards}** copies |{sealed_summary_line}
 | **Unique Inventory Entries** | **{unique_items}** entries |
 | **Rolling L7D Performance** | **{'+' if l7d_dollar >= 0 else ''}${l7d_dollar:,.2f}** ({'+' if l7d_pct >= 0 else ''}{l7d_pct:.2f}%) |
-| **Lifetime Gain / Loss** | **{'+' if life_dollar >= 0 else ''}${life_dollar:,.2f}** ({'+' if life_pct >= 0 else ''}{life_pct:.2f}%) |
+| **Lifetime Market Gain / Loss** | **{'+' if life_dollar >= 0 else ''}${life_dollar:,.2f}** ({'+' if life_pct >= 0 else ''}{life_pct:.2f}%) |
 
 ---
 
