@@ -251,7 +251,7 @@ def main():
             collection_path=cfg.collection_csv,
             cache_dir=cfg.price_cache_dir,
             db_path=cfg.database_path,
-            force=(args.force or collection_updated or args.sync_collection is True),
+            force=(args.force or collection_updated or (args.sync_collection is True)),
             collection_rows=collection_rows,
             sealed_rows=sealed_rows,
             price_file=price_file,
