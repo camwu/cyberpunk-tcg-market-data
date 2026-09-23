@@ -13,8 +13,6 @@ import shutil
 import sys
 import time
 
-COLLECTION_CACHE_TTL_SECONDS = 86400  # 24 hours
-
 from tracker.config import load_config
 from tracker.sync import sync_market_prices, backfill_market_prices
 from tracker.valuation import calculate_portfolio_valuation
@@ -26,6 +24,8 @@ from tracker.validation import (
     CollectionValidationError,
 )
 from tracker.cardnexus import sync_cardnexus_collection
+
+COLLECTION_CACHE_TTL_SECONDS = 86400  # 24 hours
 
 
 def import_collection_file(source_path: str, target_path: str) -> bool:
@@ -113,16 +113,26 @@ def main():
                     file=sys.stderr,
                 )
         else:
-            if args.collection_csv or args.collection_target:
-                explicit_target = args.collection_csv or args.collection_target
-                target_path = os.path.join(explicit_target, "active_collection.csv") if os.path.isdir(explicit_target) else explicit_target
-            elif os.path.isdir(cfg.collection_csv):
-                target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
+            explicit_target = args.collection_csv or args.collection_target
+            if (
+                explicit_target
+                and not os.path.isdir(explicit_target)
+                and Path(explicit_target).name != "active_collection.csv"
+                and args.sync_collection is not True
+            ):
+                # Explicit custom collection file provided without forced API sync: evaluate offline CSV
+                pass
             else:
-                collection_dir = os.path.dirname(cfg.collection_csv) or "data"
-                target_path = os.path.join(collection_dir, "active_collection.csv")
+                if explicit_target:
+                    target_dir = explicit_target if os.path.isdir(explicit_target) else (os.path.dirname(explicit_target) or "data")
+                    target_path = os.path.join(target_dir, "active_collection.csv")
+                elif os.path.isdir(cfg.collection_csv):
+                    target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
+                else:
+                    collection_dir = os.path.dirname(cfg.collection_csv) or "data"
+                    target_path = os.path.join(collection_dir, "active_collection.csv")
 
-            cache_valid = False
+                cache_valid = False
             file_age_seconds = None
             if os.path.isfile(target_path):
                 file_age_seconds = time.time() - os.path.getmtime(target_path)
