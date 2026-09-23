@@ -46,7 +46,7 @@
     },
     "24884": {
       "name": "Night City Brawl Season 1",
-      "modifiedOn": "2026-09-16T13:56:30.747"
+      "modifiedOn": "2026-09-22T20:35:05.963"
     },
     "24883": {
       "name": "Edgerunner Open Season 1",
@@ -5079,5 +5079,203 @@
     "rarity": "Nova Rare",
     "color": "Blue",
     "cardType": "Unit"
+  },
+  "719684": {
+    "productId": 719684,
+    "name": "Kerry Eurodyne - The Last Rockerboy",
+    "cleanName": "Kerry Eurodyne The Last Rockerboy",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "001",
+    "rarity": "Nova Rare",
+    "color": "Red",
+    "cardType": "Unit"
+  },
+  "719685": {
+    "productId": 719685,
+    "name": "Minotaur",
+    "cleanName": "Minotaur",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "002",
+    "rarity": "Nova Rare",
+    "color": "Red",
+    "cardType": "Unit"
+  },
+  "719686": {
+    "productId": 719686,
+    "name": "Satori - Sword of Saburo",
+    "cleanName": "Satori Sword of Saburo",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "003",
+    "rarity": "Nova Rare",
+    "color": "Red",
+    "cardType": "Gear"
+  },
+  "719687": {
+    "productId": 719687,
+    "name": "Jackie Welles - Ride or Die Choom",
+    "cleanName": "Jackie Welles Ride or Die Choom",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "004",
+    "rarity": "Nova Rare",
+    "color": "Yellow",
+    "cardType": "Unit"
+  },
+  "719688": {
+    "productId": 719688,
+    "name": "Secondhand Bombus",
+    "cleanName": "Secondhand Bombus",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "005",
+    "rarity": "Nova Rare",
+    "color": "Yellow",
+    "cardType": "Unit"
+  },
+  "719689": {
+    "productId": 719689,
+    "name": "Mandibular Upgrade",
+    "cleanName": "Mandibular Upgrade",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "006",
+    "rarity": "Nova Rare",
+    "color": "Yellow",
+    "cardType": "Gear"
+  },
+  "719690": {
+    "productId": 719690,
+    "name": "Bootleg Black Sapphire Show",
+    "cleanName": "Bootleg Black Sapphire Show",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "007",
+    "rarity": "Nova Rare",
+    "color": "Yellow",
+    "cardType": "Program"
+  },
+  "719691": {
+    "productId": 719691,
+    "name": "Cyberpsychosis",
+    "cleanName": "Cyberpsychosis",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "008",
+    "rarity": "Nova Rare",
+    "color": "Yellow",
+    "cardType": "Program"
+  },
+  "719692": {
+    "productId": 719692,
+    "name": "Corpo Security",
+    "cleanName": "Corpo Security",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "009",
+    "rarity": "Nova Rare",
+    "color": "Green",
+    "cardType": "Unit"
+  },
+  "719693": {
+    "productId": 719693,
+    "name": "MaxTac Squadron",
+    "cleanName": "MaxTac Squadron",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "010",
+    "rarity": "Nova Rare",
+    "color": "Green",
+    "cardType": "Unit"
+  },
+  "719694": {
+    "productId": 719694,
+    "name": "Wraith Marauders",
+    "cleanName": "Wraith Marauders",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "011",
+    "rarity": "Nova Rare",
+    "color": "Green",
+    "cardType": "Unit"
+  },
+  "719695": {
+    "productId": 719695,
+    "name": "(Don't Fear) The Reaper",
+    "cleanName": "Dont Fear The Reaper",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "012",
+    "rarity": "Nova Rare",
+    "color": "Green",
+    "cardType": "Program"
+  },
+  "719696": {
+    "productId": 719696,
+    "name": "We Gotta Live Together",
+    "cleanName": "We Gotta Live Together",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "013",
+    "rarity": "Nova Rare",
+    "color": "Green",
+    "cardType": "Program"
+  },
+  "719697": {
+    "productId": 719697,
+    "name": "Delamain Cab",
+    "cleanName": "Delamain Cab",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "014",
+    "rarity": "Nova Rare",
+    "color": "Blue",
+    "cardType": "Unit"
+  },
+  "719698": {
+    "productId": 719698,
+    "name": "Maman Brigitte - Spirit of Death",
+    "cleanName": "Maman Brigitte Spirit of Death",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "015",
+    "rarity": "Nova Rare",
+    "color": "Blue",
+    "cardType": "Unit"
+  },
+  "719699": {
+    "productId": 719699,
+    "name": "Dying Night - V's Pistol",
+    "cleanName": "Dying Night Vs Pistol",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "016",
+    "rarity": "Nova Rare",
+    "color": "Blue",
+    "cardType": "Gear"
+  },
+  "719700": {
+    "productId": 719700,
+    "name": "NetWatch Netdriver",
+    "cleanName": "NetWatch Netdriver",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "017",
+    "rarity": "Nova Rare",
+    "color": "Blue",
+    "cardType": "Gear"
+  },
+  "719701": {
+    "productId": 719701,
+    "name": "Floor It",
+    "cleanName": "Floor It",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": "018",
+    "rarity": "Nova Rare",
+    "color": "Blue",
+    "cardType": "Program"
   }
 }
