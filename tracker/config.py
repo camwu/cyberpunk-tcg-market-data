@@ -23,6 +23,9 @@ class TrackerConfig:
     output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
     sealed_csv: Optional[str] = None
     cardnexus_api_key: Optional[str] = None
+    purchase_history_dir: Optional[str] = None
+    purchase_history_ledger: Optional[str] = None
+    purchase_history_cache: Optional[str] = None
 
 
 def resolve_collection_file(target_path: str, is_explicit_file: bool = False) -> str:
@@ -145,6 +148,32 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
         except Exception:
             pass
 
+    cli_purchase_dir = cli_overrides.get("purchase_history_dir")
+    purchase_dir_val = cli_purchase_dir or os.getenv("CYBERPUNK_PURCHASE_HISTORY_DIR") or cfg_data.get("purchase_history_dir")
+    if purchase_dir_val:
+        resolved_purchase_dir = resolve(purchase_dir_val, "data/purchase_history")
+    else:
+        adjacent_purchase_dir = Path(resolved_collection).parent / "purchase_history"
+        resolved_purchase_dir = str(adjacent_purchase_dir.resolve()) if adjacent_purchase_dir.is_dir() else None
+
+    cli_ledger = cli_overrides.get("purchase_history_ledger")
+    ledger_val = cli_ledger or os.getenv("CYBERPUNK_PURCHASE_HISTORY_LEDGER") or cfg_data.get("purchase_history_ledger")
+    if ledger_val:
+        resolved_ledger = resolve(ledger_val, "data/purchase_history.csv")
+    elif resolved_purchase_dir:
+        resolved_ledger = str(Path(resolved_purchase_dir).parent / "purchase_history.csv")
+    else:
+        resolved_ledger = None
+
+    cli_cache = cli_overrides.get("purchase_history_cache")
+    cache_val = cli_cache or os.getenv("CYBERPUNK_PURCHASE_HISTORY_CACHE") or cfg_data.get("purchase_history_cache")
+    if cache_val:
+        resolved_cache = resolve(cache_val, "data/purchase_history_cache.json")
+    elif resolved_purchase_dir:
+        resolved_cache = str(Path(resolved_purchase_dir).parent / "purchase_history_cache.json")
+    else:
+        resolved_cache = None
+
     return TrackerConfig(
         collection_csv=resolved_collection,
         database_path=resolve(database_path, "data/price_history.db"),
@@ -152,4 +181,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
         output_report=resolve(output_report, "LATEST_PORTFOLIO_SUMMARY.md"),
         sealed_csv=resolved_sealed,
         cardnexus_api_key=cardnexus_key,
+        purchase_history_dir=resolved_purchase_dir,
+        purchase_history_ledger=resolved_ledger,
+        purchase_history_cache=resolved_cache,
     )
