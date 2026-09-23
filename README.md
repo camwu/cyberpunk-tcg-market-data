@@ -112,6 +112,10 @@ python -m unittest discover tests -v
 - `--sync-collection`, `--no-sync-collection`: Control CardNexus Public API collection synchronization. When `CARDNEXUS_API_KEY` is configured, API synchronization is automatic with a 24-hour collection cache. Pass `--sync-collection` to bypass the 24-hour cache and force a fresh API download, or pass `--no-sync-collection` to force offline CSV reads.
 - `--refresh-catalog`: Force an immediate fresh download of the CardNexus Cyberpunk catalog feed (bypasses 24-hour local cache).
 - `--include-marketplace`, `--no-include-marketplace`: Control whether active CardNexus Marketplace listings are included alongside collection cards (default: `--include-marketplace`).
+- `--purchase-dir <path>`: Custom path to purchase receipt documents directory (default: sibling `purchase_history/` next to active collection CSV).
+- `--purchase-ledger <path>`: Custom path to human-auditable CSV ledger (default: sibling `purchase_history.csv`).
+- `--purchase-cache <path>`: Custom path to document SHA-256 fingerprint cache (default: sibling `purchase_history_cache.json`).
+- `--reparse-purchases`: Force re-parsing of all purchase receipt documents, bypassing the SHA-256 cache and updating the CSV ledger while preserving custom ledger descriptions.
 
 ---
 
@@ -150,6 +154,9 @@ python run_tracker.py --sync-collection --refresh-catalog
 
 # Synchronize collection excluding cards actively listed on CardNexus Marketplace
 python run_tracker.py --sync-collection --no-include-marketplace
+
+# Force re-parsing of purchase receipts and recalculate valuation
+python run_tracker.py --reparse-purchases
 
 # Use custom configuration file
 python run_tracker.py --config custom_config.json

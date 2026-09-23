@@ -247,6 +247,43 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(records[0].amount, 32.78)
         self.assertEqual(records[0].merchant, "TCGplayer")
 
+    def test_sync_purchase_history_reparse_flag(self):
+        f = self.purchase_dir / "receipt.txt"
+        f.write_text(
+            "TCGplayer\n"
+            "Date: 2026-09-11\n"
+            "Amount Paid: $32.78\n",
+            encoding="utf-8"
+        )
+
+        # Initial sync creates cache and ledger
+        total, records = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(total, 32.78)
+
+        # User customizes the description in the CSV ledger
+        ledger_records = load_purchase_ledger(self.ledger_path)
+        ledger_records["receipt.txt"].description = "Custom User Description"
+        save_purchase_ledger(self.ledger_path, list(ledger_records.values()))
+
+        # Reparse with reparse=True
+        total_reparsed, records_reparsed = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+            reparse=True,
+        )
+        self.assertEqual(total_reparsed, 32.78)
+        self.assertEqual(len(records_reparsed), 1)
+        # Custom description preserved
+        self.assertEqual(records_reparsed[0].description, "Custom User Description")
+        self.assertEqual(records_reparsed[0].amount, 32.78)
+
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
 

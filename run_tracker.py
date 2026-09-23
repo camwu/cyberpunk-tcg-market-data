@@ -73,6 +73,11 @@ def main():
     parser.add_argument("--purchase-dir", dest="purchase_history_dir", help="Path to purchase history receipts directory")
     parser.add_argument("--purchase-ledger", dest="purchase_history_ledger", help="Path to purchase history CSV ledger")
     parser.add_argument("--purchase-cache", dest="purchase_history_cache", help="Path to purchase history cache JSON")
+    parser.add_argument(
+        "--reparse-purchases",
+        action="store_true",
+        help="Force re-parsing of purchase history documents, bypassing SHA-256 cache and updating ledger",
+    )
 
     args = parser.parse_args()
 
@@ -198,13 +203,14 @@ def main():
                 collection_path=cfg.collection_csv,
                 cache_dir=cfg.price_cache_dir,
                 db_path=cfg.database_path,
-                force=args.force,
+                force=args.force or args.reparse_purchases,
                 collection_rows=collection_rows,
                 sealed_rows=sealed_rows,
                 collection_source=collection_source,
                 purchase_history_dir=cfg.purchase_history_dir,
                 purchase_ledger_path=cfg.purchase_history_ledger,
                 purchase_cache_path=cfg.purchase_history_cache,
+                reparse_purchases=args.reparse_purchases,
             )
         except CollectionValidationError as e:
             print(f"\nError: {e}", file=sys.stderr)
@@ -260,7 +266,7 @@ def main():
             collection_path=cfg.collection_csv,
             cache_dir=cfg.price_cache_dir,
             db_path=cfg.database_path,
-            force=(args.force or collection_updated or (args.sync_collection is True)),
+            force=(args.force or collection_updated or (args.sync_collection is True) or args.reparse_purchases),
             collection_rows=collection_rows,
             sealed_rows=sealed_rows,
             price_file=price_file,
@@ -268,6 +274,7 @@ def main():
             purchase_history_dir=cfg.purchase_history_dir,
             purchase_ledger_path=cfg.purchase_history_ledger,
             purchase_cache_path=cfg.purchase_history_cache,
+            reparse_purchases=args.reparse_purchases,
         )
     except CollectionValidationError as e:
         print(f"\nError: {e}", file=sys.stderr)

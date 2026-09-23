@@ -312,6 +312,24 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CSV (my_collection.csv)")
 
+    @patch("run_tracker.generate_portfolio_report")
+    @patch("run_tracker.calculate_portfolio_valuation")
+    def test_reparse_purchases_cli_flag(self, mock_calc, mock_report):
+        self.api_key_for_test = None
+        test_args = [
+            "run_tracker.py",
+            "--collection", str(self.collection_csv),
+            "--reparse-purchases",
+            "--db", self.db_path,
+            "--prices", self.price_dir,
+        ]
+        with patch.object(sys, "argv", test_args):
+            run_tracker.main()
+
+        mock_calc.assert_called_once()
+        self.assertTrue(mock_calc.call_args.kwargs.get("reparse_purchases"))
+        self.assertTrue(mock_calc.call_args.kwargs.get("force"))
+
 
 if __name__ == "__main__":
     unittest.main()

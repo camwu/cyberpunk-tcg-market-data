@@ -274,6 +274,7 @@ def calculate_portfolio_valuation(
     purchase_ledger_path: Optional[str] = None,
     purchase_cache_path: Optional[str] = None,
     total_cost_basis: Optional[float] = None,
+    reparse_purchases: bool = False,
 ) -> Dict[str, Any]:
     if collection_rows is None:
         is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
@@ -728,6 +729,7 @@ def calculate_portfolio_valuation(
                 purchase_dir=p_dir,
                 cache_path=purchase_cache_path,
                 ledger_path=purchase_ledger_path,
+                reparse=reparse_purchases,
             )
         elif purchase_ledger_path and os.path.isfile(purchase_ledger_path):
             from tracker.purchases import sync_purchase_history
@@ -735,6 +737,7 @@ def calculate_portfolio_valuation(
                 purchase_dir=None,
                 cache_path=purchase_cache_path,
                 ledger_path=purchase_ledger_path,
+                reparse=reparse_purchases,
             )
         else:
             total_cost_basis = 0.0

@@ -326,11 +326,12 @@ def sync_purchase_history(
     ledger_path: Optional[str] = None,
     seed_records: Optional[Dict[str, Dict[str, Any]]] = None,
     interactive: Optional[bool] = None,
+    reparse: bool = False,
 ) -> Tuple[float, List[PurchaseRecord]]:
     """
     Synchronizes purchase documents against SHA-256 cache and CSV ledger:
     1. Scans purchase_dir for receipt files (.pdf, .csv, .txt, .json).
-    2. Compares SHA-256 checksums to avoid re-parsing cached files.
+    2. Compares SHA-256 checksums to avoid re-parsing cached files (bypassed if reparse=True).
     3. Re-uses cached records or loads explicit ledger overrides.
     4. Automatically parses new receipts or checks seed_records.
     5. Updates cache and CSV ledger.
@@ -374,8 +375,8 @@ def sync_purchase_history(
         fname = fpath.name
         file_sha256 = compute_file_sha256(str(fpath))
 
-        # Check 1: Cache match (same filename and sha256)
-        if fname in cached_files and cached_files[fname].get("sha256") == file_sha256:
+        # Check 1: Cache match (same filename and sha256) unless reparse requested
+        if not reparse and fname in cached_files and cached_files[fname].get("sha256") == file_sha256:
             cached_entry = cached_files[fname]
             discovered_records[fname] = PurchaseRecord(
                 date=cached_entry.get("date", ""),
@@ -387,15 +388,15 @@ def sync_purchase_history(
             )
             continue
 
-        # Check 2: Ledger override (user edited purchase_history.csv)
-        if fname in existing_ledger and existing_ledger[fname].amount > 0:
+        # Check 2: Ledger override unless reparse requested
+        if not reparse and fname in existing_ledger and existing_ledger[fname].amount > 0:
             rec = existing_ledger[fname]
             rec.sha256 = file_sha256
             discovered_records[fname] = rec
             continue
 
-        # Check 3: Pre-seeded records
-        if fname in seed_dict:
+        # Check 3: Pre-seeded records unless reparse requested
+        if not reparse and fname in seed_dict:
             s = seed_dict[fname]
             discovered_records[fname] = PurchaseRecord(
                 date=str(s.get("date", "")),
@@ -411,6 +412,12 @@ def sync_purchase_history(
         parsed = parse_receipt_document(str(fpath), interactive=interactive)
         if parsed:
             p_date, p_merchant, p_amount, p_desc = parsed
+            # Preserve user's custom description from existing ledger if present
+            if fname in existing_ledger and existing_ledger[fname].description:
+                ledger_desc = existing_ledger[fname].description.strip()
+                default_desc = f"{p_merchant} Purchase ({p_date})"
+                if ledger_desc and ledger_desc != default_desc:
+                    p_desc = ledger_desc
             discovered_records[fname] = PurchaseRecord(
                 date=p_date,
                 merchant=p_merchant,
@@ -419,6 +426,11 @@ def sync_purchase_history(
                 filename=fname,
                 sha256=file_sha256,
             )
+        elif fname in existing_ledger and existing_ledger[fname].amount > 0:
+            # Retain manual ledger entry if document cannot be parsed
+            rec = existing_ledger[fname]
+            rec.sha256 = file_sha256
+            discovered_records[fname] = rec
         else:
             unparsed_files.append(fname)
 
