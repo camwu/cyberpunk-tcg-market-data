@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import shutil
 import sys
+import time
 
 from tracker.config import load_config
 from tracker.sync import sync_market_prices, backfill_market_prices
@@ -23,6 +24,8 @@ from tracker.validation import (
     CollectionValidationError,
 )
 from tracker.cardnexus import sync_cardnexus_collection
+
+COLLECTION_CACHE_TTL_SECONDS = 86400  # 24 hours
 
 
 def import_collection_file(source_path: str, target_path: str) -> bool:
@@ -59,7 +62,12 @@ def main():
     parser.add_argument("--report-only", action="store_true", help="Display latest portfolio report without syncing or calculating")
     parser.add_argument("--date", dest="report_date", help="Optional specific snapshot date (YYYY-MM-DD) for report generation")
     parser.add_argument("--live", action="store_true", help="Scrape live market prices from TCGCSV instead of using cached or remote daily snapshots")
-    parser.add_argument("--sync-collection", action="store_true", help="Sync collection directly from CardNexus API before running valuation")
+    parser.add_argument(
+        "--sync-collection",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Sync collection directly from CardNexus API before running valuation (default: auto-sync if API key present with 24h cache)",
+    )
     parser.add_argument("--refresh-catalog", action="store_true", help="Force fresh download of CardNexus catalog feed (bypasses 24h cache)")
     parser.add_argument("--include-marketplace", action=argparse.BooleanOptionalAction, default=True, help="Include cards listed for sale on CardNexus Marketplace (default: True)")
 
@@ -95,33 +103,64 @@ def main():
             sys.exit(1)
         collection_source = f"CSV ({Path(args.import_path).name})"
 
-    if args.sync_collection:
-        if not cfg.cardnexus_api_key:
-            print(
-                "Warning: CARDNEXUS_API_KEY is not configured. Falling back to offline collection CSV ingestion.",
-                file=sys.stderr,
-            )
+    if not collection_source:
+        if args.sync_collection is False:
+            pass  # Explicit opt-out via --no-sync-collection: proceed with offline CSV
+        elif not cfg.cardnexus_api_key:
+            if args.sync_collection is True:
+                print(
+                    "Warning: CARDNEXUS_API_KEY is not configured. Falling back to offline collection CSV ingestion.",
+                    file=sys.stderr,
+                )
         else:
-            print("\n--- Synchronizing Collection from CardNexus API ---")
             if args.collection_csv or args.collection_target:
                 explicit_target = args.collection_csv or args.collection_target
-                target_path = os.path.join(explicit_target, "active_collection.csv") if os.path.isdir(explicit_target) else explicit_target
+                target_dir = explicit_target if os.path.isdir(explicit_target) else (os.path.dirname(explicit_target) or "data")
+                target_path = os.path.join(target_dir, "active_collection.csv")
             elif os.path.isdir(cfg.collection_csv):
                 target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
             else:
                 collection_dir = os.path.dirname(cfg.collection_csv) or "data"
                 target_path = os.path.join(collection_dir, "active_collection.csv")
 
-            success, promoted_file, total_units = sync_cardnexus_collection(
-                target_csv=target_path,
-                api_key=cfg.cardnexus_api_key,
-                include_marketplace=args.include_marketplace,
-                refresh_catalog=args.refresh_catalog,
-            )
-            if not success:
-                sys.exit(1)
-            cfg.collection_csv = target_path
-            collection_source = "CardNexus API"
+            cache_valid = False
+            file_age_seconds = None
+            if os.path.isfile(target_path):
+                file_age_seconds = time.time() - os.path.getmtime(target_path)
+                if file_age_seconds < COLLECTION_CACHE_TTL_SECONDS:
+                    cache_valid = True
+
+            if cache_valid and args.sync_collection is not True:
+                age_hours = (file_age_seconds / 3600.0) if file_age_seconds is not None else 0.0
+                print(f"\nUsing cached CardNexus collection ({age_hours:.1f}h old). Use --sync-collection to refresh.")
+                cfg.collection_csv = target_path
+                collection_source = "CardNexus API (cached)"
+            else:
+                print("\n--- Synchronizing Collection from CardNexus API ---")
+                success, promoted_file, total_units = sync_cardnexus_collection(
+                    target_csv=target_path,
+                    api_key=cfg.cardnexus_api_key,
+                    include_marketplace=args.include_marketplace,
+                    refresh_catalog=args.refresh_catalog,
+                )
+                if success:
+                    cfg.collection_csv = target_path
+                    collection_source = "CardNexus API"
+                else:
+                    fallback_path = target_path if os.path.isfile(target_path) else (cfg.collection_csv if os.path.isfile(cfg.collection_csv) else None)
+                    if fallback_path:
+                        print(
+                            f"Warning: CardNexus API sync failed. Falling back to cached collection: '{fallback_path}'.",
+                            file=sys.stderr,
+                        )
+                        cfg.collection_csv = fallback_path
+                        collection_source = "CardNexus API (fallback)"
+                    else:
+                        print(
+                            f"Error: CardNexus API sync failed and no collection file exists.",
+                            file=sys.stderr,
+                        )
+                        sys.exit(1)
 
     if not collection_source:
         collection_source = f"CSV ({Path(cfg.collection_csv).name})"
