@@ -93,6 +93,7 @@ def main():
         )
         return
 
+    collection_updated = False
     collection_source = None
     if args.import_path:
         success = import_collection_file(
@@ -102,6 +103,7 @@ def main():
         if not success:
             sys.exit(1)
         collection_source = f"CSV ({Path(args.import_path).name})"
+        collection_updated = True
 
     if not collection_source:
         if args.sync_collection is False:
@@ -146,6 +148,7 @@ def main():
                 if success:
                     cfg.collection_csv = target_path
                     collection_source = "CardNexus API"
+                    collection_updated = True
                 else:
                     fallback_path = target_path if os.path.isfile(target_path) else (cfg.collection_csv if os.path.isfile(cfg.collection_csv) else None)
                     if fallback_path:
@@ -248,7 +251,7 @@ def main():
             collection_path=cfg.collection_csv,
             cache_dir=cfg.price_cache_dir,
             db_path=cfg.database_path,
-            force=args.force,
+            force=(args.force or collection_updated or args.sync_collection is True),
             collection_rows=collection_rows,
             sealed_rows=sealed_rows,
             price_file=price_file,
