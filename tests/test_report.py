@@ -134,11 +134,64 @@ class TestReportGeneration(unittest.TestCase):
         self.assertNotIn("Pacific Daylight Time", content)
         self.assertNotIn("PDT", content)
 
-        # Verify ordering: Portfolio Last Updated before Prices Last Updated before Report Generated
+        # Verify ordering: Portfolio Last Updated before Prices Last Updated before Collection Source before Report Generated
+        self.assertIn("**Collection Source**: `—`", content)
         idx_portfolio = content.index("**Portfolio Last Updated**:")
         idx_prices = content.index("**Prices Last Updated**:")
+        idx_source = content.index("**Collection Source**:")
         idx_report = content.index("**Report Generated**:")
-        self.assertTrue(idx_portfolio < idx_prices < idx_report)
+        self.assertTrue(idx_portfolio < idx_prices < idx_source < idx_report)
+
+    def test_report_custom_collection_source(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute("PRAGMA table_info(portfolio_daily_summary)")
+            cols = [c[1] for c in cur.fetchall()]
+            if "collection_source" not in cols:
+                cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_source TEXT")
+            cur.execute("UPDATE portfolio_daily_summary SET collection_source = 'CardNexus API' WHERE date = '2026-09-14'")
+            conn.commit()
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+        self.assertIn("**Collection Source**: `CardNexus API`", content)
+
+    def test_report_expansion_breakdown(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            # Add a card from a second expansion: Cyberpunk Edgerunners
+            cur.execute("""
+            INSERT INTO card_metadata VALUES
+            ('Exp2::002::Standard', 102, 'David Martinez', '002', 'Cyberpunk Edgerunners', 'Standard', 'Rare', 'Yellow', '2026-09-11', 50.00, 'Card')
+            """)
+            cur.execute("""
+            INSERT INTO daily_snapshots VALUES
+            ('2026-09-14', 'Exp2::002::Standard', 2, 60.00, 55.00, 60.00, 70.00, 120.00, 50.00, 10.00, 20.00)
+            """)
+            # Update summary total_val to reflect the added card: 255.17 + 120.00 = 375.17
+            cur.execute("UPDATE portfolio_daily_summary SET total_value = 375.17, total_cards = 3, unique_items = 3 WHERE date = '2026-09-14'")
+            conn.commit()
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        self.assertIn("### Expansion", content)
+        self.assertIn("| Expansion | Unique Items | Physical Copies | Market Value | % of Portfolio |", content)
+
+        # Edgerunners is $120.00 (32.0%), Welcome to Night City - Beta is $20.00 (5.3%)
+        self.assertIn("| **Cyberpunk Edgerunners** | 1 | 2 | `$120.00` | 32.0% |", content)
+        self.assertIn("| **Welcome to Night City - Beta** | 1 | 1 | `$20.00` | 5.3% |", content)
+
+        # Confirm sorted order: Cyberpunk Edgerunners should appear before Welcome to Night City - Beta
+        idx_edge = content.index("**Cyberpunk Edgerunners**")
+        idx_wtnc = content.index("**Welcome to Night City - Beta**")
+        self.assertTrue(idx_edge < idx_wtnc)
 
     def test_report_custom_collection_updated_at(self):
         conn = sqlite3.connect(self.db_path)

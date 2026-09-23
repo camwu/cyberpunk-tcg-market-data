@@ -280,6 +280,71 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertIsNotNone(row[0])
         self.assertRegex(row[0], r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2} (?:AM|PM)$")
 
+    def test_calculate_portfolio_valuation_records_collection_source_default(self):
+        dummy_csv = str(self.test_dir / "my_cards.csv")
+        with open(dummy_csv, "w", encoding="utf-8") as f:
+            f.write("name,expansion,printNumber,finish,totalQtyOwned,notes\nJohnny Silverhand,Welcome to Night City - Beta,001,Standard,1,\n")
+
+        daily_prices = {
+            "date": "2026-09-15",
+            "prices": {
+                "101": {"Normal": {"marketPrice": 2.50}},
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-15.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        calculate_portfolio_valuation(
+            date_str="2026-09-15",
+            collection_path=dummy_csv,
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+        )
+
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT collection_source FROM portfolio_daily_summary WHERE date = '2026-09-15'")
+        row = cur.fetchone()
+        conn.close()
+
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], "CSV (my_cards.csv)")
+
+    def test_calculate_portfolio_valuation_records_explicit_collection_source(self):
+        dummy_csv = str(self.test_dir / "my_cards.csv")
+        with open(dummy_csv, "w", encoding="utf-8") as f:
+            f.write("name,expansion,printNumber,finish,totalQtyOwned,notes\nJohnny Silverhand,Welcome to Night City - Beta,001,Standard,1,\n")
+
+        daily_prices = {
+            "date": "2026-09-15",
+            "prices": {
+                "101": {"Normal": {"marketPrice": 2.50}},
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-15.json"), "w", encoding="utf-8") as f:
+            json.dump(daily_prices, f)
+
+        calculate_portfolio_valuation(
+            date_str="2026-09-15",
+            collection_path=dummy_csv,
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_source="CardNexus API",
+        )
+
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT collection_source FROM portfolio_daily_summary WHERE date = '2026-09-15'")
+        row = cur.fetchone()
+        conn.close()
+
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], "CardNexus API")
+
     def test_sealed_product_honors_explicit_purchase_price(self):
         daily_prices = {
             "date": "2026-09-11",
