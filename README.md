@@ -45,11 +45,11 @@ Configure your CardNexus Public API Bearer token (`cnk_live_...` from CardNexus 
   export CARDNEXUS_API_KEY="<API_KEY>"
   ```
 
-Run the tracker with `--sync-collection`:
+Run the tracker:
 ```bash
-python run_tracker.py --sync-collection
+python run_tracker.py
 ```
-This fetches active inventory lines, downloads and caches the Cyberpunk catalog feed, validates snapshot schema and lot integrity, and promotes the validated data directly to `data/active_collection.csv` while automatically cleaning up temporary staging files. If `CARDNEXUS_API_KEY` is not configured, the tracker logs a diagnostic warning and falls back to offline collection CSV ingestion.
+When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes your collection from the CardNexus Public API and caches the collection for 24 hours. Repeat runs within 24 hours (including 1-click launcher executions) reuse the cached collection directly. To bypass the 24-hour cache and force an immediate API refresh, pass `--sync-collection`. To run offline and skip API calls, pass `--no-sync-collection`. If `CARDNEXUS_API_KEY` is not configured, the tracker falls back cleanly to offline collection CSV ingestion.
 
 #### Option B: Offline CSV Export
 1. **Add your collection CSV**:
@@ -109,7 +109,7 @@ python -m unittest discover tests -v
 - `--backfill <YYYY-MM-DD>`: Backfill historical market prices from TCGCSV archive bundles (requires 7-Zip).
 - `--report-only`: Render the markdown portfolio report from existing database records without syncing prices or running valuation calculations.
 - `--date <YYYY-MM-DD>`: Generate the portfolio report for a specific historical snapshot date.
-- `--sync-collection`: Synchronize collection directly from the CardNexus Public API using the authenticated `CARDNEXUS_API_KEY` environment variable before running valuation.
+- `--sync-collection`, `--no-sync-collection`: Control CardNexus Public API collection synchronization. When `CARDNEXUS_API_KEY` is configured, API synchronization is automatic with a 24-hour collection cache. Pass `--sync-collection` to bypass the 24-hour cache and force a fresh API download, or pass `--no-sync-collection` to force offline CSV reads.
 - `--refresh-catalog`: Force an immediate fresh download of the CardNexus Cyberpunk catalog feed (bypasses 24-hour local cache).
 - `--include-marketplace`, `--no-include-marketplace`: Control whether active CardNexus Marketplace listings are included alongside collection cards (default: `--include-marketplace`).
 
