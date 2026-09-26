@@ -15,7 +15,10 @@ config.json
 *.db
 *.sqlite
 *.csv
-data/
+data/*
+!data/purchase_history/
+data/purchase_history/*
+!data/purchase_history/.gitkeep
 backups/
 logs/
 

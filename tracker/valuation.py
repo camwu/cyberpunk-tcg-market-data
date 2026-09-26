@@ -247,6 +247,14 @@ def init_database(db_path: str):
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_updated_at TEXT")
     if "collection_source" not in sum_cols:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN collection_source TEXT")
+    if "total_cost_basis" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN total_cost_basis REAL DEFAULT 0.0")
+    if "net_unrealized_gain" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN net_unrealized_gain REAL DEFAULT 0.0")
+    if "net_unrealized_pct" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN net_unrealized_pct REAL DEFAULT 0.0")
+    if "purchases_updated_at" not in sum_cols:
+        cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
 
     conn.commit()
     return conn
@@ -264,6 +272,8 @@ def calculate_portfolio_valuation(
     price_file: Optional[str] = None,
     collection_updated_at: Optional[str] = None,
     collection_source: Optional[str] = None,
+    total_cost_basis: Optional[float] = None,
+    purchases_updated_at: Optional[str] = None,
 ) -> Dict[str, Any]:
     if collection_rows is None:
         is_valid, validation_errors, collection_rows = validate_collection_file(collection_path)
@@ -286,7 +296,8 @@ def calculate_portfolio_valuation(
             print(f"Snapshot for {date_str} already exists in database. Use force=True to overwrite.")
             cur.execute("""
             SELECT total_value, total_cards, unique_items, lifetime_dollar_gain, lifetime_pct_gain,
-                   COALESCE(total_sealed, 0)
+                   COALESCE(total_sealed, 0), COALESCE(total_cost_basis, 0.0),
+                   COALESCE(net_unrealized_gain, 0.0), COALESCE(net_unrealized_pct, 0.0)
             FROM portfolio_daily_summary WHERE date = ?
             """, (date_str,))
             row = cur.fetchone()
@@ -298,6 +309,9 @@ def calculate_portfolio_valuation(
                 "lifetime_dollar_gain": row[3],
                 "lifetime_pct_gain": row[4],
                 "total_sealed": row[5] if len(row) > 5 else 0,
+                "total_cost_basis": row[6] if len(row) > 6 else 0.0,
+                "net_unrealized_gain": row[7] if len(row) > 7 else 0.0,
+                "net_unrealized_pct": row[8] if len(row) > 8 else 0.0,
             }
 
     cache_file = price_file if (price_file and os.path.isfile(price_file)) else os.path.join(cache_dir, f"{date_str}.json")
@@ -702,16 +716,33 @@ def calculate_portfolio_valuation(
         else:
             collection_source = "CSV"
 
+    if total_cost_basis is None:
+        total_cost_basis = 0.0
+    else:
+        total_cost_basis = float(total_cost_basis)
+
+    total_cost_basis = round(total_cost_basis, 2)
+    if total_cost_basis > 0:
+        net_unrealized_gain = round(total_value - total_cost_basis, 2)
+        net_unrealized_pct = round((net_unrealized_gain / total_cost_basis) * 100.0, 2)
+    else:
+        net_unrealized_gain = 0.0
+        net_unrealized_pct = 0.0
+
     cur.execute("""
     INSERT OR REPLACE INTO portfolio_daily_summary (
         date, total_value, total_cards, unique_items,
         l7d_dollar_delta, l7d_pct_delta, lifetime_dollar_gain, lifetime_pct_gain,
-        total_sealed, collection_updated_at, collection_source
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        total_sealed, collection_updated_at, collection_source,
+        total_cost_basis, net_unrealized_gain, net_unrealized_pct,
+        purchases_updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         date_str, total_value, total_cards, unique_items,
         l7d_dollar_delta, l7d_pct_delta, total_lifetime_gain, lifetime_pct_gain,
-        total_sealed, collection_updated_at, collection_source
+        total_sealed, collection_updated_at, collection_source,
+        total_cost_basis, net_unrealized_gain, net_unrealized_pct,
+        purchases_updated_at
     ))
 
     conn.commit()
@@ -739,7 +770,8 @@ def calculate_portfolio_valuation(
         if len(zero_price_labels) > 10:
             print(f"  ... and {len(zero_price_labels) - 10} more.")
 
-    print(f"Valuation complete: Total Value: ${total_value:,.2f} | Cards: {total_cards} | Sealed: {total_sealed} | Lifetime Gain: {'+' if total_lifetime_gain >= 0 else ''}${total_lifetime_gain:,.2f} ({'+' if lifetime_pct_gain >= 0 else ''}{lifetime_pct_gain:.2f}%)")
+    cost_info = f" | Cost Basis: ${total_cost_basis:,.2f} | Net Unrealized Gain: {'+' if net_unrealized_gain >= 0 else ''}${net_unrealized_gain:,.2f} ({'+' if net_unrealized_pct >= 0 else ''}{net_unrealized_pct:.2f}%)" if total_cost_basis > 0 else ""
+    print(f"Valuation complete: Total Value: ${total_value:,.2f}{cost_info} | Cards: {total_cards} | Sealed: {total_sealed} | Lifetime Gain: {'+' if total_lifetime_gain >= 0 else ''}${total_lifetime_gain:,.2f} ({'+' if lifetime_pct_gain >= 0 else ''}{lifetime_pct_gain:.2f}%)")
     return {
         "total_value": total_value,
         "total_cards": total_cards,
@@ -747,4 +779,8 @@ def calculate_portfolio_valuation(
         "unique_items": unique_items,
         "lifetime_dollar_gain": total_lifetime_gain,
         "lifetime_pct_gain": lifetime_pct_gain,
+        "total_cost_basis": total_cost_basis,
+        "net_unrealized_gain": net_unrealized_gain,
+        "net_unrealized_pct": net_unrealized_pct,
+        "purchases_updated_at": purchases_updated_at,
     }
