@@ -8,6 +8,7 @@ Automated daily market price scraper and portfolio valuation CLI tool for the Cy
 
 - **Automated Daily Price Sync**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:17 UTC to update card metadata (`cards.json`) and record daily TCGplayer market prices under `prices/`.
 - **Unified Portfolio Tracking & Direct Sync**: Ingests cards and sealed products (Booster Boxes, Starter Decks) via direct CardNexus Public API synchronization or offline CSV exports into a local SQLite database (`data/price_history.db`).
+- **Purchase Cost Basis Tracking**: Ingests purchase receipts from `purchase_history/` to calculate invested capital and net unrealized portfolio returns.
 - **Historical Performance & ROI**: Calculates rolling 7-day price deltas and lifetime gain/loss against purchase prices or initial market baselines.
 - **Rarity, Finish & Color Breakdowns**: Summarizes collection distribution across official rarity tiers (`▽ Common` through `▣ Nova Rare`), standard/foil finishes, and card colors.
 - **1-Click & Drag-and-Drop Launchers**: Update portfolios via Windows batch (`update_portfolio.bat`), Unix shell (`update_portfolio.sh`), or the Python CLI with automatic CSV detection.
@@ -17,7 +18,8 @@ Automated daily market price scraper and portfolio valuation CLI tool for the Cy
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Python 3.9+**: Built entirely on the Python standard library with 0 external `pip` dependencies.
+- **Python 3.9+**: Core features (scraping, valuation, CardNexus sync, reporting, and plain text/CSV/JSON receipts) use the Python standard library with 0 external `pip` dependencies.
+- **pypdf** *(Optional)*: Required only when parsing `.pdf` receipt documents in `purchase_history/` (`pip install pypdf`). Plain text, CSV, and JSON receipts require no external packages.
 - **7-Zip** *(Optional)*: Required only when backfilling historical price archives via `--backfill`.
 
 ### 1. Daily Market Price Scraping (Standalone)
@@ -67,7 +69,7 @@ When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes y
      ```
 
 3. **(Optional) Purchase History & Cost Basis**:
-   Place purchase receipts (`.pdf`, `.csv`, `.txt`, `.json`) directly into the scaffolded `data/purchase_history/` directory (or a sibling `purchase_history/` folder next to your collection CSV). The intake engine parses totals to calculate invested capital and net unrealized returns, caching checksums in `data/purchase_history_cache.json` and recording entries to `data/purchase_history.csv`.
+   Place purchase receipts (`.pdf`, `.csv`, `.txt`, `.json`) directly into the scaffolded `data/purchase_history/` directory (or a sibling `purchase_history/` folder next to your collection CSV). Plain text, CSV, and JSON receipts are parsed natively with 0 external dependencies, while `.pdf` receipts use `pypdf`. The intake engine parses totals to calculate invested capital and net unrealized returns, caching checksums in `data/purchase_history_cache.json` and recording entries to `data/purchase_history.csv`.
 
    > [!NOTE]
    > `data/purchase_history.csv` and `data/purchase_history_cache.json` remain local and untracked by Git to protect private financial transactions. If you customize merchant names or descriptions in `purchase_history.csv`, back up the file locally before migrating repository environments.
@@ -84,18 +86,21 @@ When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes y
      "database_path": "data/price_history.db",
      "price_cache_dir": "prices",
      "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
-     "purchase_history_dir": "data/purchase_history",
-     "purchase_history_ledger": "data/purchase_history.csv",
-     "purchase_history_cache": "data/purchase_history_cache.json"
+     "purchase_history_dir": "data/purchase_history"
    }
    ```
+   The purchase ledger (`purchase_history.csv`) and document cache (`purchase_history_cache.json`) automatically place alongside `purchase_history_dir` unless explicitly overridden.
 
 ---
 
 ### 3. Running Tests
-To run the test suite:
+To run the test suite with standard library `unittest` (0 external dependencies):
 ```bash
 python -m unittest discover tests -v
+```
+Alternatively, if `pytest` is installed (`pip install pytest`):
+```bash
+pytest
 ```
 
 ---
