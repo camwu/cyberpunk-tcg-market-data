@@ -272,11 +272,7 @@ def calculate_portfolio_valuation(
     price_file: Optional[str] = None,
     collection_updated_at: Optional[str] = None,
     collection_source: Optional[str] = None,
-    purchase_history_dir: Optional[str] = None,
-    purchase_ledger_path: Optional[str] = None,
-    purchase_cache_path: Optional[str] = None,
     total_cost_basis: Optional[float] = None,
-    reparse_purchases: bool = False,
     purchases_updated_at: Optional[str] = None,
 ) -> Dict[str, Any]:
     if collection_rows is None:
@@ -720,31 +716,8 @@ def calculate_portfolio_valuation(
         else:
             collection_source = "CSV"
 
-    p_dir = purchase_history_dir
-    if not p_dir and collection_path:
-        cand = Path(collection_path).parent / "purchase_history"
-        if cand.is_dir():
-            p_dir = str(cand.resolve())
-
     if total_cost_basis is None:
-        if p_dir:
-            from tracker.purchases import sync_purchase_history
-            total_cost_basis, _ = sync_purchase_history(
-                purchase_dir=p_dir,
-                cache_path=purchase_cache_path,
-                ledger_path=purchase_ledger_path,
-                reparse=reparse_purchases,
-            )
-        elif purchase_ledger_path and os.path.isfile(purchase_ledger_path):
-            from tracker.purchases import sync_purchase_history
-            total_cost_basis, _ = sync_purchase_history(
-                purchase_dir=None,
-                cache_path=purchase_cache_path,
-                ledger_path=purchase_ledger_path,
-                reparse=reparse_purchases,
-            )
-        else:
-            total_cost_basis = 0.0
+        total_cost_basis = 0.0
     else:
         total_cost_basis = float(total_cost_basis)
 
@@ -755,34 +728,6 @@ def calculate_portfolio_valuation(
     else:
         net_unrealized_gain = 0.0
         net_unrealized_pct = 0.0
-
-    if not purchases_updated_at and total_cost_basis > 0:
-        cache_file = purchase_cache_path
-        if not cache_file and p_dir:
-            cache_file = os.path.join(p_dir, "purchase_history_cache.json")
-        if cache_file and os.path.isfile(cache_file):
-            try:
-                from tracker.purchases import load_purchase_cache
-                c_data = load_purchase_cache(cache_file)
-                raw_updated = c_data.get("last_updated")
-                if raw_updated:
-                    try:
-                        dt = datetime.datetime.fromisoformat(raw_updated)
-                        purchases_updated_at = dt.strftime("%Y-%m-%d %I:%M %p")
-                    except ValueError:
-                        try:
-                            dt = datetime.datetime.strptime(raw_updated, "%Y-%m-%d %H:%M:%S")
-                            purchases_updated_at = dt.strftime("%Y-%m-%d %I:%M %p")
-                        except ValueError:
-                            purchases_updated_at = raw_updated
-                else:
-                    mtime = datetime.datetime.fromtimestamp(os.path.getmtime(cache_file)).astimezone()
-                    purchases_updated_at = mtime.strftime("%Y-%m-%d %I:%M %p")
-            except Exception:
-                pass
-        elif purchase_ledger_path and os.path.isfile(purchase_ledger_path):
-            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(purchase_ledger_path)).astimezone()
-            purchases_updated_at = mtime.strftime("%Y-%m-%d %I:%M %p")
 
     cur.execute("""
     INSERT OR REPLACE INTO portfolio_daily_summary (

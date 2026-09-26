@@ -24,6 +24,7 @@ from tracker.validation import (
     CollectionValidationError,
 )
 from tracker.cardnexus import sync_cardnexus_collection
+from tracker.purchases import sync_purchase_history, get_purchase_history_updated_at
 
 COLLECTION_CACHE_TTL_SECONDS = 86400  # 24 hours
 
@@ -187,6 +188,14 @@ def main():
             print(format_validation_report(sealed_errors), file=sys.stderr)
             sys.exit(1)
 
+    total_cost_basis, _ = sync_purchase_history(
+        purchase_dir=cfg.purchase_history_dir,
+        cache_path=cfg.purchase_history_cache,
+        ledger_path=cfg.purchase_history_ledger,
+        reparse=args.reparse_purchases,
+    )
+    purchases_updated_at = get_purchase_history_updated_at(cfg.purchase_history_cache) if total_cost_basis > 0 else None
+
     if args.backfill_date:
         date_str = args.backfill_date
         print(f"\n--- Backfilling Cyberpunk TCG Market Data for {date_str} ---")
@@ -207,10 +216,8 @@ def main():
                 collection_rows=collection_rows,
                 sealed_rows=sealed_rows,
                 collection_source=collection_source,
-                purchase_history_dir=cfg.purchase_history_dir,
-                purchase_ledger_path=cfg.purchase_history_ledger,
-                purchase_cache_path=cfg.purchase_history_cache,
-                reparse_purchases=args.reparse_purchases,
+                total_cost_basis=total_cost_basis,
+                purchases_updated_at=purchases_updated_at,
             )
         except CollectionValidationError as e:
             print(f"\nError: {e}", file=sys.stderr)
@@ -271,10 +278,8 @@ def main():
             sealed_rows=sealed_rows,
             price_file=price_file,
             collection_source=collection_source,
-            purchase_history_dir=cfg.purchase_history_dir,
-            purchase_ledger_path=cfg.purchase_history_ledger,
-            purchase_cache_path=cfg.purchase_history_cache,
-            reparse_purchases=args.reparse_purchases,
+            total_cost_basis=total_cost_basis,
+            purchases_updated_at=purchases_updated_at,
         )
     except CollectionValidationError as e:
         print(f"\nError: {e}", file=sys.stderr)

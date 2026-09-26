@@ -42,6 +42,9 @@ def compute_file_sha256(filepath: str) -> str:
     return hasher.hexdigest()
 
 
+_pypdf_warned = False
+
+
 def extract_text_from_document(filepath: str) -> str:
     """Extracts raw text content from PDF, CSV, TXT, or JSON file."""
     p = Path(filepath)
@@ -49,6 +52,13 @@ def extract_text_from_document(filepath: str) -> str:
 
     if ext == ".pdf":
         if pypdf is None:
+            global _pypdf_warned
+            if not _pypdf_warned:
+                print(
+                    "Warning: 'pypdf' package is not installed; skipping PDF text extraction. Run 'pip install pypdf' to parse PDF receipts.",
+                    file=sys.stderr,
+                )
+                _pypdf_warned = True
             return ""
         try:
             reader = pypdf.PdfReader(filepath)
@@ -318,6 +328,33 @@ def save_purchase_cache(cache_path: str, cache_data: Dict[str, Any]) -> None:
     os.makedirs(os.path.dirname(cache_path) or ".", exist_ok=True)
     with open(cache_path, "w", encoding="utf-8") as f:
         json.dump(cache_data, f, indent=2)
+
+
+def get_purchase_history_updated_at(cache_path: Optional[str]) -> Optional[str]:
+    """
+    Extracts and formats the last updated timestamp from purchase cache or file mtime.
+    Returns timestamp formatted as '%Y-%m-%d %I:%M %p' or None.
+    """
+    if not cache_path or not os.path.isfile(cache_path):
+        return None
+
+    try:
+        c_data = load_purchase_cache(cache_path)
+        raw_updated = c_data.get("last_updated")
+        if raw_updated:
+            try:
+                dt = datetime.datetime.fromisoformat(raw_updated)
+                return dt.strftime("%Y-%m-%d %I:%M %p")
+            except ValueError:
+                try:
+                    dt = datetime.datetime.strptime(raw_updated, "%Y-%m-%d %H:%M:%S")
+                    return dt.strftime("%Y-%m-%d %I:%M %p")
+                except ValueError:
+                    return str(raw_updated)
+        mtime = datetime.datetime.fromtimestamp(os.path.getmtime(cache_path)).astimezone()
+        return mtime.strftime("%Y-%m-%d %I:%M %p")
+    except Exception:
+        return None
 
 
 def sync_purchase_history(

@@ -7,13 +7,17 @@ import csv
 import json
 import os
 from pathlib import Path
+import io
 import tempfile
 import unittest
 from unittest.mock import patch
 
+import tracker.purchases
 from tracker.purchases import (
     PurchaseRecord,
     compute_file_sha256,
+    extract_text_from_document,
+    get_purchase_history_updated_at,
     parse_date_candidate,
     validate_amount_string,
     prompt_for_amount,
@@ -333,6 +337,42 @@ class TestPurchaseHistory(unittest.TestCase):
         # Ensure files were rewritten on disk
         self.assertGreater(os.path.getmtime(self.cache_path), mtime_cache_1)
         self.assertGreater(os.path.getmtime(self.ledger_path), mtime_ledger_1)
+
+    def test_extract_text_missing_pypdf_warning_deduplicated(self):
+        tracker.purchases._pypdf_warned = False
+        try:
+            fake_pdf = self.test_dir / "sample.pdf"
+            fake_pdf.write_text("Dummy binary content", encoding="utf-8")
+            with patch("tracker.purchases.pypdf", None), patch("sys.stderr", new=io.StringIO()) as fake_stderr:
+                res1 = extract_text_from_document(str(fake_pdf))
+                self.assertEqual(res1, "")
+                output1 = fake_stderr.getvalue()
+                self.assertIn("Warning: 'pypdf' package is not installed", output1)
+
+                # Second call should be deduplicated (no additional warning text)
+                res2 = extract_text_from_document(str(fake_pdf))
+                self.assertEqual(res2, "")
+                output2 = fake_stderr.getvalue()
+                self.assertEqual(output1, output2)
+        finally:
+            tracker.purchases._pypdf_warned = False
+
+    def test_get_purchase_history_updated_at_formatting(self):
+        self.assertIsNone(get_purchase_history_updated_at(None))
+        self.assertIsNone(get_purchase_history_updated_at(str(self.test_dir / "nonexistent.json")))
+
+        # Test standard datetime string
+        cache_file = self.test_dir / "test_cache.json"
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump({"last_updated": "2026-09-25 21:15:32"}, f)
+        formatted = get_purchase_history_updated_at(str(cache_file))
+        self.assertEqual(formatted, "2026-09-25 09:15 PM")
+
+        # Test ISO format with T
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump({"last_updated": "2026-09-25T14:30:00"}, f)
+        formatted_iso = get_purchase_history_updated_at(str(cache_file))
+        self.assertEqual(formatted_iso, "2026-09-25 02:30 PM")
 
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
