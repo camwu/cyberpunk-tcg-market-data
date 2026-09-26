@@ -284,6 +284,56 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(records_reparsed[0].description, "Custom User Description")
         self.assertEqual(records_reparsed[0].amount, 32.78)
 
+    def test_sync_purchase_history_no_rewrite_when_unchanged(self):
+        file1 = self.purchase_dir / "receipt1.txt"
+        file1.write_text("Kickstarter\nDate: 2026-04-17\nTotal: $100.00\n", encoding="utf-8")
+
+        # Initial sync creates cache and ledger
+        total, records = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(total, 100.00)
+        self.assertEqual(len(records), 1)
+
+        mtime_cache_1 = os.path.getmtime(self.cache_path)
+        mtime_ledger_1 = os.path.getmtime(self.ledger_path)
+        last_updated_1 = load_purchase_cache(self.cache_path)["last_updated"]
+
+        # Second sync with zero modifications
+        import time
+        time.sleep(0.05)
+        total2, records2 = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(total2, 100.00)
+        self.assertEqual(len(records2), 1)
+        # Ensure files were NOT rewritten on disk
+        self.assertEqual(os.path.getmtime(self.cache_path), mtime_cache_1)
+        self.assertEqual(os.path.getmtime(self.ledger_path), mtime_ledger_1)
+        self.assertEqual(load_purchase_cache(self.cache_path)["last_updated"], last_updated_1)
+
+        # Adding a new file triggers an update
+        file2 = self.purchase_dir / "receipt2.txt"
+        file2.write_text("eBay\nDate: 2026-09-13\nOrder Total: $50.00\n", encoding="utf-8")
+        time.sleep(0.05)
+        total3, records3 = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(total3, 150.00)
+        self.assertEqual(len(records3), 2)
+        # Ensure files were rewritten on disk
+        self.assertGreater(os.path.getmtime(self.cache_path), mtime_cache_1)
+        self.assertGreater(os.path.getmtime(self.ledger_path), mtime_ledger_1)
+
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
 

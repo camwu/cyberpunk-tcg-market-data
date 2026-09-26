@@ -361,6 +361,7 @@ def sync_purchase_history(
     cache_data = load_purchase_cache(cache_path)
     cached_files = cache_data.get("files", {})
     existing_ledger = load_purchase_ledger(ledger_path)
+    existing_ledger_raw = {k: PurchaseRecord(**asdict(v)) for k, v in existing_ledger.items()}
     seed_dict = seed_records or {}
 
     discovered_records: Dict[str, PurchaseRecord] = {}
@@ -440,15 +441,40 @@ def sync_purchase_history(
     all_records = list(discovered_records.values())
     total_invested = round(sum(r.amount for r in all_records), 2)
 
-    # Save cache
-    new_cache = {
-        "files": {r.filename: asdict(r) for r in all_records},
-        "total_invested": total_invested,
-        "last_updated": datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    save_purchase_cache(cache_path, new_cache)
+    # Check if cache needs updating
+    has_cache_changes = (
+        reparse
+        or not os.path.isfile(cache_path)
+        or set(cached_files.keys()) != set(discovered_records.keys())
+        or total_invested != cache_data.get("total_invested")
+    )
+    if not has_cache_changes:
+        for fname, r in discovered_records.items():
+            if cached_files.get(fname) != asdict(r):
+                has_cache_changes = True
+                break
 
-    # Save ledger CSV
-    save_purchase_ledger(ledger_path, all_records)
+    if has_cache_changes:
+        new_cache = {
+            "files": {r.filename: asdict(r) for r in all_records},
+            "total_invested": total_invested,
+            "last_updated": datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        save_purchase_cache(cache_path, new_cache)
+
+    # Check if ledger needs updating
+    has_ledger_changes = (
+        reparse
+        or not os.path.isfile(ledger_path)
+        or set(existing_ledger_raw.keys()) != set(discovered_records.keys())
+    )
+    if not has_ledger_changes:
+        for fname, r in discovered_records.items():
+            if existing_ledger_raw.get(fname) != r:
+                has_ledger_changes = True
+                break
+
+    if has_ledger_changes:
+        save_purchase_ledger(ledger_path, all_records)
 
     return total_invested, all_records
