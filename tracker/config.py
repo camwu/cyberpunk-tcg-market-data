@@ -23,9 +23,9 @@ class TrackerConfig:
     output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
     sealed_csv: Optional[str] = None
     cardnexus_api_key: Optional[str] = None
-    purchase_history_dir: Optional[str] = None
-    purchase_history_ledger: Optional[str] = None
-    purchase_history_cache: Optional[str] = None
+    purchase_history_dir: Optional[str] = "data/purchase_history"
+    purchase_history_ledger: Optional[str] = "data/purchase_history.csv"
+    purchase_history_cache: Optional[str] = "data/purchase_history_cache.json"
 
 
 def resolve_collection_file(target_path: str, is_explicit_file: bool = False) -> str:
@@ -153,8 +153,14 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
     if purchase_dir_val:
         resolved_purchase_dir = resolve(purchase_dir_val, "data/purchase_history")
     else:
-        adjacent_purchase_dir = Path(resolved_collection).parent / "purchase_history"
-        resolved_purchase_dir = str(adjacent_purchase_dir.resolve()) if adjacent_purchase_dir.is_dir() else None
+        collection_p = Path(resolved_collection)
+        target_dir = collection_p if collection_p.is_dir() else collection_p.parent
+        adjacent_purchase_dir = target_dir / "purchase_history"
+        if adjacent_purchase_dir.is_dir():
+            resolved_purchase_dir = str(adjacent_purchase_dir.resolve())
+        else:
+            default_dir = Path(resolve_repo_asset(None, "data/purchase_history"))
+            resolved_purchase_dir = str(default_dir.resolve()) if default_dir.is_dir() else None
 
     cli_ledger = cli_overrides.get("purchase_history_ledger")
     ledger_val = cli_ledger or os.getenv("CYBERPUNK_PURCHASE_HISTORY_LEDGER") or cfg_data.get("purchase_history_ledger")
@@ -163,7 +169,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
     elif resolved_purchase_dir:
         resolved_ledger = str(Path(resolved_purchase_dir).parent / "purchase_history.csv")
     else:
-        resolved_ledger = None
+        resolved_ledger = resolve(None, "data/purchase_history.csv")
 
     cli_cache = cli_overrides.get("purchase_history_cache")
     cache_val = cli_cache or os.getenv("CYBERPUNK_PURCHASE_HISTORY_CACHE") or cfg_data.get("purchase_history_cache")
@@ -172,7 +178,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
     elif resolved_purchase_dir:
         resolved_cache = str(Path(resolved_purchase_dir).parent / "purchase_history_cache.json")
     else:
-        resolved_cache = None
+        resolved_cache = resolve(None, "data/purchase_history_cache.json")
 
     return TrackerConfig(
         collection_csv=resolved_collection,

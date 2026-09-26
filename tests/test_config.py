@@ -93,6 +93,26 @@ class TestTrackerConfig(unittest.TestCase):
                 cfg_no_env = load_config(config_path=str(cfg_file))
                 self.assertIsNone(cfg_no_env.cardnexus_api_key)
 
+    def test_load_config_default_purchase_history_paths(self):
+        empty_cfg = self.test_dir / "non_existent_config.json"
+        cfg = load_config(config_path=str(empty_cfg))
+        repo_root = Path(__file__).resolve().parent.parent
+        expected_dir = str((repo_root / "data" / "purchase_history").resolve())
+        self.assertEqual(Path(cfg.purchase_history_dir).resolve(), Path(expected_dir).resolve())
+        self.assertEqual(Path(cfg.purchase_history_ledger).resolve(), (repo_root / "data" / "purchase_history.csv").resolve())
+        self.assertEqual(Path(cfg.purchase_history_cache).resolve(), (repo_root / "data" / "purchase_history_cache.json").resolve())
+
+    def test_load_config_adjacent_purchase_dir_for_directory_collection(self):
+        collection_dir = self.test_dir / "custom_data"
+        purchase_dir = collection_dir / "purchase_history"
+        purchase_dir.mkdir(parents=True, exist_ok=True)
+
+        empty_cfg = self.test_dir / "non_existent_config.json"
+        cfg = load_config(config_path=str(empty_cfg), collection_csv=str(collection_dir))
+        self.assertEqual(Path(cfg.purchase_history_dir).resolve(), purchase_dir.resolve())
+        self.assertEqual(Path(cfg.purchase_history_ledger).resolve(), (collection_dir / "purchase_history.csv").resolve())
+        self.assertEqual(Path(cfg.purchase_history_cache).resolve(), (collection_dir / "purchase_history_cache.json").resolve())
+
 
 if __name__ == "__main__":
     unittest.main()

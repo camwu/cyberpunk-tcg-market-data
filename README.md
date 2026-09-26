@@ -66,18 +66,24 @@ When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes y
      python run_tracker.py
      ```
 
-3. **(Optional) Custom Paths via `config.json`**:
+3. **(Optional) Purchase History & Cost Basis**:
+   Place purchase receipts (`.pdf`, `.csv`, `.txt`, `.json`) directly into the scaffolded `data/purchase_history/` directory (or a sibling `purchase_history/` folder next to your collection CSV). The intake engine parses totals to calculate invested capital and net unrealized returns, caching checksums in `data/purchase_history_cache.json` and recording entries to `data/purchase_history.csv`.
+
+4. **(Optional) Custom Paths via `config.json`**:
    To customize locations outside the repository, copy `config.example.json` to `config.json` (gitignored):
    ```bash
    cp config.example.json config.json
    ```
-   Set `collection_csv` to a directory (e.g. `"data"`) or an explicit file path:
+   Set custom paths as needed:
    ```json
    {
      "collection_csv": "data",
      "database_path": "data/price_history.db",
      "price_cache_dir": "prices",
-     "output_report": "LATEST_PORTFOLIO_SUMMARY.md"
+     "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
+     "purchase_history_dir": "data/purchase_history",
+     "purchase_history_ledger": "data/purchase_history.csv",
+     "purchase_history_cache": "data/purchase_history_cache.json"
    }
    ```
 

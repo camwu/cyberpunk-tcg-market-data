@@ -445,7 +445,7 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,5,1.50,"2026-09-02: 1; 2026
         self.assertFalse(is_valid)
         self.assertTrue(expected_error_csv.exists())
         self.assertTrue(any(f"Full error report written to: {expected_error_csv}" in err for err in errors))
-        self.assertFalse(os.path.exists("data"))
+        self.assertFalse(os.path.exists("data/validation_errors.csv"))
 
         # Test cleanup on subsequent valid run
         csv_pass = """name,expansion,printNumber,finish,totalQtyOwned,price,notes
