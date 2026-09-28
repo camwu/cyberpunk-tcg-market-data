@@ -367,6 +367,26 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         test_args = [
             "run_tracker.py",
             "--collection", str(self.collection_csv),
+            "--no-sync-collection",
+            "--db", self.db_path,
+            "--prices", self.price_dir,
+        ]
+        with patch.object(sys, "argv", test_args):
+            run_tracker.main()
+
+        mock_calc.assert_called_once()
+        self.assertFalse(mock_calc.call_args.kwargs.get("force"))
+
+    @patch("run_tracker.sync_purchase_history", return_value=(50.0, [], True))
+    @patch("run_tracker.generate_portfolio_report")
+    @patch("run_tracker.backfill_market_prices")
+    @patch("run_tracker.calculate_portfolio_valuation")
+    def test_backfill_does_not_force_when_purchases_updated(self, mock_calc, mock_backfill, mock_report, mock_sync_purchases):
+        self.api_key_for_test = None
+        test_args = [
+            "run_tracker.py",
+            "--collection", str(self.collection_csv),
+            "--backfill", "2026-09-15",
             "--db", self.db_path,
             "--prices", self.price_dir,
         ]
@@ -379,6 +399,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
     def test_integration_new_receipt_invalidates_same_day_snapshot(self):
         self.api_key_for_test = None
         today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
+        seed_timestamp = f"{today} 09:05 PM"
 
         # Create price file for today
         today_price_file = os.path.join(self.price_dir, f"{today}.json")
@@ -394,8 +415,8 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
             lifetime_dollar_gain, lifetime_pct_gain, total_sealed, collection_updated_at,
             collection_source, total_cost_basis, net_unrealized_gain, net_unrealized_pct,
             purchases_updated_at
-        ) VALUES (?, 10.0, 1, 1, 0.0, 0.0, 0.0, 0.0, 0, '2026-09-27 09:05 PM', 'CSV', 400.0, -390.0, -97.5, '2026-09-27 09:05 PM')
-        """, (today,))
+        ) VALUES (?, 10.0, 1, 1, 0.0, 0.0, 0.0, 0.0, 0, ?, 'CSV', 400.0, -390.0, -97.5, ?)
+        """, (today, seed_timestamp, seed_timestamp))
         conn.commit()
         conn.close()
 
@@ -440,4 +461,5 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 

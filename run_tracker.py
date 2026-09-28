@@ -212,7 +212,7 @@ def main():
                 collection_path=cfg.collection_csv,
                 cache_dir=cfg.price_cache_dir,
                 db_path=cfg.database_path,
-                force=args.force or args.reparse_purchases or purchases_updated,
+                force=args.force or args.reparse_purchases,
                 collection_rows=collection_rows,
                 sealed_rows=sealed_rows,
                 collection_source=collection_source,
