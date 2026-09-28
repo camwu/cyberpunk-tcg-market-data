@@ -3,8 +3,10 @@ Automated unit tests for CLI collection source resolution, automatic 24-hour
 CardNexus API synchronization, cache evaluation, and orchestrator propagation.
 """
 
+import datetime
 import io
 import os
+import sqlite3
 import sys
 import tempfile
 import time
@@ -14,6 +16,7 @@ from unittest.mock import patch, MagicMock
 
 import run_tracker
 from tracker.config import TrackerConfig
+from tracker.valuation import init_database
 
 
 class TestTrackerCLICollectionSource(unittest.TestCase):
@@ -50,9 +53,12 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
             collection_csv=kwargs.get("collection_csv") or str(self.collection_csv),
             database_path=kwargs.get("database_path") or self.db_path,
             price_cache_dir=kwargs.get("price_cache_dir") or self.price_dir,
-            output_report=kwargs.get("output_report") or "LATEST_PORTFOLIO_SUMMARY.md",
+            output_report=kwargs.get("output_report") or str(self.test_dir / "LATEST_PORTFOLIO_SUMMARY.md"),
             sealed_csv=kwargs.get("sealed_csv"),
             cardnexus_api_key=self.api_key_for_test,
+            purchase_history_dir=kwargs.get("purchase_history_dir"),
+            purchase_history_ledger=kwargs.get("purchase_history_ledger"),
+            purchase_history_cache=kwargs.get("purchase_history_cache"),
         )
 
     @patch("run_tracker.generate_portfolio_report")
@@ -312,7 +318,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_calc.assert_called_once()
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_source"), "CSV (my_collection.csv)")
 
-    @patch("run_tracker.sync_purchase_history", return_value=(0.0, []))
+    @patch("run_tracker.sync_purchase_history", return_value=(0.0, [], False))
     @patch("run_tracker.generate_portfolio_report")
     @patch("run_tracker.calculate_portfolio_valuation")
     def test_reparse_purchases_cli_flag(self, mock_calc, mock_report, mock_sync_purchases):
@@ -332,6 +338,106 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         mock_calc.assert_called_once()
         self.assertTrue(mock_calc.call_args.kwargs.get("force"))
 
+    @patch("run_tracker.sync_purchase_history", return_value=(50.0, [], True))
+    @patch("run_tracker.generate_portfolio_report")
+    @patch("run_tracker.sync_market_prices")
+    @patch("run_tracker.calculate_portfolio_valuation")
+    def test_purchases_updated_invalidates_valuation_cache(self, mock_calc, mock_sync_prices, mock_report, mock_sync_purchases):
+        self.api_key_for_test = None
+        mock_sync_prices.return_value = self.dummy_price_file
+        test_args = [
+            "run_tracker.py",
+            "--collection", str(self.collection_csv),
+            "--db", self.db_path,
+            "--prices", self.price_dir,
+        ]
+        with patch.object(sys, "argv", test_args):
+            run_tracker.main()
+
+        mock_calc.assert_called_once()
+        self.assertTrue(mock_calc.call_args.kwargs.get("force"))
+
+    @patch("run_tracker.sync_purchase_history", return_value=(50.0, [], False))
+    @patch("run_tracker.generate_portfolio_report")
+    @patch("run_tracker.sync_market_prices")
+    @patch("run_tracker.calculate_portfolio_valuation")
+    def test_purchases_not_updated_does_not_force_valuation(self, mock_calc, mock_sync_prices, mock_report, mock_sync_purchases):
+        self.api_key_for_test = None
+        mock_sync_prices.return_value = self.dummy_price_file
+        test_args = [
+            "run_tracker.py",
+            "--collection", str(self.collection_csv),
+            "--db", self.db_path,
+            "--prices", self.price_dir,
+        ]
+        with patch.object(sys, "argv", test_args):
+            run_tracker.main()
+
+        mock_calc.assert_called_once()
+        self.assertFalse(mock_calc.call_args.kwargs.get("force"))
+
+    def test_integration_new_receipt_invalidates_same_day_snapshot(self):
+        self.api_key_for_test = None
+        today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
+
+        # Create price file for today
+        today_price_file = os.path.join(self.price_dir, f"{today}.json")
+        with open(today_price_file, "w", encoding="utf-8") as f:
+            f.write(f'{{"date": "{today}", "prices": {{}}}}')
+
+        # Initialize real DB with a pre-existing snapshot for today
+        conn = init_database(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO portfolio_daily_summary (
+            date, total_value, total_cards, unique_items, l7d_dollar_delta, l7d_pct_delta,
+            lifetime_dollar_gain, lifetime_pct_gain, total_sealed, collection_updated_at,
+            collection_source, total_cost_basis, net_unrealized_gain, net_unrealized_pct,
+            purchases_updated_at
+        ) VALUES (?, 10.0, 1, 1, 0.0, 0.0, 0.0, 0.0, 0, '2026-09-27 09:05 PM', 'CSV', 400.0, -390.0, -97.5, '2026-09-27 09:05 PM')
+        """, (today,))
+        conn.commit()
+        conn.close()
+
+        # Set up purchase history folder and drop a new receipt
+        purchase_dir = self.test_dir / "purchase_history"
+        os.makedirs(purchase_dir, exist_ok=True)
+        receipt_file = purchase_dir / "2026-09-27_receipt.txt"
+        receipt_file.write_text("TCGplayer\nDate: 2026-09-27\nTotal: $50.00\n", encoding="utf-8")
+
+        ledger_file = str(self.test_dir / "purchase_history.csv")
+        cache_file = str(self.test_dir / "purchase_history_cache.json")
+        report_file = str(self.test_dir / "TEST_REPORT.md")
+
+        test_args = [
+            "run_tracker.py",
+            "--collection", str(self.collection_csv),
+            "--db", self.db_path,
+            "--prices", self.price_dir,
+            "--purchase-dir", str(purchase_dir),
+            "--purchase-ledger", ledger_file,
+            "--purchase-cache", cache_file,
+            "--output", report_file,
+        ]
+        with patch.object(sys, "argv", test_args):
+            run_tracker.main()
+
+        # Verify DB snapshot was recalculated to the new cost basis
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT total_cost_basis, net_unrealized_gain FROM portfolio_daily_summary WHERE date = ?", (today,))
+        row = cur.fetchone()
+        conn.close()
+
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], 50.00)
+
+        # Verify output report exists and reflects updated cost basis
+        self.assertTrue(os.path.isfile(report_file))
+        report_text = Path(report_file).read_text(encoding="utf-8")
+        self.assertIn("$50.00", report_text)
+
 
 if __name__ == "__main__":
     unittest.main()
+
