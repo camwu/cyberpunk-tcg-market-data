@@ -176,7 +176,7 @@ class TestPurchaseHistory(unittest.TestCase):
         file2.write_text("eBay order\nDate: 2026-09-13\nOrder Total: $11.52\n", encoding="utf-8")
 
         # Initial sync: should parse and create cache + ledger
-        total, records = sync_purchase_history(
+        total, records, changed = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
@@ -184,12 +184,13 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(total, 360.52)
         self.assertEqual(len(records), 2)
+        self.assertTrue(changed)
         self.assertTrue(os.path.isfile(self.cache_path))
         self.assertTrue(os.path.isfile(self.ledger_path))
 
         # Second sync: cache hit, zero re-parsing needed
         cache_data_before = load_purchase_cache(self.cache_path)
-        total2, records2 = sync_purchase_history(
+        total2, records2, changed2 = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
@@ -197,6 +198,7 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(total2, 360.52)
         self.assertEqual(len(records2), 2)
+        self.assertFalse(changed2)
         cache_data_after = load_purchase_cache(self.cache_path)
         self.assertEqual(cache_data_before["files"], cache_data_after["files"])
 
@@ -215,7 +217,7 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         save_purchase_ledger(self.ledger_path, [initial_rec])
 
-        total, records = sync_purchase_history(
+        total, records, changed = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
@@ -223,6 +225,7 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(total, 43.90)
         self.assertEqual(len(records), 1)
+        self.assertTrue(changed)
         self.assertEqual(records[0].amount, 43.90)
         self.assertEqual(records[0].merchant, "Paper Hero's Games")
         # Ensure sha256 was updated
@@ -239,7 +242,7 @@ class TestPurchaseHistory(unittest.TestCase):
             encoding="utf-8"
         )
 
-        total, records = sync_purchase_history(
+        total, records, changed = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
@@ -247,6 +250,7 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(total, 32.78)
         self.assertEqual(len(records), 1)
+        self.assertTrue(changed)
         self.assertEqual(records[0].date, "2026-09-11")
         self.assertEqual(records[0].amount, 32.78)
         self.assertEqual(records[0].merchant, "TCGplayer")
@@ -261,13 +265,14 @@ class TestPurchaseHistory(unittest.TestCase):
         )
 
         # Initial sync creates cache and ledger
-        total, records = sync_purchase_history(
+        total, records, changed = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
             interactive=False,
         )
         self.assertEqual(total, 32.78)
+        self.assertTrue(changed)
 
         # User customizes the description in the CSV ledger
         ledger_records = load_purchase_ledger(self.ledger_path)
@@ -275,7 +280,7 @@ class TestPurchaseHistory(unittest.TestCase):
         save_purchase_ledger(self.ledger_path, list(ledger_records.values()))
 
         # Reparse with reparse=True
-        total_reparsed, records_reparsed = sync_purchase_history(
+        total_reparsed, records_reparsed, changed_reparsed = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
@@ -284,6 +289,7 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(total_reparsed, 32.78)
         self.assertEqual(len(records_reparsed), 1)
+        self.assertTrue(changed_reparsed)
         # Custom description preserved
         self.assertEqual(records_reparsed[0].description, "Custom User Description")
         self.assertEqual(records_reparsed[0].amount, 32.78)
@@ -293,7 +299,7 @@ class TestPurchaseHistory(unittest.TestCase):
         file1.write_text("Kickstarter\nDate: 2026-04-17\nTotal: $100.00\n", encoding="utf-8")
 
         # Initial sync creates cache and ledger
-        total, records = sync_purchase_history(
+        total, records, changed = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
@@ -301,6 +307,7 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(total, 100.00)
         self.assertEqual(len(records), 1)
+        self.assertTrue(changed)
 
         mtime_cache_1 = os.path.getmtime(self.cache_path)
         mtime_ledger_1 = os.path.getmtime(self.ledger_path)
@@ -309,7 +316,7 @@ class TestPurchaseHistory(unittest.TestCase):
         # Second sync with zero modifications
         import time
         time.sleep(0.05)
-        total2, records2 = sync_purchase_history(
+        total2, records2, changed2 = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
@@ -317,6 +324,7 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(total2, 100.00)
         self.assertEqual(len(records2), 1)
+        self.assertFalse(changed2)
         # Ensure files were NOT rewritten on disk
         self.assertEqual(os.path.getmtime(self.cache_path), mtime_cache_1)
         self.assertEqual(os.path.getmtime(self.ledger_path), mtime_ledger_1)
@@ -326,7 +334,7 @@ class TestPurchaseHistory(unittest.TestCase):
         file2 = self.purchase_dir / "receipt2.txt"
         file2.write_text("eBay\nDate: 2026-09-13\nOrder Total: $50.00\n", encoding="utf-8")
         time.sleep(0.05)
-        total3, records3 = sync_purchase_history(
+        total3, records3, changed3 = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
             ledger_path=self.ledger_path,
@@ -334,6 +342,7 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(total3, 150.00)
         self.assertEqual(len(records3), 2)
+        self.assertTrue(changed3)
         # Ensure files were rewritten on disk
         self.assertGreater(os.path.getmtime(self.cache_path), mtime_cache_1)
         self.assertGreater(os.path.getmtime(self.ledger_path), mtime_ledger_1)

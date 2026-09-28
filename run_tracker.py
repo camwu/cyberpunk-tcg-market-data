@@ -188,7 +188,7 @@ def main():
             print(format_validation_report(sealed_errors), file=sys.stderr)
             sys.exit(1)
 
-    total_cost_basis, _ = sync_purchase_history(
+    total_cost_basis, _, purchases_updated = sync_purchase_history(
         purchase_dir=cfg.purchase_history_dir,
         cache_path=cfg.purchase_history_cache,
         ledger_path=cfg.purchase_history_ledger,
@@ -273,7 +273,7 @@ def main():
             collection_path=cfg.collection_csv,
             cache_dir=cfg.price_cache_dir,
             db_path=cfg.database_path,
-            force=(args.force or collection_updated or (args.sync_collection is True) or args.reparse_purchases),
+            force=(args.force or collection_updated or (args.sync_collection is True) or args.reparse_purchases or purchases_updated),
             collection_rows=collection_rows,
             sealed_rows=sealed_rows,
             price_file=price_file,

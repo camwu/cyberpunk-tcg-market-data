@@ -364,7 +364,7 @@ def sync_purchase_history(
     seed_records: Optional[Dict[str, Dict[str, Any]]] = None,
     interactive: Optional[bool] = None,
     reparse: bool = False,
-) -> Tuple[float, List[PurchaseRecord]]:
+) -> Tuple[float, List[PurchaseRecord], bool]:
     """
     Synchronizes purchase documents against SHA-256 cache and CSV ledger:
     1. Scans purchase_dir for receipt files (.pdf, .csv, .txt, .json).
@@ -372,7 +372,7 @@ def sync_purchase_history(
     3. Re-uses cached records or loads explicit ledger overrides.
     4. Automatically parses new receipts or checks seed_records.
     5. Updates cache and CSV ledger.
-    Returns (total_invested_amount, list_of_records).
+    Returns (total_invested_amount, list_of_records, purchases_updated).
     """
     if not purchase_dir or not os.path.isdir(purchase_dir):
         # If directory doesn't exist, check if an existing ledger or cache exists
@@ -381,14 +381,14 @@ def sync_purchase_history(
             if existing_ledger:
                 records = list(existing_ledger.values())
                 total = round(sum(r.amount for r in records), 2)
-                return total, records
+                return total, records, False
         if cache_path and os.path.isfile(cache_path):
             cache_data = load_purchase_cache(cache_path)
             cached_files = cache_data.get("files", {})
             records = [PurchaseRecord(**v) for v in cached_files.values() if isinstance(v, dict)]
             total = round(sum(r.amount for r in records), 2)
-            return total, records
-        return 0.0, []
+            return total, records, False
+        return 0.0, [], False
 
     if not cache_path:
         cache_path = os.path.join(purchase_dir, "purchase_history_cache.json")
@@ -514,4 +514,4 @@ def sync_purchase_history(
     if has_ledger_changes:
         save_purchase_ledger(ledger_path, all_records)
 
-    return total_invested, all_records
+    return total_invested, all_records, bool(has_cache_changes or has_ledger_changes)
