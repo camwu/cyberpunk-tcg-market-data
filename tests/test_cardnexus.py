@@ -18,7 +18,7 @@ from tracker.cardnexus import (
     sync_cardnexus_collection,
     STEADY_STATE_SLEEP_SECONDS,
 )
-from tracker.validation import REQUIRED_COLUMNS
+from tracker.validation import REQUIRED_COLUMNS, CollectionValidationError
 
 
 def make_mock_response(status=200, headers=None, body=b""):
@@ -239,19 +239,32 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         with open(self.target_csv, "w", encoding="utf-8") as f:
             f.write("name,expansion,printNumber,finish,totalQtyOwned,notes\nPrior,Welcome to Night City - Beta,001,Standard,1,2026-09-01\n")
 
-        success, snapshot_path, total_units = sync_cardnexus_collection(
-            target_csv=self.target_csv,
-            api_key="test_key",
-        )
+        with self.assertRaises(CollectionValidationError):
+            sync_cardnexus_collection(
+                target_csv=self.target_csv,
+                api_key="test_key",
+            )
 
-        self.assertFalse(success)
-        self.assertEqual(total_units, 0)
         # Prior active_collection.csv must not be touched
         with open(self.target_csv, "r", encoding="utf-8") as f:
             content = f.read()
             self.assertIn("Prior", content)
         # Failed validation retains staging snapshot for inspection
-        self.assertTrue(os.path.exists(snapshot_path))
+        staging_files = list(Path(self.temp_dir.name).glob("cardnexus_collection_*.csv"))
+        self.assertEqual(len(staging_files), 1)
+        self.assertTrue(os.path.exists(staging_files[0]))
+
+    @patch.object(CardNexusClient, "fetch_inventory", side_effect=CardNexusAPIError("503 Service Unavailable"))
+    def test_sync_handles_cardnexus_api_error_gracefully(self, mock_fetch_inv):
+        with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
+            success, promoted_path, total_units = sync_cardnexus_collection(
+                target_csv=self.target_csv,
+                api_key="test_key",
+            )
+            self.assertFalse(success)
+            self.assertEqual(promoted_path, "")
+            self.assertEqual(total_units, 0)
+            self.assertIn("Warning: CardNexus API request failed: 503 Service Unavailable", mock_stderr.getvalue())
 
     @patch.object(CardNexusClient, "fetch_catalog")
     @patch.object(CardNexusClient, "fetch_inventory")
@@ -322,6 +335,7 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         mock_instance = MagicMock()
         mock_instance.api_key = "test_key"
         mock_instance.fetch_inventory.return_value = []
+        mock_instance.transform_inventory_rows.return_value = []
         mock_client_cls.return_value = mock_instance
 
         custom_dir = self.test_dir / "custom_data"

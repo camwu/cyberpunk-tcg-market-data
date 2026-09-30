@@ -17,7 +17,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from tracker.validation import validate_collection_file, is_sealed_product
+from tracker.validation import validate_collection_file, is_sealed_product, CollectionValidationError
 
 API_BASE_URL = "https://public-api.cardnexus.com/v1"
 USER_AGENT = "CyberpunkTCGMarketTracker/1.0"
@@ -306,12 +306,16 @@ def sync_cardnexus_collection(
         return False, "", 0
 
     print("Fetching active inventory lines from CardNexus API...")
-    inventory_items = client.fetch_inventory(include_marketplace=include_marketplace)
-    print(f"Retrieved {len(inventory_items)} raw inventory line items.")
+    try:
+        inventory_items = client.fetch_inventory(include_marketplace=include_marketplace)
+        print(f"Retrieved {len(inventory_items)} raw inventory line items.")
 
-    print("Resolving catalog metadata...")
-    catalog_map = client.fetch_catalog(refresh=refresh_catalog)
-    print(f"Loaded {len(catalog_map)} catalog products from CardNexus feed.")
+        print("Resolving catalog metadata...")
+        catalog_map = client.fetch_catalog(refresh=refresh_catalog)
+        print(f"Loaded {len(catalog_map)} catalog products from CardNexus feed.")
+    except CardNexusAPIError as e:
+        print(f"Warning: CardNexus API request failed: {e}", file=sys.stderr)
+        return False, "", 0
 
     rows = client.transform_inventory_rows(inventory_items, catalog_map)
     if not rows:
@@ -342,7 +346,10 @@ def sync_cardnexus_collection(
         print(f"\nError: API collection validation failed for snapshot '{snapshot_path}':\n", file=sys.stderr)
         print(format_validation_report(validation_errors), file=sys.stderr)
         print("Promotion aborted: existing active collection was not modified.", file=sys.stderr)
-        return False, snapshot_path, 0
+        raise CollectionValidationError(
+            f"API collection validation failed for snapshot '{snapshot_path}'",
+            errors=validation_errors,
+        )
 
     shutil.copyfile(snapshot_path, target_csv)
     try:
