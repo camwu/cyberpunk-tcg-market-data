@@ -48,6 +48,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No price or catalog changes to commit."
           else
-            git commit -m "Auto-update market prices & catalog: $(date -u +'%Y-%m-%d')"
+            SNAPSHOT_DATE=$(python3 -c "import json; print(json.load(open('prices/latest.json'))['date'])" 2>/dev/null || date -u +'%Y-%m-%d')
+            git commit -m "Auto-update market prices & catalog: ${SNAPSHOT_DATE}"
             git push origin main
           fi

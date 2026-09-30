@@ -52,18 +52,32 @@ def is_valid_snapshot(file_path: str) -> bool:
         return False
 
 
+def extract_date_from_build(build_timestamp: Optional[str]) -> Optional[str]:
+    """Extracts YYYY-MM-DD from an upstream build timestamp string if valid."""
+    if not build_timestamp or len(build_timestamp) < 10:
+        return None
+    candidate = build_timestamp[:10]
+    try:
+        datetime.datetime.strptime(candidate, "%Y-%m-%d")
+        return candidate
+    except ValueError:
+        return None
+
+
 def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Optional[str] = None):
     os.makedirs(output_dir, exist_ok=True)
-    today = target_date or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+
+    last_updated = fetch_text(LAST_UPDATED_URL)
+    if last_updated:
+        print(f"TCGCSV upstream build timestamp: {last_updated}")
+
+    upstream_date = extract_date_from_build(last_updated)
+    today = target_date or upstream_date or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     dated_file = os.path.join(output_dir, f"{today}.json")
 
     if not force and is_valid_snapshot(dated_file):
         print(f"Daily price snapshot for {today} already exists at {dated_file}. Skipping scrape to preserve original timestamp (use --force to overwrite).")
         return True
-
-    last_updated = fetch_text(LAST_UPDATED_URL)
-    if last_updated:
-        print(f"TCGCSV upstream build timestamp: {last_updated}")
 
     print(f"Starting TCGCSV scrape for Cyberpunk TCG (Category {CATEGORY_ID}) on {today}...")
 

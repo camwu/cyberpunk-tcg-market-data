@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from scrape import run_scraper
+from scrape import extract_date_from_build, run_scraper
 
 
 class TestScraperSkipBehavior(unittest.TestCase):
@@ -295,6 +295,48 @@ class TestScraperSkipBehavior(unittest.TestCase):
         self.assertEqual(saved_cards["101"]["printNumber"], "B057")
         self.assertEqual(saved_cards["101"]["rarity"], "Epic")
         self.assertEqual(saved_cards["101"]["cardType"], "Legend")
+
+
+class TestScraperDateDerivation(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_path = Path(self.temp_dir.name)
+        self.price_dir = str(self.temp_path / "prices")
+        os.makedirs(self.price_dir, exist_ok=True)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_extract_date_from_build_valid_formats(self):
+        self.assertEqual(extract_date_from_build("2026-09-28T20:05:54+0000"), "2026-09-28")
+        self.assertEqual(extract_date_from_build("2026-09-29T00:20:33Z"), "2026-09-29")
+        self.assertEqual(extract_date_from_build("2026-09-30"), "2026-09-30")
+
+    def test_extract_date_from_build_invalid_formats(self):
+        self.assertIsNone(extract_date_from_build(None))
+        self.assertIsNone(extract_date_from_build(""))
+        self.assertIsNone(extract_date_from_build("invalid-date"))
+        self.assertIsNone(extract_date_from_build("2026-99-99"))
+
+    def test_run_scraper_derives_date_from_upstream_build_when_target_date_omitted(self):
+        mock_responses = {
+            "92/groups": {"results": [{"groupId": 100, "name": "Set 1"}]},
+            "92/100/products": {"results": [{"productId": 101, "name": "Card One", "cleanName": "Card One"}]},
+            "92/100/prices": {"results": [{"productId": 101, "subTypeName": "Normal", "marketPrice": 15.0}]},
+        }
+
+        with patch("scrape.fetch_json", side_effect=lambda ep: mock_responses.get(ep)), \
+             patch("scrape.fetch_text", return_value="2026-09-28T20:05:54+0000"):
+            success = run_scraper(output_dir=self.price_dir, force=False, target_date=None)
+            self.assertTrue(success)
+
+        expected_file = os.path.join(self.price_dir, "2026-09-28.json")
+        self.assertTrue(os.path.isfile(expected_file))
+        with open(expected_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["date"], "2026-09-28")
+        self.assertEqual(data["tcgcsvBuild"], "2026-09-28T20:05:54+0000")
 
 
 if __name__ == "__main__":
