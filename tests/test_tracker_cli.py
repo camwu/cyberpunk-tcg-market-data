@@ -17,6 +17,7 @@ from unittest.mock import patch, MagicMock
 import run_tracker
 from tracker.config import TrackerConfig
 from tracker.valuation import init_database
+from tracker.validation import CollectionValidationError
 
 
 class TestTrackerCLICollectionSource(unittest.TestCase):
@@ -280,6 +281,31 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         self.assertEqual(mock_calc.call_args.kwargs.get("collection_path"), str(target_csv))
         self.assertFalse(mock_calc.call_args.kwargs.get("force"))
         self.assertIn("Warning: CardNexus API sync failed. Falling back to cached collection:", mock_stderr.getvalue())
+
+    @patch("run_tracker.generate_portfolio_report")
+    @patch("run_tracker.calculate_portfolio_valuation")
+    @patch("run_tracker.sync_cardnexus_collection", side_effect=CollectionValidationError("Lot quantity mismatch"))
+    def test_sync_validation_error_halts_execution_with_exit_1(self, mock_sync_cn, mock_calc, mock_report):
+        target_csv = self.test_dir / "active_collection.csv"
+        target_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\nJohnny Silverhand,Welcome to Night City - Beta,001,Standard,1,\n",
+            encoding="utf-8",
+        )
+        test_args = [
+            "run_tracker.py",
+            "--collection", str(target_csv),
+            "--sync-collection",
+            "--db", self.db_path,
+            "--prices", self.price_dir,
+        ]
+        with patch.object(sys, "argv", test_args):
+            with self.assertRaises(SystemExit) as cm:
+                run_tracker.main()
+            self.assertEqual(cm.exception.code, 1)
+
+        mock_sync_cn.assert_called_once()
+        mock_calc.assert_not_called()
+        mock_report.assert_not_called()
 
     @patch("run_tracker.sync_cardnexus_collection")
     def test_api_failure_exits_when_no_collection_file_exists(self, mock_sync_cn):

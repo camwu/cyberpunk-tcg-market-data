@@ -151,12 +151,15 @@ def main():
                 collection_source = "CardNexus API (cached)"
             else:
                 print("\n--- Synchronizing Collection from CardNexus API ---")
-                success, promoted_file, total_units = sync_cardnexus_collection(
-                    target_csv=target_path,
-                    api_key=cfg.cardnexus_api_key,
-                    include_marketplace=args.include_marketplace,
-                    refresh_catalog=args.refresh_catalog,
-                )
+                try:
+                    success, promoted_file, total_units = sync_cardnexus_collection(
+                        target_csv=target_path,
+                        api_key=cfg.cardnexus_api_key,
+                        include_marketplace=args.include_marketplace,
+                        refresh_catalog=args.refresh_catalog,
+                    )
+                except CollectionValidationError:
+                    sys.exit(1)
                 if success:
                     cfg.collection_csv = target_path
                     collection_source = "CardNexus API"
