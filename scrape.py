@@ -17,27 +17,62 @@ CATEGORY_ID = 92
 BASE_URL = "https://tcgcsv.com/tcgplayer"
 LAST_UPDATED_URL = "https://tcgcsv.com/last-updated.txt"
 USER_AGENT = "CyberpunkTCGMarketTracker/1.0 (contact: github-actions-collector)"
+RATE_LIMIT_DELAY = 0.2
+MAX_RETRIES = 3
+RETRY_INITIAL_DELAY = 1.0
+RETRY_BACKOFF_FACTOR = 2.0
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
-def fetch_text(url: str) -> Optional[str]:
+def fetch_text(url: str, max_retries: int = MAX_RETRIES) -> Optional[str]:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return resp.read().decode("utf-8").strip()
-    except Exception as e:
-        print(f"Error fetching {url}: {e}", file=sys.stderr)
-        return None
+    for attempt in range(1, max_retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return resp.read().decode("utf-8").strip()
+        except urllib.error.HTTPError as e:
+            if e.code in RETRYABLE_STATUS_CODES and attempt < max_retries:
+                delay = RETRY_INITIAL_DELAY * (RETRY_BACKOFF_FACTOR ** (attempt - 1))
+                print(f"HTTP {e.code} fetching {url} (attempt {attempt}/{max_retries}). Retrying in {delay:.1f}s...", file=sys.stderr)
+                time.sleep(delay)
+                continue
+            print(f"Error fetching {url}: {e}", file=sys.stderr)
+            return None
+        except urllib.error.URLError as e:
+            if attempt < max_retries:
+                delay = RETRY_INITIAL_DELAY * (RETRY_BACKOFF_FACTOR ** (attempt - 1))
+                print(f"Network error fetching {url}: {e} (attempt {attempt}/{max_retries}). Retrying in {delay:.1f}s...", file=sys.stderr)
+                time.sleep(delay)
+                continue
+            print(f"Error fetching {url}: {e}", file=sys.stderr)
+            return None
+    return None
 
 
-def fetch_json(endpoint: str):
+def fetch_json(endpoint: str, max_retries: int = MAX_RETRIES):
     url = f"{BASE_URL}/{endpoint}" if not endpoint.startswith("http") else endpoint
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.URLError as e:
-        print(f"Error fetching {url}: {e}", file=sys.stderr)
-        return None
+    for attempt in range(1, max_retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            if e.code in RETRYABLE_STATUS_CODES and attempt < max_retries:
+                delay = RETRY_INITIAL_DELAY * (RETRY_BACKOFF_FACTOR ** (attempt - 1))
+                print(f"HTTP {e.code} fetching {url} (attempt {attempt}/{max_retries}). Retrying in {delay:.1f}s...", file=sys.stderr)
+                time.sleep(delay)
+                continue
+            print(f"Error fetching {url}: {e}", file=sys.stderr)
+            return None
+        except urllib.error.URLError as e:
+            if attempt < max_retries:
+                delay = RETRY_INITIAL_DELAY * (RETRY_BACKOFF_FACTOR ** (attempt - 1))
+                print(f"Network error fetching {url}: {e} (attempt {attempt}/{max_retries}). Retrying in {delay:.1f}s...", file=sys.stderr)
+                time.sleep(delay)
+                continue
+            print(f"Error fetching {url}: {e}", file=sys.stderr)
+            return None
+    return None
 
 
 def is_valid_snapshot(file_path: str) -> bool:
@@ -122,7 +157,7 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
             or (group_modified and cached_group.get("modifiedOn") != group_modified)
         )
 
-        time.sleep(0.2)
+        time.sleep(RATE_LIMIT_DELAY)
         price_data = fetch_json(f"{CATEGORY_ID}/{group_id}/prices")
 
         if price_data and "results" in price_data:
@@ -141,7 +176,7 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
 
         if need_products:
             print(f"Fetching group {group_id}: {group_name} (metadata updated/new)...")
-            time.sleep(0.2)
+            time.sleep(RATE_LIMIT_DELAY)
             prod_data = fetch_json(f"{CATEGORY_ID}/{group_id}/products")
             if prod_data and "results" in prod_data:
                 for p in prod_data["results"]:

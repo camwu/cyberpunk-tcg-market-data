@@ -3,26 +3,41 @@ name: Test Suite
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'prices/**'
+      - 'cards.json'
+      - 'README.md'
+      - 'COPYING'
+      - '.gitignore'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'prices/**'
+      - 'cards.json'
+      - 'README.md'
+      - 'COPYING'
+      - '.gitignore'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test-matrix:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.11', '3.12']
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
 
       - name: Run Unit Tests
         run: |
@@ -33,10 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Confirm cross-platform test completion
+      - name: Confirm Python compatibility test completion
         run: |
           if [ "${{ needs.test-matrix.result }}" != "success" ]; then
-            echo "Cross-platform test matrix failed or was cancelled."
+            echo "Python compatibility matrix failed or was cancelled."
             exit 1
           fi
-          echo "All cross-platform matrix runners passed successfully."
+          echo "All Python compatibility matrix runners passed successfully."

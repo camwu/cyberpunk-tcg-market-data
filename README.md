@@ -15,6 +15,54 @@ Automated daily market price scraper and portfolio valuation CLI tool for the Cy
 
 ---
 
+## 📁 Project Structure & Setup
+
+The tracker supports two storage patterns: a zero-configuration local layout within the repository, and an optional external directory setup for separate cloud backup or multi-device synchronization.
+
+### 1. Default In-Repo Layout (Zero-Config)
+By default, the tracker runs entirely self-contained within the repository. Private user data resides inside the local `data/` directory, which is pre-configured in `.gitignore` to keep personal collections, valuation databases, and transaction ledgers uncommitted:
+
+```
+cyberpunk-tcg-market-data/
+├── cards.json                 # Global card catalog metadata (tracked)
+├── prices/                    # Daily scraped market price snapshots (tracked)
+├── tracker/                   # Application code and valuation pipeline
+├── scrape.py                  # Standalone daily market price scraper
+├── run_tracker.py             # Main CLI entry point
+├── update_portfolio.bat       # Windows 1-click execution launcher
+├── update_portfolio.sh        # Unix 1-click execution launcher
+└── data/                      # Local private data directory (gitignored)
+    ├── price_history.db       # Historical portfolio valuation SQLite database
+    ├── my_collection.csv      # CardNexus collection export (auto-discovered)
+    ├── purchase_history/      # Dropped purchase receipts (.pdf, .csv, .txt, .json)
+    ├── purchase_history.csv   # Auditable purchase ledger
+    └── purchase_history_cache.json # Receipt SHA-256 fingerprint cache
+```
+
+### 2. External Directory Setup (Optional)
+If you prefer to store your personal collection files, valuation database, and purchase receipts in a separate folder outside the repository tree (for example, inside a cloud-synchronized folder or dedicated private documents directory), create a local `config.json` to redirect storage:
+
+1. Copy the example configuration:
+   ```bash
+   cp config.example.json config.json
+   ```
+2. Configure external relative or absolute paths:
+   ```json
+   {
+     "collection_csv": "../my_collection",
+     "database_path": "../my_collection/price_history.db",
+     "price_cache_dir": "prices",
+     "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
+     "purchase_history_dir": "../my_collection/purchase_history"
+   }
+   ```
+   `config.json` is listed in `.gitignore` so your personal directory paths remain private and untracked.
+
+### 3. Launcher Workflow
+The 1-click launchers (`update_portfolio.bat` on Windows and `update_portfolio.sh` on macOS/Linux) automatically read active paths from `config.json` (or default to `data/`), run the portfolio valuation pipeline, and open the generated markdown report directly upon completion without requiring terminal interaction.
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
