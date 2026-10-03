@@ -23,8 +23,7 @@ from tracker.validation import (
     CollectionValidationError,
 )
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-REPO_PRICES_DIR = REPO_ROOT / "prices"
+from tracker.constants import REPO_ROOT, REPO_PRICES_DIR, REPO_CARDS_FILE
 
 
 @dataclass
@@ -307,7 +306,7 @@ def load_price_catalog(
         cards_candidates = [
             os.path.join(cache_dir, "cards.json"),
             os.path.join(os.path.dirname(cache_dir), "cards.json"),
-            str(REPO_ROOT / "cards.json"),
+            str(REPO_CARDS_FILE),
         ]
         cards_file = next((c for c in cards_candidates if os.path.isfile(c)), None)
         cards_catalog = {}

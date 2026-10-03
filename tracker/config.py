@@ -11,8 +11,9 @@ from pathlib import Path
 import sys
 from typing import Optional
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_PRICES_DIR = str((REPO_ROOT / "prices").resolve())
+from tracker.constants import REPO_ROOT, REPO_PRICES_DIR
+
+DEFAULT_PRICES_DIR = str(REPO_PRICES_DIR.resolve())
 
 
 @dataclass

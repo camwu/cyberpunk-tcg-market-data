@@ -18,10 +18,9 @@ import urllib.parse
 import urllib.request
 
 from tracker.validation import validate_collection_file, is_sealed_product, CollectionValidationError
+from tracker.constants import USER_AGENT, CACHE_TTL_24H_SECONDS
 
 API_BASE_URL = "https://public-api.cardnexus.com/v1"
-USER_AGENT = "CyberpunkTCGMarketTracker/1.0"
-CATALOG_CACHE_TTL_SECONDS = 86400  # 24 hours
 STEADY_STATE_SLEEP_SECONDS = 1.0  # CardNexus docs safe pattern: 1 req/s under 60 req/min cap
 
 
@@ -153,7 +152,7 @@ class CardNexusClient:
 
         if not refresh and cache_file.is_file():
             age = time.time() - cache_file.stat().st_mtime
-            if age < CATALOG_CACHE_TTL_SECONDS:
+            if age < CACHE_TTL_24H_SECONDS:
                 try:
                     with open(cache_file, "r", encoding="utf-8") as f:
                         cached_raw = json.load(f)
