@@ -26,8 +26,7 @@ from tracker.validation import (
 )
 from tracker.cardnexus import sync_cardnexus_collection
 from tracker.purchases import sync_purchase_history, get_purchase_history_updated_at
-
-COLLECTION_CACHE_TTL_SECONDS = 86400  # 24 hours
+from tracker.constants import CACHE_TTL_24H_SECONDS
 
 
 def import_collection_file(source_path: str, target_path: str) -> bool:
@@ -142,7 +141,7 @@ def main(argv: Optional[List[str]] = None):
             file_age_seconds = None
             if os.path.isfile(target_path):
                 file_age_seconds = time.time() - os.path.getmtime(target_path)
-                if file_age_seconds < COLLECTION_CACHE_TTL_SECONDS:
+                if file_age_seconds < CACHE_TTL_24H_SECONDS:
                     cache_valid = True
 
             if cache_valid and args.sync_collection is not True:

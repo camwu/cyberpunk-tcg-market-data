@@ -22,15 +22,14 @@ LAST_UPDATED_URL = "https://tcgcsv.com/last-updated.txt"
 ARCHIVE_BASE_URL = "https://tcgcsv.com/archive/tcgplayer"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/camwu/cyberpunk-tcg-market-data/main"
 GITHUB_RAW_URL = f"{GITHUB_RAW_BASE}/prices"
-USER_AGENT = "CyberpunkTCGMarketTracker/1.0"
+from tracker.constants import REPO_ROOT, REPO_PRICES_DIR, REPO_CARDS_FILE, USER_AGENT
+
 RATE_LIMIT_DELAY = 0.2
-REPO_ROOT = Path(__file__).resolve().parent.parent
-REPO_PRICES_DIR = REPO_ROOT / "prices"
 
 
 def sync_cards_catalog(target_dir: str = "prices") -> str:
     """Ensures cards.json catalog is present locally or in repository root."""
-    repo_cards = REPO_ROOT / "cards.json"
+    repo_cards = REPO_CARDS_FILE
     target_cards = os.path.join(target_dir, "cards.json")
     parent_cards = os.path.join(os.path.dirname(target_dir), "cards.json")
 
