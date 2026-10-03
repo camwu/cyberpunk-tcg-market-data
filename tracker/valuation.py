@@ -409,14 +409,46 @@ def deduplicate_and_merge_items(
     return card_items, sealed_items, all_items
 
 
+def extract_raw_acquisition_date(row: Dict[str, Any]) -> Optional[str]:
+    """Extracts raw acquisition date from row's acquisitionDate or notes field."""
+    raw = (row.get("acquisitionDate") or "").strip()
+    if not raw and row.get("notes"):
+        raw = extract_date_from_text(row.get("notes")) or ""
+    return raw or None
+
+
+def lookup_first_seen_date(
+    cur: sqlite3.Cursor,
+    item_type: str,
+    prod_id: Optional[int],
+    name: str,
+    expansion: str,
+    print_number: Optional[str],
+    finish: str,
+) -> Optional[str]:
+    """Queries card_metadata for the earliest first_seen_date matching the item."""
+    if item_type == "Sealed":
+        cur.execute(
+            "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed' AND (product_id = ? OR name = ?) ORDER BY first_seen_date ASC LIMIT 1",
+            (prod_id, name),
+        )
+    else:
+        cur.execute(
+            "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Card' AND expansion = ? AND print_number = ? AND finish = ? ORDER BY first_seen_date ASC LIMIT 1",
+            (expansion, print_number, finish),
+        )
+    existing_meta = cur.fetchone()
+    if existing_meta and existing_meta[1]:
+        return existing_meta[1]
+    return None
+
+
 def match_collection_item(
     row: Dict[str, Any],
     indexes: Dict[str, Any],
-    date_str: str,
-    earliest_price_date: Optional[str],
-    cur: sqlite3.Cursor,
+    effective_acq_date: str,
 ) -> Tuple[Optional[Dict[str, Any]], ItemValuationContext, Tuple, bool, str]:
-    """Matches a collection row against catalog indexes and constructs an ItemValuationContext."""
+    """Pure function matching a collection row against catalog indexes and constructing ItemValuationContext."""
     item_type = row.get("item_type")
     if not item_type:
         item_type = "Sealed" if is_sealed_product(row.get("name", ""), row.get("expansion", "")) else "Card"
@@ -460,42 +492,10 @@ def match_collection_item(
         card_type = row.get("card_type")
         is_matched = False
 
-    acq_date_raw = (row.get("acquisitionDate") or "").strip()
-    if not acq_date_raw and row.get("notes"):
-        acq_date_raw = extract_date_from_text(row.get("notes")) or ""
-
-    if acq_date_raw:
-        if earliest_price_date and acq_date_raw < earliest_price_date:
-            effective_acq_date = earliest_price_date
-        else:
-            effective_acq_date = acq_date_raw
-    else:
-        effective_acq_date = date_str
-
     if item_type == "Sealed":
-        if not acq_date_raw:
-            cur.execute(
-                "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed' AND (product_id = ? OR name = ?) ORDER BY first_seen_date ASC LIMIT 1",
-                (prod_id, name),
-            )
-            existing_meta = cur.fetchone()
-            if existing_meta and existing_meta[1]:
-                effective_acq_date = existing_meta[1]
-            else:
-                effective_acq_date = date_str
         card_key = f"SEALED::{expansion}::{prod_id or name}::{effective_acq_date}"
         rarity = "Sealed"
     else:
-        if not acq_date_raw:
-            cur.execute(
-                "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Card' AND expansion = ? AND print_number = ? AND finish = ? ORDER BY first_seen_date ASC LIMIT 1",
-                (expansion, print_number, finish),
-            )
-            existing_meta = cur.fetchone()
-            if existing_meta and existing_meta[1]:
-                effective_acq_date = existing_meta[1]
-            else:
-                effective_acq_date = date_str
         card_key = f"{expansion}::{print_number}::{finish}::{effective_acq_date}"
 
     ctx = ItemValuationContext(
@@ -817,9 +817,23 @@ def calculate_portfolio_valuation(
     session_price_cache: Dict[Tuple[str, str], Any] = {}
 
     for row in all_items:
-        prod, ctx, distinct_key, is_matched, label = match_collection_item(
-            row, catalog_indexes, date_str, earliest_price_date, cur
-        )
+        raw_acq_date = extract_raw_acquisition_date(row)
+        if raw_acq_date:
+            effective_acq_date = max(raw_acq_date, earliest_price_date) if earliest_price_date else raw_acq_date
+            prod, ctx, distinct_key, is_matched, label = match_collection_item(
+                row, catalog_indexes, effective_acq_date
+            )
+        else:
+            prod, ctx, distinct_key, is_matched, label = match_collection_item(
+                row, catalog_indexes, date_str
+            )
+            first_seen = lookup_first_seen_date(
+                cur, ctx.item_type, ctx.prod_id, ctx.name, ctx.expansion, ctx.print_number, ctx.finish
+            )
+            if first_seen and first_seen != date_str:
+                prod, ctx, distinct_key, is_matched, label = match_collection_item(
+                    row, catalog_indexes, first_seen
+                )
 
         if is_matched:
             if distinct_key not in seen_distinct:

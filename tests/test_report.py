@@ -10,6 +10,8 @@ import unittest
 from pathlib import Path
 
 from tracker.report import generate_portfolio_report
+from tracker.valuation import init_database
+from tests.fixtures import seed_metadata, seed_snapshots, seed_summary
 
 
 class TestReportGeneration(unittest.TestCase):
@@ -20,72 +22,71 @@ class TestReportGeneration(unittest.TestCase):
         self.db_path = str(self.test_dir / "test_report.db")
         self.output_md = str(self.test_dir / "TEST_REPORT.md")
 
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("""
-        CREATE TABLE card_metadata (
-            card_key TEXT PRIMARY KEY,
-            product_id INTEGER,
-            name TEXT,
-            print_number TEXT,
-            expansion TEXT,
-            finish TEXT,
-            rarity TEXT,
-            color TEXT,
-            first_seen_date TEXT,
-            baseline_market_price REAL,
-            item_type TEXT DEFAULT 'Card'
+        conn = init_database(self.db_path)
+        seed_metadata(conn, [
+            {
+                "card_key": "Exp::001::Standard",
+                "product_id": 101,
+                "name": "Johnny Silverhand",
+                "print_number": "001",
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Standard",
+                "rarity": "Iconic",
+                "color": "Red",
+                "first_seen_date": "2026-09-11",
+                "baseline_market_price": 15.00,
+                "item_type": "Card",
+            },
+            {
+                "card_key": "SEALED::Welcome to Night City - Beta::714346::2026-09-11",
+                "product_id": 714346,
+                "name": "Welcome to Night City - Beta Booster Box",
+                "print_number": None,
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Standard",
+                "rarity": "Sealed",
+                "color": "",
+                "first_seen_date": "2026-09-11",
+                "baseline_market_price": 216.08,
+                "item_type": "Sealed",
+            },
+        ])
+        seed_snapshots(conn, "2026-09-14", [
+            {
+                "card_key": "Exp::001::Standard",
+                "quantity": 1,
+                "unit_market_price": 20.00,
+                "unit_low_price": 18.00,
+                "unit_mid_price": 20.00,
+                "unit_high_price": 25.00,
+                "line_total": 20.00,
+                "baseline_price": 15.00,
+                "lifetime_gain_dollar": 5.00,
+                "lifetime_gain_pct": 33.33,
+            },
+            {
+                "card_key": "SEALED::Welcome to Night City - Beta::714346::2026-09-11",
+                "quantity": 1,
+                "unit_market_price": 235.17,
+                "unit_low_price": 230.00,
+                "unit_mid_price": 235.00,
+                "unit_high_price": 250.00,
+                "line_total": 235.17,
+                "baseline_price": 216.08,
+                "lifetime_gain_dollar": 19.09,
+                "lifetime_gain_pct": 8.83,
+            },
+        ])
+        seed_summary(
+            conn,
+            "2026-09-14",
+            total_value=255.17,
+            total_cards=1,
+            total_sealed=1,
+            lifetime_gain=24.09,
+            cost_basis=0.0,
+            collection_source="—",
         )
-        """)
-        cur.execute("""
-        CREATE TABLE daily_snapshots (
-            date TEXT,
-            card_key TEXT,
-            quantity INTEGER,
-            unit_market_price REAL,
-            unit_low_price REAL,
-            unit_mid_price REAL,
-            unit_high_price REAL,
-            line_total REAL,
-            baseline_price REAL,
-            lifetime_gain_dollar REAL,
-            lifetime_gain_pct REAL,
-            PRIMARY KEY (date, card_key)
-        )
-        """)
-        cur.execute("""
-        CREATE TABLE portfolio_daily_summary (
-            date TEXT PRIMARY KEY,
-            total_value REAL,
-            total_cards INTEGER,
-            unique_items INTEGER,
-            l7d_dollar_delta REAL,
-            l7d_pct_delta REAL,
-            lifetime_dollar_gain REAL,
-            lifetime_pct_gain REAL,
-            total_sealed INTEGER DEFAULT 0
-        )
-        """)
-
-        # Insert 1 single card and 1 sealed booster box
-        cur.execute("""
-        INSERT INTO card_metadata VALUES
-        ('Exp::001::Standard', 101, 'Johnny Silverhand', '001', 'Welcome to Night City - Beta', 'Standard', 'Iconic', 'Red', '2026-09-11', 15.00, 'Card'),
-        ('SEALED::Welcome to Night City - Beta::714346::2026-09-11', 714346, 'Welcome to Night City - Beta Booster Box', NULL, 'Welcome to Night City - Beta', 'Standard', 'Sealed', NULL, '2026-09-11', 216.08, 'Sealed')
-        """)
-
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-14', 'Exp::001::Standard', 1, 20.00, 18.00, 20.00, 25.00, 20.00, 15.00, 5.00, 33.33),
-        ('2026-09-14', 'SEALED::Welcome to Night City - Beta::714346::2026-09-11', 1, 235.17, 230.00, 235.00, 250.00, 235.17, 216.08, 19.09, 8.83)
-        """)
-
-        cur.execute("""
-        INSERT INTO portfolio_daily_summary VALUES
-        ('2026-09-14', 255.17, 1, 2, 0.0, 0.0, 24.09, 10.42, 1)
-        """)
-
-        conn.commit()
         conn.close()
 
     def tearDown(self):
@@ -163,17 +164,34 @@ class TestReportGeneration(unittest.TestCase):
     def test_report_expansion_breakdown(self):
         conn = sqlite3.connect(self.db_path)
         try:
-            cur = conn.cursor()
             # Add a card from a second expansion: Cyberpunk Edgerunners
-            cur.execute("""
-            INSERT INTO card_metadata VALUES
-            ('Exp2::002::Standard', 102, 'David Martinez', '002', 'Cyberpunk Edgerunners', 'Standard', 'Rare', 'Yellow', '2026-09-11', 50.00, 'Card')
-            """)
-            cur.execute("""
-            INSERT INTO daily_snapshots VALUES
-            ('2026-09-14', 'Exp2::002::Standard', 2, 60.00, 55.00, 60.00, 70.00, 120.00, 50.00, 10.00, 20.00)
-            """)
+            seed_metadata(conn, [{
+                "card_key": "Exp2::002::Standard",
+                "product_id": 102,
+                "name": "David Martinez",
+                "print_number": "002",
+                "expansion": "Cyberpunk Edgerunners",
+                "finish": "Standard",
+                "rarity": "Rare",
+                "color": "Yellow",
+                "first_seen_date": "2026-09-11",
+                "baseline_market_price": 50.00,
+                "item_type": "Card",
+            }])
+            seed_snapshots(conn, "2026-09-14", [{
+                "card_key": "Exp2::002::Standard",
+                "quantity": 2,
+                "unit_market_price": 60.00,
+                "unit_low_price": 55.00,
+                "unit_mid_price": 60.00,
+                "unit_high_price": 70.00,
+                "line_total": 120.00,
+                "baseline_price": 50.00,
+                "lifetime_gain_dollar": 10.00,
+                "lifetime_gain_pct": 20.00,
+            }])
             # Update summary total_val to reflect the added card: 255.17 + 120.00 = 375.17
+            cur = conn.cursor()
             cur.execute("UPDATE portfolio_daily_summary SET total_value = 375.17, total_cards = 3, unique_items = 3 WHERE date = '2026-09-14'")
             conn.commit()
         finally:
@@ -216,16 +234,27 @@ class TestReportGeneration(unittest.TestCase):
     def test_report_target_date_historical(self):
         # Insert historical 2026-09-13 record
         conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("""
-        INSERT INTO portfolio_daily_summary VALUES
-        ('2026-09-13', 200.00, 1, 1, 0.0, 0.0, 10.00, 5.00, 0)
-        """)
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-13', 'Exp::001::Standard', 1, 15.00, 15.00, 15.00, 20.00, 15.00, 15.00, 0.00, 0.00)
-        """)
-        conn.commit()
+        seed_summary(
+            conn,
+            "2026-09-13",
+            total_value=200.00,
+            total_cards=1,
+            unique_items=1,
+            lifetime_gain=10.00,
+            lifetime_pct=5.00,
+        )
+        seed_snapshots(conn, "2026-09-13", [{
+            "card_key": "Exp::001::Standard",
+            "quantity": 1,
+            "unit_market_price": 15.00,
+            "unit_low_price": 15.00,
+            "unit_mid_price": 15.00,
+            "unit_high_price": 20.00,
+            "line_total": 15.00,
+            "baseline_price": 15.00,
+            "lifetime_gain_dollar": 0.00,
+            "lifetime_gain_pct": 0.00,
+        }])
         conn.close()
 
         # Generate report specifically for 2026-09-13 even though 2026-09-14 exists
@@ -250,32 +279,35 @@ class TestReportGeneration(unittest.TestCase):
 
     def test_report_l7d_gainers_and_decliners(self):
         conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-
-        # Add a decliner card
-        cur.execute("""
-        INSERT INTO card_metadata VALUES
-        ('Exp::002::Standard', 102, 'V - Nomad', '002', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Yellow', '2026-09-07', 30.00, 'Card')
-        """)
-
-        # Add prior day snapshot (2026-09-07)
-        cur.execute("""
-        INSERT INTO portfolio_daily_summary VALUES
-        ('2026-09-07', 245.00, 2, 3, 0.0, 0.0, 0.0, 0.0, 1)
-        """)
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-07', 'Exp::001::Standard', 1, 15.00, 15.00, 15.00, 20.00, 15.00, 15.00, 0.00, 0.00),
-        ('2026-09-07', 'Exp::002::Standard', 1, 30.00, 28.00, 30.00, 35.00, 30.00, 30.00, 0.00, 0.00),
-        ('2026-09-07', 'SEALED::Welcome to Night City - Beta::714346::2026-09-11', 1, 200.00, 190.00, 200.00, 220.00, 200.00, 200.00, 0.00, 0.00)
-        """)
-
-        # Add 2026-09-14 snapshot for the decliner card
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-14', 'Exp::002::Standard', 1, 20.00, 18.00, 20.00, 25.00, 20.00, 30.00, -10.00, -33.33)
-        """)
-        conn.commit()
+        seed_metadata(conn, [{
+            "card_key": "Exp::002::Standard",
+            "product_id": 102,
+            "name": "V - Nomad",
+            "print_number": "002",
+            "expansion": "Welcome to Night City - Beta",
+            "finish": "Standard",
+            "rarity": "Rare",
+            "color": "Yellow",
+            "first_seen_date": "2026-09-07",
+            "baseline_market_price": 30.00,
+            "item_type": "Card",
+        }])
+        seed_summary(
+            conn,
+            "2026-09-07",
+            total_value=245.00,
+            total_cards=2,
+            total_sealed=1,
+            unique_items=3,
+        )
+        seed_snapshots(conn, "2026-09-07", [
+            {"card_key": "Exp::001::Standard", "quantity": 1, "unit_market_price": 15.00, "line_total": 15.00, "baseline_price": 15.00},
+            {"card_key": "Exp::002::Standard", "quantity": 1, "unit_market_price": 30.00, "line_total": 30.00, "baseline_price": 30.00},
+            {"card_key": "SEALED::Welcome to Night City - Beta::714346::2026-09-11", "quantity": 1, "unit_market_price": 200.00, "line_total": 200.00, "baseline_price": 200.00},
+        ])
+        seed_snapshots(conn, "2026-09-14", [
+            {"card_key": "Exp::002::Standard", "quantity": 1, "unit_market_price": 20.00, "unit_low_price": 18.00, "unit_mid_price": 20.00, "unit_high_price": 25.00, "line_total": 20.00, "baseline_price": 30.00, "lifetime_gain_dollar": -10.00, "lifetime_gain_pct": -33.33},
+        ])
         conn.close()
 
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
@@ -305,16 +337,26 @@ class TestReportGeneration(unittest.TestCase):
 
     def test_report_color_null_and_empty_string_safety(self):
         conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("""
-        INSERT INTO card_metadata VALUES
-        ('Exp::003::Standard', 103, 'Uncolored Card', '003', 'Welcome to Night City - Beta', 'Standard', 'Common', '', '2026-09-14', 5.00, 'Card')
-        """)
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-14', 'Exp::003::Standard', 1, 5.00, 5.00, 5.00, 5.00, 5.00, 5.00, 0.00, 0.00)
-        """)
-        conn.commit()
+        seed_metadata(conn, [{
+            "card_key": "Exp::003::Standard",
+            "product_id": 103,
+            "name": "Uncolored Card",
+            "print_number": "003",
+            "expansion": "Welcome to Night City - Beta",
+            "finish": "Standard",
+            "rarity": "Common",
+            "color": "",
+            "first_seen_date": "2026-09-14",
+            "baseline_market_price": 5.00,
+            "item_type": "Card",
+        }])
+        seed_snapshots(conn, "2026-09-14", [{
+            "card_key": "Exp::003::Standard",
+            "quantity": 1,
+            "unit_market_price": 5.00,
+            "line_total": 5.00,
+            "baseline_price": 5.00,
+        }])
         conn.close()
 
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
@@ -326,23 +368,23 @@ class TestReportGeneration(unittest.TestCase):
 
     def test_multi_lot_high_value_cards_aggregated(self):
         conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        # Insert 2 lots for Towerfall (print B034, unit_market_price 15.00)
-        cur.execute("""
-        INSERT INTO card_metadata VALUES
-        ('Exp::B034::Standard::2026-09-02', 500, 'Towerfall', 'B034', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Blue', '2026-09-02', 10.00, 'Card'),
-        ('Exp::B034::Standard::2026-09-18', 500, 'Towerfall', 'B034', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Blue', '2026-09-18', 15.00, 'Card')
-        """)
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-18', 'Exp::B034::Standard::2026-09-02', 1, 15.00, 15.00, 15.00, 18.00, 15.00, 10.00, 5.00, 50.0),
-        ('2026-09-18', 'Exp::B034::Standard::2026-09-18', 2, 15.00, 15.00, 15.00, 18.00, 30.00, 15.00, 0.00, 0.0)
-        """)
-        cur.execute("""
-        INSERT INTO portfolio_daily_summary VALUES
-        ('2026-09-18', 45.00, 3, 1, 0.0, 0.0, 5.00, 12.5, 0)
-        """)
-        conn.commit()
+        seed_metadata(conn, [
+            {"card_key": "Exp::B034::Standard::2026-09-02", "product_id": 500, "name": "Towerfall", "print_number": "B034", "expansion": "Welcome to Night City - Beta", "finish": "Standard", "rarity": "Rare", "color": "Blue", "first_seen_date": "2026-09-02", "baseline_market_price": 10.00, "item_type": "Card"},
+            {"card_key": "Exp::B034::Standard::2026-09-18", "product_id": 500, "name": "Towerfall", "print_number": "B034", "expansion": "Welcome to Night City - Beta", "finish": "Standard", "rarity": "Rare", "color": "Blue", "first_seen_date": "2026-09-18", "baseline_market_price": 15.00, "item_type": "Card"},
+        ])
+        seed_snapshots(conn, "2026-09-18", [
+            {"card_key": "Exp::B034::Standard::2026-09-02", "quantity": 1, "unit_market_price": 15.00, "unit_low_price": 15.00, "unit_mid_price": 15.00, "unit_high_price": 18.00, "line_total": 15.00, "baseline_price": 10.00, "lifetime_gain_dollar": 5.00, "lifetime_gain_pct": 50.0},
+            {"card_key": "Exp::B034::Standard::2026-09-18", "quantity": 2, "unit_market_price": 15.00, "unit_low_price": 15.00, "unit_mid_price": 15.00, "unit_high_price": 18.00, "line_total": 30.00, "baseline_price": 15.00, "lifetime_gain_dollar": 0.00, "lifetime_gain_pct": 0.0},
+        ])
+        seed_summary(
+            conn,
+            "2026-09-18",
+            total_value=45.00,
+            total_cards=3,
+            unique_items=1,
+            lifetime_gain=5.00,
+            lifetime_pct=12.5,
+        )
         conn.close()
 
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-18")
@@ -360,23 +402,23 @@ class TestReportGeneration(unittest.TestCase):
 
     def test_multi_lot_rarity_breakdown_distinct_card_count(self):
         conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        # Insert 2 lots for Towerfall (print B034)
-        cur.execute("""
-        INSERT INTO card_metadata VALUES
-        ('Exp::B034::Standard::2026-09-02', 500, 'Towerfall', 'B034', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Blue', '2026-09-02', 10.00, 'Card'),
-        ('Exp::B034::Standard::2026-09-18', 500, 'Towerfall', 'B034', 'Welcome to Night City - Beta', 'Standard', 'Rare', 'Blue', '2026-09-18', 15.00, 'Card')
-        """)
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-18', 'Exp::B034::Standard::2026-09-02', 1, 15.00, 15.00, 15.00, 18.00, 15.00, 10.00, 5.00, 50.0),
-        ('2026-09-18', 'Exp::B034::Standard::2026-09-18', 2, 15.00, 15.00, 15.00, 18.00, 30.00, 15.00, 0.00, 0.0)
-        """)
-        cur.execute("""
-        INSERT INTO portfolio_daily_summary VALUES
-        ('2026-09-18', 45.00, 3, 1, 0.0, 0.0, 5.00, 12.5, 0)
-        """)
-        conn.commit()
+        seed_metadata(conn, [
+            {"card_key": "Exp::B034::Standard::2026-09-02", "product_id": 500, "name": "Towerfall", "print_number": "B034", "expansion": "Welcome to Night City - Beta", "finish": "Standard", "rarity": "Rare", "color": "Blue", "first_seen_date": "2026-09-02", "baseline_market_price": 10.00, "item_type": "Card"},
+            {"card_key": "Exp::B034::Standard::2026-09-18", "product_id": 500, "name": "Towerfall", "print_number": "B034", "expansion": "Welcome to Night City - Beta", "finish": "Standard", "rarity": "Rare", "color": "Blue", "first_seen_date": "2026-09-18", "baseline_market_price": 15.00, "item_type": "Card"},
+        ])
+        seed_snapshots(conn, "2026-09-18", [
+            {"card_key": "Exp::B034::Standard::2026-09-02", "quantity": 1, "unit_market_price": 15.00, "unit_low_price": 15.00, "unit_mid_price": 15.00, "unit_high_price": 18.00, "line_total": 15.00, "baseline_price": 10.00, "lifetime_gain_dollar": 5.00, "lifetime_gain_pct": 50.0},
+            {"card_key": "Exp::B034::Standard::2026-09-18", "quantity": 2, "unit_market_price": 15.00, "unit_low_price": 15.00, "unit_mid_price": 15.00, "unit_high_price": 18.00, "line_total": 30.00, "baseline_price": 15.00, "lifetime_gain_dollar": 0.00, "lifetime_gain_pct": 0.0},
+        ])
+        seed_summary(
+            conn,
+            "2026-09-18",
+            total_value=45.00,
+            total_cards=3,
+            unique_items=1,
+            lifetime_gain=5.00,
+            lifetime_pct=12.5,
+        )
         conn.close()
 
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-18")
@@ -388,24 +430,25 @@ class TestReportGeneration(unittest.TestCase):
 
     def test_top_gainers_ranks_by_per_unit_delta_and_includes_acquired_date(self):
         conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
         # Card A: 1 copy, unit price 20.00, baseline 10.00 -> +10.00/unit, total gain $10.00
         # Card B: 2 copies, unit price 20.00, baseline 12.00 -> +8.00/unit, total gain $16.00
-        cur.execute("""
-        INSERT INTO card_metadata VALUES
-        ('Exp::A::Standard::2026-09-02', 601, 'Card Alpha', 'A', 'Expansion A', 'Standard', 'Rare', 'Red', '2026-09-02', 10.00, 'Card'),
-        ('Exp::B::Standard::2026-09-10', 602, 'Card Beta', 'B', 'Expansion A', 'Standard', 'Rare', 'Blue', '2026-09-10', 12.00, 'Card')
-        """)
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-19', 'Exp::A::Standard::2026-09-02', 1, 20.00, 20.00, 20.00, 20.00, 20.00, 10.00, 10.00, 100.0),
-        ('2026-09-19', 'Exp::B::Standard::2026-09-10', 2, 20.00, 20.00, 20.00, 20.00, 40.00, 12.00, 16.00, 66.7)
-        """)
-        cur.execute("""
-        INSERT INTO portfolio_daily_summary VALUES
-        ('2026-09-19', 60.00, 3, 2, 0.0, 0.0, 26.00, 76.5, 0)
-        """)
-        conn.commit()
+        seed_metadata(conn, [
+            {"card_key": "Exp::A::Standard::2026-09-02", "product_id": 601, "name": "Card Alpha", "print_number": "A", "expansion": "Expansion A", "finish": "Standard", "rarity": "Rare", "color": "Red", "first_seen_date": "2026-09-02", "baseline_market_price": 10.00, "item_type": "Card"},
+            {"card_key": "Exp::B::Standard::2026-09-10", "product_id": 602, "name": "Card Beta", "print_number": "B", "expansion": "Expansion A", "finish": "Standard", "rarity": "Rare", "color": "Blue", "first_seen_date": "2026-09-10", "baseline_market_price": 12.00, "item_type": "Card"},
+        ])
+        seed_snapshots(conn, "2026-09-19", [
+            {"card_key": "Exp::A::Standard::2026-09-02", "quantity": 1, "unit_market_price": 20.00, "unit_low_price": 20.00, "unit_mid_price": 20.00, "unit_high_price": 20.00, "line_total": 20.00, "baseline_price": 10.00, "lifetime_gain_dollar": 10.00, "lifetime_gain_pct": 100.0},
+            {"card_key": "Exp::B::Standard::2026-09-10", "quantity": 2, "unit_market_price": 20.00, "unit_low_price": 20.00, "unit_mid_price": 20.00, "unit_high_price": 20.00, "line_total": 40.00, "baseline_price": 12.00, "lifetime_gain_dollar": 16.00, "lifetime_gain_pct": 66.7},
+        ])
+        seed_summary(
+            conn,
+            "2026-09-19",
+            total_value=60.00,
+            total_cards=3,
+            unique_items=2,
+            lifetime_gain=26.00,
+            lifetime_pct=76.5,
+        )
         conn.close()
 
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-19")
@@ -429,32 +472,25 @@ class TestReportGeneration(unittest.TestCase):
 
     def test_high_value_singles_subsections_and_card_types(self):
         conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-        cur.execute("PRAGMA table_info(card_metadata)")
-        cols = [col[1] for col in cur.fetchall()]
-        if "card_type" not in cols:
-            cur.execute("ALTER TABLE card_metadata ADD COLUMN card_type TEXT")
-
-        cur.execute("""
-        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, card_type)
-        VALUES
-        ('Exp::001::Foil::2026-09-02', 801, 'Hanako Iconic', 'B141', 'Welcome to Night City - Beta', 'Foil', 'Iconic Legend', 'Green', '2026-09-02', 40.00, 'Card', 'Legend'),
-        ('Exp::002::Foil::2026-09-02', 802, 'Mantis Nova', '008', 'Welcome to Night City - Beta', 'Foil', 'Nova Rare', 'Red', '2026-09-02', 25.00, 'Card', 'Gear'),
-        ('Exp::003::Foil::2026-09-02', 803, 'Jackie Epic', 'B050', 'Welcome to Night City - Beta', 'Foil', 'Epic', 'Blue', '2026-09-02', 10.00, 'Card', 'Unit')
-        """)
-
-        cur.execute("""
-        INSERT INTO daily_snapshots VALUES
-        ('2026-09-20', 'Exp::001::Foil::2026-09-02', 1, 50.00, 50.00, 50.00, 50.00, 50.00, 40.00, 10.00, 25.0),
-        ('2026-09-20', 'Exp::002::Foil::2026-09-02', 1, 30.00, 30.00, 30.00, 30.00, 30.00, 25.00, 5.00, 20.0),
-        ('2026-09-20', 'Exp::003::Foil::2026-09-02', 1, 15.00, 15.00, 15.00, 15.00, 15.00, 10.00, 5.00, 50.0)
-        """)
-
-        cur.execute("""
-        INSERT INTO portfolio_daily_summary VALUES
-        ('2026-09-20', 95.00, 3, 3, 0.0, 0.0, 20.00, 26.7, 0)
-        """)
-        conn.commit()
+        seed_metadata(conn, [
+            {"card_key": "Exp::001::Foil::2026-09-02", "product_id": 801, "name": "Hanako Iconic", "print_number": "B141", "expansion": "Welcome to Night City - Beta", "finish": "Foil", "rarity": "Iconic Legend", "color": "Green", "first_seen_date": "2026-09-02", "baseline_market_price": 40.00, "item_type": "Card", "card_type": "Legend"},
+            {"card_key": "Exp::002::Foil::2026-09-02", "product_id": 802, "name": "Mantis Nova", "print_number": "008", "expansion": "Welcome to Night City - Beta", "finish": "Foil", "rarity": "Nova Rare", "color": "Red", "first_seen_date": "2026-09-02", "baseline_market_price": 25.00, "item_type": "Card", "card_type": "Gear"},
+            {"card_key": "Exp::003::Foil::2026-09-02", "product_id": 803, "name": "Jackie Epic", "print_number": "B050", "expansion": "Welcome to Night City - Beta", "finish": "Foil", "rarity": "Epic", "color": "Blue", "first_seen_date": "2026-09-02", "baseline_market_price": 10.00, "item_type": "Card", "card_type": "Unit"},
+        ])
+        seed_snapshots(conn, "2026-09-20", [
+            {"card_key": "Exp::001::Foil::2026-09-02", "quantity": 1, "unit_market_price": 50.00, "unit_low_price": 50.00, "unit_mid_price": 50.00, "unit_high_price": 50.00, "line_total": 50.00, "baseline_price": 40.00, "lifetime_gain_dollar": 10.00, "lifetime_gain_pct": 25.0},
+            {"card_key": "Exp::002::Foil::2026-09-02", "quantity": 1, "unit_market_price": 30.00, "unit_low_price": 30.00, "unit_mid_price": 30.00, "unit_high_price": 30.00, "line_total": 30.00, "baseline_price": 25.00, "lifetime_gain_dollar": 5.00, "lifetime_gain_pct": 20.0},
+            {"card_key": "Exp::003::Foil::2026-09-02", "quantity": 1, "unit_market_price": 15.00, "unit_low_price": 15.00, "unit_mid_price": 15.00, "unit_high_price": 15.00, "line_total": 15.00, "baseline_price": 10.00, "lifetime_gain_dollar": 5.00, "lifetime_gain_pct": 50.0},
+        ])
+        seed_summary(
+            conn,
+            "2026-09-20",
+            total_value=95.00,
+            total_cards=3,
+            unique_items=3,
+            lifetime_gain=20.00,
+            lifetime_pct=26.7,
+        )
         conn.close()
 
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-20")
@@ -517,6 +553,85 @@ class TestReportGeneration(unittest.TestCase):
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
         content = Path(self.output_md).read_text(encoding="utf-8")
         self.assertNotIn("**Purchases Last Updated**:", content)
+
+    def test_report_numerical_roi_and_net_return(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            seed_summary(
+                conn,
+                "2026-09-14",
+                total_value=1250.00,
+                total_cards=3,
+                cost_basis=1000.00,
+                net_unrealized_gain=250.00,
+                net_unrealized_pct=25.00,
+            )
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        self.assertIn("| **Total Portfolio Market Value** | **`$1,250.00`** |", content)
+        self.assertIn("| **Total Invested Cost Basis** | **`$1,000.00`** |", content)
+        self.assertIn("| **Net Unrealized Gain / Loss** | **+$250.00** (+25.00%) |", content)
+
+    def test_report_rolling_l7d_delta_accuracy(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            seed_summary(
+                conn,
+                "2026-09-14",
+                total_value=1250.00,
+                total_cards=3,
+                l7d_dollar_delta=250.00,
+                l7d_pct_delta=25.00,
+            )
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        self.assertIn("| **Rolling L7D Performance** | **+$250.00** (+25.00%) |", content)
+
+    def test_report_high_value_singles_boundary_conditions(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM daily_snapshots WHERE date = '2026-09-14'")
+            cur.execute("DELETE FROM card_metadata")
+
+            seed_metadata(conn, [
+                {"card_key": "C::001", "name": "Under Threshold Card", "expansion": "NC", "finish": "Standard", "rarity": "Common", "item_type": "Card", "print_number": "001"},
+                {"card_key": "C::002", "name": "Exact Boundary Card", "expansion": "NC", "finish": "Standard", "rarity": "Rare", "item_type": "Card", "print_number": "002"},
+                {"card_key": "C::003", "name": "Well Over Threshold Card", "expansion": "NC", "finish": "Standard", "rarity": "Epic", "item_type": "Card", "print_number": "003"},
+            ])
+            seed_snapshots(conn, "2026-09-14", [
+                {"card_key": "C::001", "quantity": 1, "unit_market_price": 9.99, "line_total": 9.99},
+                {"card_key": "C::002", "quantity": 1, "unit_market_price": 10.00, "line_total": 10.00},
+                {"card_key": "C::003", "quantity": 1, "unit_market_price": 25.00, "line_total": 25.00},
+            ])
+            seed_summary(conn, "2026-09-14", total_value=44.99, total_cards=3)
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        self.assertIn("### High-Value Singles", content)
+        # $9.99 must be strictly excluded
+        self.assertNotIn("Under Threshold Card", content)
+        # $10.00 must be included (boundary condition inclusive >= 10.0)
+        self.assertIn("Exact Boundary Card", content)
+        self.assertIn("`$10.00`", content)
+        # $25.00 must be included
+        self.assertIn("Well Over Threshold Card", content)
+        self.assertIn("`$25.00`", content)
+        # $25.00 must appear before $10.00 in high value table (sorted descending)
+        idx_25 = content.index("Well Over Threshold Card")
+        idx_10 = content.index("Exact Boundary Card")
+        self.assertTrue(idx_25 < idx_10)
 
 
 if __name__ == "__main__":

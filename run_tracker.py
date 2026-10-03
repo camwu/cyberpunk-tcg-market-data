@@ -12,6 +12,7 @@ from pathlib import Path
 import shutil
 import sys
 import time
+from typing import List, Optional
 
 from tracker.config import load_config
 from tracker.sync import sync_market_prices, backfill_market_prices
@@ -48,7 +49,7 @@ def import_collection_file(source_path: str, target_path: str) -> bool:
     return True
 
 
-def main():
+def main(argv: Optional[List[str]] = None):
     parser = argparse.ArgumentParser(description="Cyberpunk TCG Portfolio & Market Price Tracker")
     parser.add_argument("collection_target", nargs="?", default=None, help="Optional direct path to CSV file or directory (supports drag-and-drop)")
     parser.add_argument("--config", dest="config_path", help="Path to custom JSON configuration file")
@@ -80,7 +81,7 @@ def main():
         help="Force re-parsing of purchase history documents, bypassing SHA-256 cache and updating ledger",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Load configuration
     collection_arg = args.collection_target or args.collection_csv

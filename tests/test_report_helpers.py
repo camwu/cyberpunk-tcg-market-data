@@ -18,6 +18,7 @@ from tracker.report import (
     render_markdown_report,
 )
 from tracker.valuation import init_database
+from tests.fixtures import seed_metadata, seed_snapshots, seed_summary
 
 
 class TestReportHelpers(unittest.TestCase):
@@ -65,11 +66,15 @@ class TestReportHelpers(unittest.TestCase):
         bare_conn.close()
 
     def test_fetch_portfolio_summary(self):
-        self.cur.execute("""
-        INSERT INTO portfolio_daily_summary (date, total_value, total_cards, unique_items, total_cost_basis, net_unrealized_gain)
-        VALUES ('2026-10-01', 250.0, 10, 5, 200.0, 50.0)
-        """)
-        self.conn.commit()
+        seed_summary(
+            self.conn,
+            "2026-10-01",
+            total_value=250.0,
+            total_cards=10,
+            unique_items=5,
+            cost_basis=200.0,
+            net_unrealized_gain=50.0,
+        )
 
         # Specific target date
         res = fetch_portfolio_summary(self.cur, target_date="2026-10-01")
@@ -84,17 +89,14 @@ class TestReportHelpers(unittest.TestCase):
         self.assertEqual(res_latest[0], "2026-10-01")
 
     def test_fetch_portfolio_breakdowns_and_movers(self):
-        self.cur.execute("""
-        INSERT INTO card_metadata (card_key, name, expansion, finish, rarity, color, item_type, card_type)
-        VALUES ('key1', 'Judy Alvarez', 'Night City', 'Standard', 'Iconic', 'Green', 'Card', 'Character'),
-               ('key2', 'Booster Box', 'Night City', 'Standard', 'Sealed', '', 'Sealed', 'Sealed')
-        """)
-        self.cur.execute("""
-        INSERT INTO daily_snapshots (date, card_key, quantity, unit_market_price, line_total, baseline_price, lifetime_gain_dollar)
-        VALUES ('2026-10-01', 'key1', 1, 15.0, 15.0, 10.0, 5.0),
-               ('2026-10-01', 'key2', 1, 120.0, 120.0, 100.0, 20.0)
-        """)
-        self.conn.commit()
+        seed_metadata(self.conn, [
+            {"card_key": "key1", "name": "Judy Alvarez", "expansion": "Night City", "finish": "Standard", "rarity": "Iconic", "color": "Green", "item_type": "Card", "card_type": "Character"},
+            {"card_key": "key2", "name": "Booster Box", "expansion": "Night City", "finish": "Standard", "rarity": "Sealed", "color": "", "item_type": "Sealed", "card_type": "Sealed"},
+        ])
+        seed_snapshots(self.conn, "2026-10-01", [
+            {"card_key": "key1", "quantity": 1, "unit_market_price": 15.0, "line_total": 15.0, "baseline_price": 10.0, "lifetime_gain_dollar": 5.0},
+            {"card_key": "key2", "quantity": 1, "unit_market_price": 120.0, "line_total": 120.0, "baseline_price": 100.0, "lifetime_gain_dollar": 20.0},
+        ])
 
         breakdowns = fetch_portfolio_breakdowns(self.cur, "2026-10-01")
         self.assertEqual(len(breakdowns["rarity"]), 1)
@@ -107,19 +109,18 @@ class TestReportHelpers(unittest.TestCase):
         self.assertGreaterEqual(movers["high_value_cards"][0][6], HIGH_VALUE_THRESHOLD)
 
     def test_fetch_l7d_movers(self):
-        self.cur.execute("""
-        INSERT INTO card_metadata (card_key, name, expansion, finish, rarity, color, item_type)
-        VALUES ('card_a', 'Card A', 'Night City', 'Standard', 'Rare', 'Red', 'Card'),
-               ('card_b', 'Card B', 'Night City', 'Standard', 'Rare', 'Red', 'Card')
-        """)
-        self.cur.execute("""
-        INSERT INTO daily_snapshots (date, card_key, quantity, unit_market_price, baseline_price)
-        VALUES ('2026-09-24', 'card_a', 1, 10.0, 10.0),
-               ('2026-10-01', 'card_a', 1, 15.0, 10.0),
-               ('2026-09-24', 'card_b', 1, 20.0, 20.0),
-               ('2026-10-01', 'card_b', 1, 12.0, 20.0)
-        """)
-        self.conn.commit()
+        seed_metadata(self.conn, [
+            {"card_key": "card_a", "name": "Card A", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Red", "item_type": "Card"},
+            {"card_key": "card_b", "name": "Card B", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Red", "item_type": "Card"},
+        ])
+        seed_snapshots(self.conn, "2026-09-24", [
+            {"card_key": "card_a", "quantity": 1, "unit_market_price": 10.0, "baseline_price": 10.0},
+            {"card_key": "card_b", "quantity": 1, "unit_market_price": 20.0, "baseline_price": 20.0},
+        ])
+        seed_snapshots(self.conn, "2026-10-01", [
+            {"card_key": "card_a", "quantity": 1, "unit_market_price": 15.0, "baseline_price": 10.0},
+            {"card_key": "card_b", "quantity": 1, "unit_market_price": 12.0, "baseline_price": 20.0},
+        ])
 
         gainers = fetch_l7d_movers(self.cur, "2026-09-24", "2026-10-01", is_gainer=True)
         decliners = fetch_l7d_movers(self.cur, "2026-09-24", "2026-10-01", is_gainer=False)
