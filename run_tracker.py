@@ -12,7 +12,7 @@ from pathlib import Path
 import shutil
 import sys
 import time
-from typing import List, Optional
+from typing import Any, List, NamedTuple, Optional
 
 from tracker.config import load_config
 from tracker.sync import sync_market_prices, backfill_market_prices
@@ -48,7 +48,14 @@ def import_collection_file(source_path: str, target_path: str) -> bool:
     return True
 
 
-def main(argv: Optional[List[str]] = None):
+class CollectionSyncResult(NamedTuple):
+    collection_path: str
+    collection_source: str
+    collection_updated: bool
+
+
+def build_tracker_argument_parser() -> argparse.ArgumentParser:
+    """Builds and returns the CLI argument parser for run_tracker."""
     parser = argparse.ArgumentParser(description="Cyberpunk TCG Portfolio & Market Price Tracker")
     parser.add_argument("collection_target", nargs="?", default=None, help="Optional direct path to CSV file or directory (supports drag-and-drop)")
     parser.add_argument("--config", dest="config_path", help="Path to custom JSON configuration file")
@@ -79,34 +86,29 @@ def main(argv: Optional[List[str]] = None):
         action="store_true",
         help="Force re-parsing of purchase history documents, bypassing SHA-256 cache and updating ledger",
     )
+    return parser
 
-    args = parser.parse_args(argv)
 
-    # Load configuration
-    collection_arg = args.collection_target or args.collection_csv
-    cfg = load_config(
-        config_path=args.config_path,
-        collection_csv=collection_arg,
-        database_path=args.database_path,
-        price_cache_dir=args.price_cache_dir,
-        output_report=args.output_report,
-        sealed_csv=args.sealed_csv,
-        purchase_history_dir=args.purchase_history_dir,
-        purchase_history_ledger=args.purchase_history_ledger,
-        purchase_history_cache=args.purchase_history_cache,
-    )
+def resolve_price_snapshot_date(price_file: str, fallback_date: str) -> str:
+    """Reads effective snapshot date from a price JSON file, falling back to target date."""
+    if os.path.isfile(price_file):
+        try:
+            with open(price_file, "r", encoding="utf-8") as f:
+                p_data = json.load(f)
+                if isinstance(p_data, dict):
+                    file_date = p_data.get("date")
+                    if file_date:
+                        return file_date
+        except (OSError, json.JSONDecodeError):
+            pass
+    return fallback_date
 
-    if args.report_only:
-        generate_portfolio_report(
-            db_path=cfg.database_path,
-            output_md=cfg.output_report,
-            price_cache_dir=cfg.price_cache_dir,
-            target_date=args.report_date,
-        )
-        return
 
+def resolve_and_sync_collection(args: argparse.Namespace, cfg: Any) -> CollectionSyncResult:
+    """Resolves active collection source via import, API sync (with 24h cache), or offline CSV."""
     collection_updated = False
     collection_source = None
+
     if args.import_path:
         success = import_collection_file(
             source_path=args.import_path,
@@ -119,7 +121,7 @@ def main(argv: Optional[List[str]] = None):
 
     if not collection_source:
         if args.sync_collection is False:
-            pass  # Explicit opt-out via --no-sync-collection: proceed with offline CSV
+            pass
         elif not cfg.cardnexus_api_key:
             if args.sync_collection is True:
                 print(
@@ -183,63 +185,97 @@ def main(argv: Optional[List[str]] = None):
     if not collection_source:
         collection_source = f"CSV ({Path(cfg.collection_csv).name})"
 
+    return CollectionSyncResult(
+        collection_path=cfg.collection_csv,
+        collection_source=collection_source,
+        collection_updated=collection_updated,
+    )
+
+
+def execute_backfill(
+    date_str: str,
+    cfg: Any,
+    collection_source: str,
+    sealed_rows: List[dict],
+    total_cost_basis: float,
+    purchases_updated_at: Optional[str],
+    force: bool,
+) -> None:
+    """Executes market price backfill, portfolio valuation, and report generation for a target date."""
+    print(f"\n--- Backfilling Cyberpunk TCG Market Data for {date_str} ---")
+    is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)
+    if not is_valid:
+        print(f"\nError: Collection validation failed for '{cfg.collection_csv}':\n", file=sys.stderr)
+        print(format_validation_report(validation_errors), file=sys.stderr)
+        sys.exit(1)
+
+    backfill_market_prices(date_str, price_dir=cfg.price_cache_dir)
+    try:
+        calculate_portfolio_valuation(
+            date_str=date_str,
+            collection_path=cfg.collection_csv,
+            cache_dir=cfg.price_cache_dir,
+            db_path=cfg.database_path,
+            force=force,
+            collection_rows=collection_rows,
+            sealed_rows=sealed_rows,
+            collection_source=collection_source,
+            total_cost_basis=total_cost_basis,
+            purchases_updated_at=purchases_updated_at,
+        )
+    except CollectionValidationError as e:
+        print(f"\nError: {e}", file=sys.stderr)
+        sys.exit(1)
+    generate_portfolio_report(
+        db_path=cfg.database_path,
+        output_md=cfg.output_report,
+        price_cache_dir=cfg.price_cache_dir,
+        target_date=date_str,
+    )
+
+
+def main(argv: Optional[List[str]] = None):
+    parser = build_tracker_argument_parser()
+    args = parser.parse_args(argv)
+
+    cfg = load_config(
+        config_path=args.config_path, collection_csv=args.collection_target or args.collection_csv,
+        database_path=args.database_path, price_cache_dir=args.price_cache_dir, output_report=args.output_report,
+        sealed_csv=args.sealed_csv, purchase_history_dir=args.purchase_history_dir,
+        purchase_history_ledger=args.purchase_history_ledger, purchase_history_cache=args.purchase_history_cache,
+    )
+
+    if args.report_only:
+        generate_portfolio_report(cfg.database_path, cfg.output_report, cfg.price_cache_dir, args.report_date)
+        return
+
+    sync_res = resolve_and_sync_collection(args, cfg)
+    collection_source, collection_updated = sync_res.collection_source, sync_res.collection_updated
+
     sealed_rows = []
     if cfg.sealed_csv and os.path.isfile(cfg.sealed_csv):
         is_sealed_valid, sealed_errors, sealed_rows = validate_sealed_file(cfg.sealed_csv)
         if not is_sealed_valid:
-            print(f"\nError: Sealed inventory validation failed for '{cfg.sealed_csv}':\n", file=sys.stderr)
-            print(format_validation_report(sealed_errors), file=sys.stderr)
+            print(f"\nError: Sealed inventory validation failed for '{cfg.sealed_csv}':\n{format_validation_report(sealed_errors)}", file=sys.stderr)
             sys.exit(1)
 
     total_cost_basis, _, purchases_updated = sync_purchase_history(
-        purchase_dir=cfg.purchase_history_dir,
-        cache_path=cfg.purchase_history_cache,
-        ledger_path=cfg.purchase_history_ledger,
-        reparse=args.reparse_purchases,
+        purchase_dir=cfg.purchase_history_dir, cache_path=cfg.purchase_history_cache,
+        ledger_path=cfg.purchase_history_ledger, reparse=args.reparse_purchases,
     )
     purchases_updated_at = get_purchase_history_updated_at(cfg.purchase_history_cache) if total_cost_basis > 0 else None
 
     if args.backfill_date:
-        date_str = args.backfill_date
-        print(f"\n--- Backfilling Cyberpunk TCG Market Data for {date_str} ---")
-        is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)
-        if not is_valid:
-            print(f"\nError: Collection validation failed for '{cfg.collection_csv}':\n", file=sys.stderr)
-            print(format_validation_report(validation_errors), file=sys.stderr)
-            sys.exit(1)
-
-        backfill_market_prices(date_str, price_dir=cfg.price_cache_dir)
-        try:
-            calculate_portfolio_valuation(
-                date_str=date_str,
-                collection_path=cfg.collection_csv,
-                cache_dir=cfg.price_cache_dir,
-                db_path=cfg.database_path,
-                force=args.force or args.reparse_purchases,
-                collection_rows=collection_rows,
-                sealed_rows=sealed_rows,
-                collection_source=collection_source,
-                total_cost_basis=total_cost_basis,
-                purchases_updated_at=purchases_updated_at,
-            )
-        except CollectionValidationError as e:
-            print(f"\nError: {e}", file=sys.stderr)
-            sys.exit(1)
-        generate_portfolio_report(
-            db_path=cfg.database_path,
-            output_md=cfg.output_report,
-            price_cache_dir=cfg.price_cache_dir,
-            target_date=date_str,
+        execute_backfill(
+            args.backfill_date, cfg, collection_source, sealed_rows, total_cost_basis, purchases_updated_at,
+            force=args.force or args.reparse_purchases,
         )
         return
-
-    # Standard run for today
     today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
     print(f"\n--- Running Cyberpunk TCG Valuation Pipeline ({today}) ---")
     if os.path.isfile(cfg.collection_csv):
         mtime_str = datetime.datetime.fromtimestamp(os.path.getmtime(cfg.collection_csv)).astimezone().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"Collection source: {collection_source} (modified {mtime_str})")
-        print(f"Full path: {cfg.collection_csv}")
+        print(f"Collection source: {collection_source} (modified {mtime_str})\nFull path: {cfg.collection_csv}")
     else:
         print(f"Collection source: {collection_source}")
 
@@ -248,54 +284,32 @@ def main(argv: Optional[List[str]] = None):
 
     is_valid, validation_errors, collection_rows = validate_collection_file(cfg.collection_csv)
     if not is_valid:
-        print(f"\nError: Collection validation failed for '{cfg.collection_csv}':\n", file=sys.stderr)
-        print(format_validation_report(validation_errors), file=sys.stderr)
+        print(f"\nError: Collection validation failed for '{cfg.collection_csv}':\n{format_validation_report(validation_errors)}", file=sys.stderr)
         sys.exit(1)
 
-    cards_count = sum(1 for r in collection_rows if r.get("item_type") != "Sealed")
     sealed_count = sum(1 for r in collection_rows if r.get("item_type") == "Sealed")
     if sealed_count > 0:
+        cards_count = len(collection_rows) - sealed_count
         print(f"Discovered {len(collection_rows)} collection entries: {cards_count} card entries and {sealed_count} sealed items.")
 
     price_file = sync_market_prices(price_dir=cfg.price_cache_dir, target_date=today, force=args.force, live=args.live)
-
-    effective_date = today
-    if os.path.isfile(price_file):
-        try:
-            with open(price_file, "r", encoding="utf-8") as f:
-                p_data = json.load(f)
-                if isinstance(p_data, dict):
-                    file_date = p_data.get("date")
-                    if file_date:
-                        effective_date = file_date
-        except (OSError, json.JSONDecodeError):
-            pass
+    effective_date = resolve_price_snapshot_date(price_file, today)
+    force_val = args.force or collection_updated or (args.sync_collection is True) or args.reparse_purchases or purchases_updated
 
     try:
         calculate_portfolio_valuation(
-            date_str=effective_date,
-            collection_path=cfg.collection_csv,
-            cache_dir=cfg.price_cache_dir,
-            db_path=cfg.database_path,
-            force=(args.force or collection_updated or (args.sync_collection is True) or args.reparse_purchases or purchases_updated),
-            collection_rows=collection_rows,
-            sealed_rows=sealed_rows,
-            price_file=price_file,
-            collection_source=collection_source,
-            total_cost_basis=total_cost_basis,
+            date_str=effective_date, collection_path=cfg.collection_csv, cache_dir=cfg.price_cache_dir,
+            db_path=cfg.database_path, force=force_val, collection_rows=collection_rows, sealed_rows=sealed_rows,
+            price_file=price_file, collection_source=collection_source, total_cost_basis=total_cost_basis,
             purchases_updated_at=purchases_updated_at,
         )
     except CollectionValidationError as e:
         print(f"\nError: {e}", file=sys.stderr)
         sys.exit(1)
 
-    generate_portfolio_report(
-        db_path=cfg.database_path,
-        output_md=cfg.output_report,
-        price_cache_dir=cfg.price_cache_dir,
-        target_date=args.report_date or effective_date,
-    )
+    generate_portfolio_report(cfg.database_path, cfg.output_report, cfg.price_cache_dir, args.report_date or effective_date)
 
 
 if __name__ == "__main__":
     main()
+

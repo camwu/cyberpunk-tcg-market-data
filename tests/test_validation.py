@@ -12,6 +12,10 @@ from tracker.validation import (
     validate_collection_file,
     validate_sealed_file,
     format_validation_report,
+    _parse_and_validate_row,
+    _resolve_row_lots,
+    DuplicateTracker,
+    LotResolutionResult,
 )
 
 
@@ -599,6 +603,87 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,not-a-date
         self.assertFalse(is_valid)
         self.assertEqual(len(rows), 0)
         self.assertTrue(any("must be in YYYY-MM-DD format for 'Towerfall' (B034)" in err for err in errors))
+
+    def test_parse_and_validate_row_invalid_finish(self):
+        row = {"name": "Towerfall", "expansion": "Beta", "printNumber": "B034", "finish": "Matte", "totalQtyOwned": "1"}
+        parsed, errors = _parse_and_validate_row(row, row_idx=5, is_sealed=False)
+        self.assertIsNone(parsed)
+        self.assertTrue(any("must be 'Standard' or 'Foil'" in err for err in errors))
+
+    def test_parse_and_validate_row_invalid_quantity(self):
+        row_zero = {"name": "Towerfall", "expansion": "Beta", "printNumber": "B034", "finish": "Standard", "totalQtyOwned": "0"}
+        parsed_zero, errors_zero = _parse_and_validate_row(row_zero, row_idx=2)
+        self.assertIsNone(parsed_zero)
+        self.assertTrue(any("must be at least 1" in err for err in errors_zero))
+
+        row_str = {"name": "Towerfall", "expansion": "Beta", "printNumber": "B034", "finish": "Standard", "totalQtyOwned": "five"}
+        parsed_str, errors_str = _parse_and_validate_row(row_str, row_idx=3)
+        self.assertIsNone(parsed_str)
+        self.assertTrue(any("must be an integer" in err for err in errors_str))
+
+    def test_parse_and_validate_row_missing_required_fields(self):
+        row_no_name = {"name": "", "expansion": "Beta", "printNumber": "B034", "finish": "Standard", "totalQtyOwned": "1"}
+        parsed, errors = _parse_and_validate_row(row_no_name, row_idx=4)
+        self.assertIsNone(parsed)
+        self.assertTrue(any("'name' is empty" in err for err in errors))
+
+        row_no_exp = {"name": "Towerfall", "expansion": "", "printNumber": "B034", "finish": "Standard", "totalQtyOwned": "1"}
+        parsed_exp, errors_exp = _parse_and_validate_row(row_no_exp, row_idx=5)
+        self.assertIsNone(parsed_exp)
+        self.assertTrue(any("'expansion' is empty" in err for err in errors_exp))
+
+    def test_resolve_row_lots_single_lot_date(self):
+        item_info = {"name": "Towerfall", "print_num_val": "B034", "row_idx": 2, "item_desc": " for 'Towerfall' (B034)"}
+        res = _resolve_row_lots("2026-09-01", None, 3, "2026-10-01", item_info)
+        self.assertIsInstance(res, LotResolutionResult)
+        self.assertEqual(res.lots, [("2026-09-01", 3)])
+        self.assertEqual(len(res.errors), 0)
+        self.assertEqual(len(res.mismatches), 0)
+
+    def test_resolve_row_lots_future_date_rejected(self):
+        item_info = {"name": "Towerfall", "print_num_val": "B034", "row_idx": 3, "item_desc": " for 'Towerfall' (B034)"}
+        res = _resolve_row_lots("2099-01-01", None, 1, "2026-10-01", item_info)
+        self.assertIsInstance(res, LotResolutionResult)
+        self.assertEqual(len(res.lots), 0)
+        self.assertTrue(any("is in the future" in err for err in res.errors))
+
+    def test_resolve_row_lots_quantity_mismatch_returns_result(self):
+        item_info = {"name": "Towerfall", "print_num_val": "B034", "row_idx": 4, "item_desc": " for 'Towerfall' (B034)"}
+        res = _resolve_row_lots("2026-09-01: 1; 2026-09-02: 1", None, 5, "2026-10-01", item_info)
+        self.assertIsInstance(res, LotResolutionResult)
+        self.assertEqual(len(res.lots), 0)
+        self.assertTrue(any("Quantity mismatch for 'Towerfall'" in err for err in res.errors))
+        self.assertEqual(len(res.mismatches), 1)
+        self.assertEqual(res.mismatches[0]["parsed"], "2")
+        self.assertEqual(res.mismatches[0]["qty"], "5")
+
+    def test_duplicate_tracker_card_lot_collision(self):
+        tracker = DuplicateTracker()
+        row_data = {"name": "Towerfall", "expansion": "Beta", "printNumber": "B034", "finish": "Standard", "is_sealed": False}
+        lots = [("2026-09-01", 1)]
+        errors: list = []
+
+        ok1 = tracker.check_and_record(row_data, lots, row_idx=2, errors=errors)
+        self.assertTrue(ok1)
+        self.assertEqual(len(errors), 0)
+
+        ok2 = tracker.check_and_record(row_data, lots, row_idx=3, errors=errors)
+        self.assertFalse(ok2)
+        self.assertTrue(any("Duplicate card lot" in err for err in errors))
+
+    def test_duplicate_tracker_dateless_prevention(self):
+        tracker = DuplicateTracker()
+        row_data = {"name": "Towerfall", "expansion": "Beta", "printNumber": "B034", "finish": "Standard", "is_sealed": False}
+        dateless_lots = [(None, 1)]
+        errors: list = []
+
+        ok1 = tracker.check_and_record(row_data, dateless_lots, row_idx=2, errors=errors)
+        self.assertTrue(ok1)
+        self.assertEqual(len(errors), 0)
+
+        ok2 = tracker.check_and_record(row_data, dateless_lots, row_idx=3, errors=errors)
+        self.assertFalse(ok2)
+        self.assertTrue(any("Duplicate card" in err and "no acquisition date" in err for err in errors))
 
 
 if __name__ == "__main__":
