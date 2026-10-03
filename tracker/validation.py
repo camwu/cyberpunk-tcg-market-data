@@ -447,7 +447,7 @@ def validate_collection_file(
 
     except UnicodeDecodeError as e:
         return False, [f"Unable to decode CSV as UTF-8: {e}"], []
-    except Exception as e:
+    except (OSError, csv.Error) as e:
         return False, [f"Failed to read CSV file: {e}"], []
 
     is_valid = len(errors) == 0
@@ -603,7 +603,7 @@ def validate_sealed_file(
 
     except UnicodeDecodeError as e:
         return False, [f"Unable to decode sealed CSV as UTF-8: {e}"], []
-    except Exception as e:
+    except (OSError, csv.Error) as e:
         return False, [f"Failed to read sealed CSV file: {e}"], []
 
     is_valid = len(errors) == 0

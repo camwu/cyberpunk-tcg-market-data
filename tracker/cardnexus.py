@@ -39,7 +39,7 @@ def resolve_cardnexus_api_key(explicit_key: Optional[str] = None) -> Optional[st
                 val, _ = winreg.QueryValueEx(reg_key, "CARDNEXUS_API_KEY")
                 if val:
                     return str(val).strip()
-        except Exception:
+        except OSError:
             pass
     return None
 
@@ -96,7 +96,7 @@ class CardNexusClient:
                 try:
                     err_json = json.loads(body.decode("utf-8"))
                     error_msg = f"HTTP {e.code}: {err_json.get('message', err_json.get('code', error_msg))}"
-                except Exception:
+                except (json.JSONDecodeError, UnicodeDecodeError):
                     pass
                 raise CardNexusAPIError(error_msg)
             except urllib.error.URLError as e:
@@ -158,8 +158,8 @@ class CardNexusClient:
                     with open(cache_file, "r", encoding="utf-8") as f:
                         cached_raw = json.load(f)
                         return {int(k): v for k, v in cached_raw.items()}
-                except Exception:
-                    pass
+                except (OSError, json.JSONDecodeError, ValueError) as e:
+                    print(f"Warning: Could not read cached CardNexus catalog from {cache_file}: {e}", file=sys.stderr)
 
         expansions_by_id: Dict[int, str] = {}
         expansions_by_slug: Dict[str, str] = {}
@@ -175,7 +175,7 @@ class CardNexusClient:
                     expansions_by_id[int(eid)] = ename
                 if eslug and ename:
                     expansions_by_slug[eslug] = ename
-        except Exception as e:
+        except (CardNexusAPIError, json.JSONDecodeError, KeyError, ValueError) as e:
             print(f"Warning: Could not fetch expansions list for {game}: {e}", file=sys.stderr)
 
         url = f"{API_BASE_URL}/feeds/{game}/catalog"
@@ -220,13 +220,13 @@ class CardNexusClient:
                     "printNumber": str(item.get("printNumber") or "").strip(),
                     "productType": str(item.get("productType") or "card").strip().lower(),
                 }
-            except Exception:
+            except (ValueError, TypeError, KeyError):
                 continue
 
         try:
             with open(cache_file, "w", encoding="utf-8") as f:
                 json.dump(catalog_map, f, indent=2)
-        except Exception as e:
+        except OSError as e:
             print(f"Warning: Could not save catalog cache to {cache_file}: {e}", file=sys.stderr)
 
         return catalog_map

@@ -21,6 +21,7 @@ except ImportError:
     pypdf = None
 
 SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".txt", ".json"}
+SHA256_CHUNK_SIZE = 65536
 
 
 @dataclass
@@ -37,7 +38,7 @@ def compute_file_sha256(filepath: str) -> str:
     """Computes deterministic SHA-256 hex digest for a file."""
     hasher = hashlib.sha256()
     with open(filepath, "rb") as f:
-        while chunk := f.read(65536):
+        while chunk := f.read(SHA256_CHUNK_SIZE):
             hasher.update(chunk)
     return hasher.hexdigest()
 
@@ -67,14 +68,14 @@ def extract_text_from_document(filepath: str) -> str:
                 t = page.extract_text() or ""
                 texts.append(t)
             return "\n".join(texts)
-        except Exception:
+        except (pypdf.errors.PyPdfError, OSError, ValueError):
             return ""
 
     if ext in {".txt", ".csv", ".json"}:
         try:
             with open(filepath, "r", encoding="utf-8-sig", errors="ignore") as f:
                 return f.read()
-        except Exception:
+        except OSError:
             return ""
 
     return ""
@@ -293,7 +294,7 @@ def load_purchase_ledger(ledger_path: str) -> Dict[str, PurchaseRecord]:
                     filename=fname,
                     sha256=(row.get("sha256") or "").strip(),
                 )
-    except Exception as e:
+    except (OSError, csv.Error, ValueError) as e:
         print(f"Warning: Could not read purchase ledger at '{ledger_path}': {e}")
 
     return records
@@ -306,7 +307,7 @@ def load_purchase_cache(cache_path: str) -> Dict[str, Any]:
     try:
         with open(cache_path, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception as e:
+    except (OSError, json.JSONDecodeError) as e:
         print(f"Warning: Could not read purchase cache at '{cache_path}': {e}")
         return {"files": {}, "total_invested": 0.0}
 
@@ -353,7 +354,7 @@ def get_purchase_history_updated_at(cache_path: Optional[str]) -> Optional[str]:
                     return str(raw_updated)
         mtime = datetime.datetime.fromtimestamp(os.path.getmtime(cache_path)).astimezone()
         return mtime.strftime("%Y-%m-%d %I:%M %p")
-    except Exception:
+    except (OSError, ValueError):
         return None
 
 

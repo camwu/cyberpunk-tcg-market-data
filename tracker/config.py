@@ -97,7 +97,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
         try:
             with open(found_cfg_file, "r", encoding="utf-8") as f:
                 cfg_data = json.load(f)
-        except Exception as e:
+        except (OSError, json.JSONDecodeError) as e:
             print(f"Warning: Could not read configuration from {found_cfg_file}: {e}")
 
     # Resolve paths: if relative, make them relative to config file directory
@@ -145,7 +145,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
                 val, _ = winreg.QueryValueEx(reg_key, "CARDNEXUS_API_KEY")
                 if val:
                     cardnexus_key = str(val).strip()
-        except Exception:
+        except OSError:
             pass
 
     cli_purchase_dir = cli_overrides.get("purchase_history_dir")
