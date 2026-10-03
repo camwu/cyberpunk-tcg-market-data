@@ -582,7 +582,7 @@ class TestReportGeneration(unittest.TestCase):
             seed_summary(
                 conn,
                 "2026-09-14",
-                total_value=38.00,
+                total_value=1250.00,
                 total_cards=3,
                 l7d_dollar_delta=250.00,
                 l7d_pct_delta=25.00,
