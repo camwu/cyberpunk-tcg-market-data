@@ -8,6 +8,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from tracker.valuation import (
     ItemValuationContext,
@@ -69,15 +70,33 @@ class TestValuationHelpers(unittest.TestCase):
         self.assertIn(("night city", "arasaka tower booster box"), indexes["by_group_name"])
 
     def test_load_price_catalog_fallback_and_missing(self):
-        # 1. Fallback to repo prices/ directory when cache_dir lacks the date file
         empty_cache_dir = str(self.test_dir / "empty_cache")
         os.makedirs(empty_cache_dir, exist_ok=True)
-        prods, indexes = load_price_catalog(empty_cache_dir, "2026-09-11")
-        self.assertGreater(len(prods), 0)
 
-        # 2. FileNotFoundError raised when date file exists in neither candidate path
-        with self.assertRaises(FileNotFoundError):
-            load_price_catalog(empty_cache_dir, "1999-01-01")
+        repo_fixture_dir = self.test_dir / "mock_repo_prices"
+        repo_fixture_dir.mkdir(parents=True, exist_ok=True)
+        fixture_data = {
+            "date": "2026-05-20",
+            "products": {
+                "201": {
+                    "productId": 201,
+                    "name": "Panam Palmer",
+                    "groupName": "Badlands",
+                    "prices": {"Normal": {"marketPrice": 45.00}},
+                }
+            },
+        }
+        (repo_fixture_dir / "2026-05-20.json").write_text(json.dumps(fixture_data), encoding="utf-8")
+
+        # 1. Fallback to repo prices/ directory when cache_dir lacks the date file
+        with patch("tracker.valuation.REPO_PRICES_DIR", repo_fixture_dir):
+            prods, indexes = load_price_catalog(empty_cache_dir, "2026-05-20")
+            self.assertEqual(len(prods), 1)
+            self.assertIn(201, indexes["by_pid"])
+
+            # 2. FileNotFoundError raised when date file exists in neither candidate path
+            with self.assertRaises(FileNotFoundError):
+                load_price_catalog(empty_cache_dir, "1999-01-01")
 
     def test_deduplicate_and_merge_items(self):
         collection_rows = [

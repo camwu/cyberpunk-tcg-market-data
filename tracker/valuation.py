@@ -23,6 +23,9 @@ from tracker.validation import (
     CollectionValidationError,
 )
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_PRICES_DIR = REPO_ROOT / "prices"
+
 
 @dataclass
 class ItemValuationContext:
@@ -52,7 +55,7 @@ def get_earliest_price_date(cache_dir: str, cur: Optional[sqlite3.Cursor] = None
     """Finds the earliest available price date across price cache files and database snapshots."""
     dates = []
     candidates = [cache_dir]
-    repo_prices = str(Path(__file__).resolve().parent.parent / "prices")
+    repo_prices = str(REPO_PRICES_DIR)
     if repo_prices not in candidates:
         candidates.append(repo_prices)
 
@@ -96,7 +99,7 @@ def get_historical_market_price(
     if cache_data is None:
         candidates = [
             os.path.join(cache_dir, f"{target_date}.json"),
-            str(Path(__file__).resolve().parent.parent / "prices" / f"{target_date}.json"),
+            str(REPO_PRICES_DIR / f"{target_date}.json"),
         ]
         target_file = next((c for c in candidates if os.path.isfile(c)), None)
         if not target_file:
@@ -289,7 +292,7 @@ def load_price_catalog(
     else:
         candidates = [
             os.path.join(cache_dir, f"{date_str}.json"),
-            str(Path(__file__).resolve().parent.parent / "prices" / f"{date_str}.json"),
+            str(REPO_PRICES_DIR / f"{date_str}.json"),
         ]
         cache_file = next((c for c in candidates if os.path.isfile(c)), None)
         if not cache_file:
@@ -304,7 +307,7 @@ def load_price_catalog(
         cards_candidates = [
             os.path.join(cache_dir, "cards.json"),
             os.path.join(os.path.dirname(cache_dir), "cards.json"),
-            str(Path(__file__).resolve().parent.parent / "cards.json"),
+            str(REPO_ROOT / "cards.json"),
         ]
         cards_file = next((c for c in cards_candidates if os.path.isfile(c)), None)
         cards_catalog = {}

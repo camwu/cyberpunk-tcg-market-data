@@ -33,14 +33,15 @@ class TestReportHelpers(unittest.TestCase):
         self.conn.close()
         self.temp_dir.cleanup()
 
-    def test_ensure_report_schema_migrations(self):
-        # 1. Verify idempotency on initialized DB
+    def test_ensure_schema_idempotent(self):
+        # Running ensure_report_schema on an initialized DB performs a clean no-op
         ensure_report_schema(self.cur, self.conn)
         self.cur.execute("PRAGMA table_info(card_metadata)")
         card_cols = {col[1] for col in self.cur.fetchall()}
         self.assertIn("card_type", card_cols)
 
-        # 2. Verify migration adds columns to bare unmigrated tables
+    def test_ensure_schema_migrates_bare_tables(self):
+        # Verify migration adds columns to bare unmigrated tables
         bare_db = str(self.test_dir / "test_bare.db")
         bare_conn = sqlite3.connect(bare_db)
         bare_cur = bare_conn.cursor()
