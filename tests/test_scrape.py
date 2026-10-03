@@ -2,14 +2,23 @@
 Automated unit tests for scrape.py skip behavior, force override, and CLI options.
 """
 
+import io
 import json
 import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch, MagicMock
+from urllib.error import HTTPError, URLError
 
-from scrape import extract_date_from_build, run_scraper
+from scrape import (
+    extract_date_from_build,
+    fetch_json,
+    fetch_text,
+    run_scraper,
+    MAX_RETRIES,
+    RATE_LIMIT_DELAY,
+)
 
 
 class TestScraperSkipBehavior(unittest.TestCase):
@@ -337,6 +346,91 @@ class TestScraperDateDerivation(unittest.TestCase):
             data = json.load(f)
         self.assertEqual(data["date"], "2026-09-28")
         self.assertEqual(data["tcgcsvBuild"], "2026-09-28T20:05:54+0000")
+
+
+class TestScraperRetryLogic(unittest.TestCase):
+
+    def _make_mock_response(self, content_bytes: bytes):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = content_bytes
+        mock_resp.__enter__.return_value = mock_resp
+        mock_resp.__exit__.return_value = None
+        return mock_resp
+
+    @patch("scrape.time.sleep")
+    @patch("scrape.urllib.request.urlopen")
+    def test_fetch_text_recovers_on_transient_503(self, mock_urlopen, mock_sleep):
+        err_503 = HTTPError(url="https://tcgcsv.com/test", code=503, msg="Service Unavailable", hdrs={}, fp=io.BytesIO(b""))
+        mock_resp = self._make_mock_response(b"recovered text payload")
+        mock_urlopen.side_effect = [err_503, mock_resp]
+
+        result = fetch_text("https://tcgcsv.com/test")
+
+        self.assertEqual(result, "recovered text payload")
+        self.assertEqual(mock_urlopen.call_count, 2)
+        self.assertEqual(mock_sleep.call_args_list, [call(1.0)])
+
+    @patch("scrape.time.sleep")
+    @patch("scrape.urllib.request.urlopen")
+    def test_fetch_json_recovers_on_transient_429(self, mock_urlopen, mock_sleep):
+        err_429 = HTTPError(url="https://tcgcsv.com/test", code=429, msg="Too Many Requests", hdrs={}, fp=io.BytesIO(b""))
+        mock_resp = self._make_mock_response(b'{"results": [{"id": 1}]}')
+        mock_urlopen.side_effect = [err_429, mock_resp]
+
+        result = fetch_json("https://tcgcsv.com/test")
+
+        self.assertEqual(result, {"results": [{"id": 1}]})
+        self.assertEqual(mock_urlopen.call_count, 2)
+        self.assertEqual(mock_sleep.call_args_list, [call(1.0)])
+
+    @patch("scrape.time.sleep")
+    @patch("scrape.urllib.request.urlopen")
+    def test_fetch_json_exhausts_retries_without_final_sleep(self, mock_urlopen, mock_sleep):
+        err_500 = HTTPError(url="https://tcgcsv.com/test", code=500, msg="Internal Server Error", hdrs={}, fp=io.BytesIO(b""))
+        mock_urlopen.side_effect = [err_500, err_500, err_500]
+
+        result = fetch_json("https://tcgcsv.com/test")
+
+        self.assertIsNone(result)
+        self.assertEqual(mock_urlopen.call_count, 3)
+        self.assertEqual(mock_sleep.call_args_list, [call(1.0), call(2.0)])
+
+    @patch("scrape.time.sleep")
+    @patch("scrape.urllib.request.urlopen")
+    def test_fetch_text_fast_fails_on_404_without_sleeping(self, mock_urlopen, mock_sleep):
+        err_404 = HTTPError(url="https://tcgcsv.com/test", code=404, msg="Not Found", hdrs={}, fp=io.BytesIO(b""))
+        mock_urlopen.side_effect = err_404
+
+        result = fetch_text("https://tcgcsv.com/test")
+
+        self.assertIsNone(result)
+        self.assertEqual(mock_urlopen.call_count, 1)
+        mock_sleep.assert_not_called()
+
+    @patch("scrape.time.sleep")
+    @patch("scrape.urllib.request.urlopen")
+    def test_fetch_text_recovers_on_urlerror_network_dropout(self, mock_urlopen, mock_sleep):
+        url_err = URLError("Connection reset by peer")
+        mock_resp = self._make_mock_response(b"socket recovered")
+        mock_urlopen.side_effect = [url_err, mock_resp]
+
+        result = fetch_text("https://tcgcsv.com/test")
+
+        self.assertEqual(result, "socket recovered")
+        self.assertEqual(mock_urlopen.call_count, 2)
+        self.assertEqual(mock_sleep.call_args_list, [call(1.0)])
+
+    @patch("scrape.time.sleep")
+    @patch("scrape.urllib.request.urlopen")
+    def test_fetch_text_exhausts_urlerror_without_final_sleep(self, mock_urlopen, mock_sleep):
+        url_err = URLError("Network is unreachable")
+        mock_urlopen.side_effect = [url_err, url_err, url_err]
+
+        result = fetch_text("https://tcgcsv.com/test")
+
+        self.assertIsNone(result)
+        self.assertEqual(mock_urlopen.call_count, 3)
+        self.assertEqual(mock_sleep.call_args_list, [call(1.0), call(2.0)])
 
 
 if __name__ == "__main__":
