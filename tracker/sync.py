@@ -23,6 +23,7 @@ ARCHIVE_BASE_URL = "https://tcgcsv.com/archive/tcgplayer"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/camwu/cyberpunk-tcg-market-data/main"
 GITHUB_RAW_URL = f"{GITHUB_RAW_BASE}/prices"
 USER_AGENT = "CyberpunkTCGMarketTracker/1.0"
+RATE_LIMIT_DELAY = 0.2
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REPO_PRICES_DIR = REPO_ROOT / "prices"
 
@@ -41,7 +42,7 @@ def sync_cards_catalog(target_dir: str = "prices") -> str:
         try:
             shutil.copy2(str(repo_cards), target_cards)
             return target_cards
-        except Exception:
+        except OSError:
             return str(repo_cards)
 
     url = f"{GITHUB_RAW_BASE}/cards.json"
@@ -73,7 +74,7 @@ def fetch_text(url: str) -> Optional[str]:
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return resp.read().decode("utf-8").strip()
-    except Exception as e:
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
         print(f"Error fetching {url}: {e}", file=sys.stderr)
         return None
 
@@ -88,7 +89,7 @@ def fetch_json(url: str, quiet_not_found: bool = False):
             return None
         print(f"Error fetching {url}: {e}", file=sys.stderr)
         return None
-    except Exception as e:
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as e:
         print(f"Error fetching {url}: {e}", file=sys.stderr)
         return None
 
@@ -127,8 +128,8 @@ def sync_market_prices(
                 json.dump(data, f, indent=2)
             print(f"Synced {today} prices from repository data directory.")
             return target_file
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"Warning: Could not read repository price file '{repo_price_file}': {e}", file=sys.stderr)
 
     # 2. Check GitHub Raw remote URL
     if not live:
@@ -170,8 +171,8 @@ def sync_market_prices(
                 with open(fallback_file, "r", encoding="utf-8") as f:
                     fb_data = json.load(f)
                     fallback_date = fb_data.get("date", os.path.basename(fallback_file).replace(".json", ""))
-            except Exception:
-                pass
+            except (OSError, json.JSONDecodeError) as e:
+                print(f"Warning: Could not read fallback price snapshot '{fallback_file}': {e}", file=sys.stderr)
 
             print(f"Notice: Market prices for {today} are not yet published remotely (daily sync runs at 20:17 UTC).")
             print(f"Proceeding with latest available price snapshot ({fallback_date}). Pass --live to scrape current prices.")
@@ -197,8 +198,8 @@ def sync_market_prices(
         try:
             with open(cards_file, "r", encoding="utf-8") as f:
                 existing_cards = json.load(f)
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"Warning: Could not read cards catalog '{cards_file}': {e}", file=sys.stderr)
 
     existing_groups = existing_cards.get("_groups", {})
     existing_group_ids = {
@@ -225,7 +226,7 @@ def sync_market_prices(
             or (group_modified and cached_group.get("modifiedOn") != group_modified)
         )
 
-        time.sleep(0.2)
+        time.sleep(RATE_LIMIT_DELAY)
         price_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/{gid}/prices")
 
         if price_data and "results" in price_data:
@@ -244,7 +245,7 @@ def sync_market_prices(
 
         if need_products:
             print(f"[{idx}/{total_groups}] Fetching {gname} (ID: {gid}) metadata...")
-            time.sleep(0.2)
+            time.sleep(RATE_LIMIT_DELAY)
             prod_data = fetch_json(f"{BASE_URL}/{CATEGORY_ID}/{gid}/products")
             if prod_data and "results" in prod_data:
                 for p in prod_data["results"]:
@@ -351,7 +352,7 @@ def backfill_market_prices(date_str: str, price_dir: str = "prices") -> str:
     try:
         with urllib.request.urlopen(req, timeout=120) as resp, open(temp_archive, "wb") as out_f:
             shutil.copyfileobj(resp, out_f)
-    except Exception as e:
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
         raise RuntimeError(f"Failed to download archive from {archive_url}: {e}")
 
     try:
@@ -372,8 +373,8 @@ def backfill_market_prices(date_str: str, price_dir: str = "prices") -> str:
                         pid = item.get("productId")
                         if pid:
                             all_products[str(pid)] = item
-                except Exception:
-                    pass
+                except (OSError, json.JSONDecodeError, KeyError, AttributeError) as e:
+                    print(f"Warning: Could not read extracted file '{fpath}': {e}", file=sys.stderr)
 
         if not all_products:
             raise RuntimeError(f"No products found for Category {CATEGORY_ID} in archive {date_str}.")

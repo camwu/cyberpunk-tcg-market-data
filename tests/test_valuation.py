@@ -12,7 +12,6 @@ from pathlib import Path
 from tracker.valuation import (
     calculate_portfolio_valuation,
     init_database,
-    clear_historical_price_cache,
     get_historical_market_price,
 )
 from tracker.report import format_rarity, RARITY_ICONS
@@ -21,7 +20,6 @@ from tracker.report import format_rarity, RARITY_ICONS
 class TestPortfolioValuation(unittest.TestCase):
 
     def setUp(self):
-        clear_historical_price_cache()
         self.temp_dir = tempfile.TemporaryDirectory()
         self.test_dir = Path(self.temp_dir.name)
         self.db_path = str(self.test_dir / "test_price_history.db")
@@ -29,7 +27,6 @@ class TestPortfolioValuation(unittest.TestCase):
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def tearDown(self):
-        clear_historical_price_cache()
         self.temp_dir.cleanup()
 
     def test_catalog_matching_with_root_print_number(self):

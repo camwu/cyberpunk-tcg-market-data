@@ -9,10 +9,12 @@ import os
 from pathlib import Path
 import sqlite3
 import sys
-from typing import Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
+
+HIGH_VALUE_THRESHOLD = 10.0
 
 RARITY_ORDER = ["Common", "Uncommon", "Rare", "Epic", "Secret", "Iconic", "Nova"]
 
@@ -57,18 +59,53 @@ def format_color(color: str) -> str:
     return f"{dot} {color}" if dot else color
 
 
-def generate_portfolio_report(
-    db_path: str = "data/price_history.db",
-    output_md: str = "LATEST_PORTFOLIO_SUMMARY.md",
-    price_cache_dir: Optional[str] = None,
-    target_date: Optional[str] = None,
-):
-    if not os.path.exists(db_path):
-        raise FileNotFoundError(f"Database not found at {db_path}")
+_L7D_GAINER_QUERY = """
+WITH evaluated AS (
+    SELECT m.name, m.rarity, m.color, m.finish, s.quantity,
+           COALESCE(NULLIF(s.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS curr_price,
+           COALESCE(NULLIF(prev.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS prev_price,
+           m.item_type,
+           COALESCE(m.first_seen_date, '') AS acq_date
+    FROM daily_snapshots s
+    JOIN daily_snapshots prev ON s.card_key = prev.card_key AND prev.date = ?
+    JOIN card_metadata m ON s.card_key = m.card_key
+    WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
+)
+SELECT name, rarity, color, finish, quantity, curr_price, prev_price,
+       ROUND((curr_price - prev_price) * quantity, 2) AS dollar_gain,
+       CASE WHEN prev_price > 0 THEN ROUND(((curr_price - prev_price) / prev_price) * 100.0, 1) ELSE 0.0 END AS pct_gain,
+       acq_date
+FROM evaluated
+WHERE curr_price > prev_price
+ORDER BY (curr_price - prev_price) DESC
+LIMIT 5
+"""
 
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
+_L7D_DECLINER_QUERY = """
+WITH evaluated AS (
+    SELECT m.name, m.rarity, m.color, m.finish, s.quantity,
+           COALESCE(NULLIF(s.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS curr_price,
+           COALESCE(NULLIF(prev.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS prev_price,
+           m.item_type,
+           COALESCE(m.first_seen_date, '') AS acq_date
+    FROM daily_snapshots s
+    JOIN daily_snapshots prev ON s.card_key = prev.card_key AND prev.date = ?
+    JOIN card_metadata m ON s.card_key = m.card_key
+    WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
+)
+SELECT name, rarity, color, finish, quantity, curr_price, prev_price,
+       ROUND((curr_price - prev_price) * quantity, 2) AS dollar_gain,
+       CASE WHEN prev_price > 0 THEN ROUND(((curr_price - prev_price) / prev_price) * 100.0, 1) ELSE 0.0 END AS pct_gain,
+       acq_date
+FROM evaluated
+WHERE curr_price < prev_price
+ORDER BY (curr_price - prev_price) ASC
+LIMIT 5
+"""
 
+
+def ensure_report_schema(cur: sqlite3.Cursor, conn: sqlite3.Connection) -> None:
+    """Executes additive schema migrations for report generation columns."""
     cur.execute("PRAGMA table_info(card_metadata)")
     cols = [col[1] for col in cur.fetchall()]
     if "card_type" not in cols:
@@ -96,21 +133,22 @@ def generate_portfolio_report(
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
         conn.commit()
 
+
+def fetch_portfolio_summary(cur: sqlite3.Cursor, target_date: Optional[str]) -> Optional[Tuple[str, tuple]]:
+    """Resolves target or latest valuation date and fetches executive summary metrics."""
     if target_date:
         cur.execute("SELECT date FROM portfolio_daily_summary WHERE date = ?", (target_date,))
         row = cur.fetchone()
         if not row:
             print(f"No valuation records found for date '{target_date}' in database.", file=sys.stderr)
-            conn.close()
-            return
+            return None
         latest_date = target_date
     else:
         cur.execute("SELECT date FROM portfolio_daily_summary ORDER BY date DESC LIMIT 1")
         latest_row = cur.fetchone()
         if not latest_row:
             print("No valuation records found in database.", file=sys.stderr)
-            conn.close()
-            return
+            return None
         latest_date = latest_row[0]
 
     cur.execute("""
@@ -123,15 +161,11 @@ def generate_portfolio_report(
     WHERE date = ?
     """, (latest_date,))
     summary = cur.fetchone()
+    return (latest_date, summary)
 
-    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at, collection_source, cost_basis, net_gain, net_pct, purchases_updated_at = summary
 
-    price_timestamp_display = latest_date
-    collection_timestamp_display = collection_updated_at or latest_date
-    collection_source_display = collection_source or "—"
-    purchases_timestamp_display = purchases_updated_at or collection_timestamp_display
-
-    # Get breakdown by rarity (cards only, collapsed into 7 tiers)
+def fetch_portfolio_breakdowns(cur: sqlite3.Cursor, latest_date: str) -> Dict[str, Any]:
+    """Queries rarity, color, card type, expansion, and sealed product breakdowns."""
     cur.execute("""
     SELECT CASE 
                WHEN m.rarity LIKE 'Iconic%' THEN 'Iconic'
@@ -150,7 +184,6 @@ def generate_portfolio_report(
     rarity_order_map = {name: i for i, name in enumerate(RARITY_ORDER)}
     rarity_breakdown = sorted(rarity_rows, key=lambda x: rarity_order_map.get(x[0], 99))
 
-    # Get breakdown by color (cards only)
     cur.execute("""
     SELECT COALESCE(NULLIF(m.color, ''), 'Unknown') AS clean_color,
            COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)),
@@ -164,7 +197,6 @@ def generate_portfolio_report(
     """, (latest_date,))
     color_breakdown = cur.fetchall()
 
-    # Get breakdown by card type (cards only)
     cur.execute("""
     SELECT COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS clean_type,
            COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)),
@@ -178,7 +210,6 @@ def generate_portfolio_report(
     """, (latest_date,))
     card_type_breakdown = cur.fetchall()
 
-    # Get breakdown by expansion (cards only)
     cur.execute("""
     SELECT COALESCE(NULLIF(m.expansion, ''), 'Unknown') AS clean_expansion,
            COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)),
@@ -192,7 +223,6 @@ def generate_portfolio_report(
     """, (latest_date,))
     expansion_breakdown = cur.fetchall()
 
-    # Get sealed products
     cur.execute("""
     SELECT m.name, m.expansion, s.quantity, s.unit_market_price, s.line_total,
            s.baseline_price, s.lifetime_gain_dollar, s.lifetime_gain_pct,
@@ -204,7 +234,24 @@ def generate_portfolio_report(
     """, (latest_date,))
     sealed_products = cur.fetchall()
 
-    # Get top 5 gainers (cards only, ranked by per-unit price delta)
+    return {
+        "rarity": rarity_breakdown,
+        "color": color_breakdown,
+        "card_type": card_type_breakdown,
+        "expansion": expansion_breakdown,
+        "sealed": sealed_products,
+    }
+
+
+def fetch_l7d_movers(cur: sqlite3.Cursor, l7d_date: str, latest_date: str, is_gainer: bool) -> List[tuple]:
+    """Executes static CTE query for top L7D gainers or decliners without dynamic SQL formatting."""
+    query = _L7D_GAINER_QUERY if is_gainer else _L7D_DECLINER_QUERY
+    cur.execute(query, (l7d_date, latest_date))
+    return cur.fetchall()
+
+
+def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str, Any]:
+    """Queries top lifetime and L7D performance movers and high value cards."""
     cur.execute("""
     SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
            s.lifetime_gain_dollar, s.lifetime_gain_pct, COALESCE(m.first_seen_date, '') AS acq_date
@@ -216,7 +263,6 @@ def generate_portfolio_report(
     """, (latest_date,))
     top_gainers = cur.fetchall()
 
-    # Get top 5 decliners (cards only, ranked by per-unit price delta, excluding unpriced items)
     cur.execute("""
     SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
            s.lifetime_gain_dollar, s.lifetime_gain_pct, COALESCE(m.first_seen_date, '') AS acq_date
@@ -228,19 +274,17 @@ def generate_portfolio_report(
     """, (latest_date,))
     top_decliners = cur.fetchall()
 
-    # Get high-value singles (>= $10.00, cards only)
     cur.execute("""
     SELECT m.name, m.expansion, m.rarity, m.color, m.finish, SUM(s.quantity), s.unit_market_price, SUM(s.line_total),
            COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS card_type
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.unit_market_price >= 10.0 AND COALESCE(m.item_type, 'Card') = 'Card'
+    WHERE s.date = ? AND s.unit_market_price >= ? AND COALESCE(m.item_type, 'Card') = 'Card'
     GROUP BY m.name, m.expansion, m.rarity, m.color, m.finish, s.unit_market_price, card_type
     ORDER BY s.unit_market_price DESC
-    """, (latest_date,))
+    """, (latest_date, HIGH_VALUE_THRESHOLD))
     high_value_cards = cur.fetchall()
 
-    # Query L7D baseline date (7th prior recorded date, or oldest available)
     cur.execute("""
     SELECT date
     FROM portfolio_daily_summary
@@ -254,61 +298,51 @@ def generate_portfolio_report(
     top_l7d_gainers = []
     top_l7d_decliners = []
     if l7d_date:
-        cur.execute("""
-        WITH evaluated AS (
-            SELECT m.name, m.rarity, m.color, m.finish, s.quantity,
-                   COALESCE(NULLIF(s.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS curr_price,
-                   COALESCE(NULLIF(prev.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS prev_price,
-                   m.item_type,
-                   COALESCE(m.first_seen_date, '') AS acq_date
-            FROM daily_snapshots s
-            JOIN daily_snapshots prev ON s.card_key = prev.card_key AND prev.date = ?
-            JOIN card_metadata m ON s.card_key = m.card_key
-            WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
-        )
-        SELECT name, rarity, color, finish, quantity, curr_price, prev_price,
-               ROUND((curr_price - prev_price) * quantity, 2) AS dollar_gain,
-               CASE WHEN prev_price > 0 THEN ROUND(((curr_price - prev_price) / prev_price) * 100.0, 1) ELSE 0.0 END AS pct_gain,
-               acq_date
-        FROM evaluated
-        WHERE curr_price > prev_price
-        ORDER BY (curr_price - prev_price) DESC
-        LIMIT 5
-        """, (l7d_date, latest_date))
-        top_l7d_gainers = cur.fetchall()
+        top_l7d_gainers = fetch_l7d_movers(cur, l7d_date, latest_date, is_gainer=True)
+        top_l7d_decliners = fetch_l7d_movers(cur, l7d_date, latest_date, is_gainer=False)
 
-        cur.execute("""
-        WITH evaluated AS (
-            SELECT m.name, m.rarity, m.color, m.finish, s.quantity,
-                   COALESCE(NULLIF(s.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS curr_price,
-                   COALESCE(NULLIF(prev.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS prev_price,
-                   m.item_type,
-                   COALESCE(m.first_seen_date, '') AS acq_date
-            FROM daily_snapshots s
-            JOIN daily_snapshots prev ON s.card_key = prev.card_key AND prev.date = ?
-            JOIN card_metadata m ON s.card_key = m.card_key
-            WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
-        )
-        SELECT name, rarity, color, finish, quantity, curr_price, prev_price,
-               ROUND((curr_price - prev_price) * quantity, 2) AS dollar_gain,
-               CASE WHEN prev_price > 0 THEN ROUND(((curr_price - prev_price) / prev_price) * 100.0, 1) ELSE 0.0 END AS pct_gain,
-               acq_date
-        FROM evaluated
-        WHERE curr_price < prev_price
-        ORDER BY (curr_price - prev_price) ASC
-        LIMIT 5
-        """, (l7d_date, latest_date))
-        top_l7d_decliners = cur.fetchall()
+    return {
+        "top_gainers": top_gainers,
+        "top_decliners": top_decliners,
+        "high_value_cards": high_value_cards,
+        "l7d_date": l7d_date,
+        "top_l7d_gainers": top_l7d_gainers,
+        "top_l7d_decliners": top_l7d_decliners,
+    }
 
-    conn.close()
+
+def render_high_value_table(cards: List[tuple]) -> str:
+    """Renders high value singles table rows."""
+    table = """| Card Name | Type | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
+| :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: |
+"""
+    for name, exp, rarity, color, finish, qty, price, total, ctype in cards:
+        r_str = format_rarity(rarity, bold=True)
+        dot = COLOR_DOTS.get(color, "")
+        card_display = f"{dot} **{name}**" if dot else f"**{name}**"
+        table += f"| {card_display} | {ctype} | {exp} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
+    return table
+
+
+def render_markdown_report(
+    summary: tuple,
+    breakdowns: Dict[str, Any],
+    movers: Dict[str, Any],
+    latest_date: str,
+) -> str:
+    """Formats markdown portfolio summary document."""
+    total_val, total_cards, unique_items, l7d_dollar, l7d_pct, life_dollar, life_pct, total_sealed, collection_updated_at, collection_source, cost_basis, net_gain, net_pct, purchases_updated_at = summary
+
+    price_timestamp_display = latest_date
+    collection_timestamp_display = collection_updated_at or latest_date
+    collection_source_display = collection_source or "—"
+    purchases_timestamp_display = purchases_updated_at or collection_timestamp_display
 
     sealed_summary_line = f"\n| **Total Sealed Items** | **{total_sealed}** {'unit' if total_sealed == 1 else 'units'} |" if total_sealed > 0 else ""
     cost_summary_lines = f"\n| **Total Invested Cost Basis** | **`${cost_basis:,.2f}`** |\n| **Net Unrealized Gain / Loss** | **{'+' if net_gain >= 0 else ''}${net_gain:,.2f}** ({'+' if net_pct >= 0 else ''}{net_pct:.2f}%) |" if cost_basis > 0 else ""
 
-    cost_print = f" | Cost Basis: ${cost_basis:,.2f} | Net Unrealized Gain: {'+' if net_gain >= 0 else ''}${net_gain:,.2f} ({'+' if net_pct >= 0 else ''}{net_pct:.2f}%)" if cost_basis > 0 else ""
-    print(f"\nPortfolio valuation report generated for {latest_date}: ${total_val:,.2f}{cost_print} across {total_cards} cards and {total_sealed} sealed items.")
-
     sealed_section = ""
+    sealed_products = breakdowns.get("sealed", [])
     if sealed_products:
         sealed_section = """
 ### Sealed Products
@@ -324,7 +358,6 @@ def generate_portfolio_report(
     report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
     purchases_line = f"**Purchases Last Updated**: `{purchases_timestamp_display}`  \n" if cost_basis > 0 else ""
 
-    # Format Markdown Output
     md_content = f"""# 📊 Cyberpunk TCG Portfolio Valuation Report
 
 **Collection Last Updated**: `{collection_timestamp_display}`  
@@ -353,8 +386,7 @@ def generate_portfolio_report(
 | Rarity | Unique Items | Physical Copies | Market Value | % of Portfolio |
 | :--- | :---: | :---: | :---: | :---: |
 """
-
-    for rarity, entries, qty, r_val in rarity_breakdown:
+    for rarity, entries, qty, r_val in breakdowns.get("rarity", []):
         pct_of_total = (r_val / total_val * 100.0) if total_val > 0 else 0.0
         r_lbl = format_rarity(rarity, bold=True)
         md_content += f"| {r_lbl} | {entries} | {qty} | `${r_val:,.2f}` | {pct_of_total:.1f}% |\n"
@@ -365,13 +397,13 @@ def generate_portfolio_report(
 | Color | Unique Items | Physical Copies | Market Value | % of Portfolio |
 | :--- | :---: | :---: | :---: | :---: |
 """
-
-    for color, entries, qty, c_val in color_breakdown:
+    for color, entries, qty, c_val in breakdowns.get("color", []):
         pct_of_total = (c_val / total_val * 100.0) if total_val > 0 else 0.0
         dot = COLOR_DOTS.get(color)
         c_lbl = f"{dot} {color}" if dot else color
         md_content += f"| **{c_lbl}** | {entries} | {qty} | `${c_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
+    card_type_breakdown = breakdowns.get("card_type", [])
     if card_type_breakdown:
         md_content += """
 ### Card Type
@@ -383,6 +415,7 @@ def generate_portfolio_report(
             pct_of_total = (ct_val / total_val * 100.0) if total_val > 0 else 0.0
             md_content += f"| **{ctype}** | {entries} | {qty} | `${ct_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
+    expansion_breakdown = breakdowns.get("expansion", [])
     if expansion_breakdown:
         md_content += """
 ### Expansion
@@ -394,23 +427,13 @@ def generate_portfolio_report(
             pct_of_total = (exp_val / total_val * 100.0) if total_val > 0 else 0.0
             md_content += f"| **{exp}** | {entries} | {qty} | `${exp_val:,.2f}` | {pct_of_total:.1f}% |\n"
 
-    def render_high_value_table(cards):
-        table = """| Card Name | Type | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
-| :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: |
-"""
-        for name, exp, rarity, color, finish, qty, price, total, ctype in cards:
-            r_str = format_rarity(rarity, bold=True)
-            dot = COLOR_DOTS.get(color, "")
-            card_display = f"{dot} **{name}**" if dot else f"**{name}**"
-            table += f"| {card_display} | {ctype} | {exp} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
-        return table
-
+    high_value_cards = movers.get("high_value_cards", [])
     iconic_singles = [c for c in high_value_cards if (c[2] or "").startswith("Iconic")]
     nova_singles = [c for c in high_value_cards if (c[2] or "").startswith("Nova")]
     non_iconic_nova_singles = [c for c in high_value_cards if not (c[2] or "").startswith("Iconic") and not (c[2] or "").startswith("Nova")]
 
-    md_content += """
-### High-Value Singles (`$10.00`+)
+    md_content += f"""
+### High-Value Singles (`${HIGH_VALUE_THRESHOLD:,.2f}`+)
 """
     if iconic_singles:
         md_content += """
@@ -431,7 +454,7 @@ def generate_portfolio_report(
 """ + render_high_value_table(non_iconic_nova_singles)
 
     if not high_value_cards:
-        md_content += "\n*No singles currently valued at $10.00 or higher.*\n"
+        md_content += f"\n*No singles currently valued at ${HIGH_VALUE_THRESHOLD:,.2f} or higher.*\n"
 
     if sealed_section:
         md_content += sealed_section
@@ -446,22 +469,22 @@ def generate_portfolio_report(
 | Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Gain | Percent Gain |
 | :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 """
-
-    for name, rarity, color, finish, qty, price, base, gain, pct, acq_date in top_gainers:
+    for name, rarity, color, finish, qty, price, base, gain, pct, acq_date in movers.get("top_gainers", []):
         r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         acq_display = f"`{acq_date}`" if acq_date else "—"
         md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
+    l7d_date = movers.get("l7d_date")
     if l7d_date:
         md_content += f"""
 ### L7D (Since `{l7d_date}`)
 
 | Card Name | Acquired | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Gain | Percent Gain |
-| :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| :--- | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
 """
-        for name, rarity, color, finish, qty, price, prev_price, gain, pct, acq_date in top_l7d_gainers:
+        for name, rarity, color, finish, qty, price, prev_price, gain, pct, acq_date in movers.get("top_l7d_gainers", []):
             r_str = format_rarity(rarity, bold=True)
             dot = COLOR_DOTS.get(color, "")
             card_display = f"{dot} **{name}**" if dot else f"**{name}**"
@@ -478,8 +501,7 @@ def generate_portfolio_report(
 | Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Loss | Percent Loss |
 | :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 """
-
-    for name, rarity, color, finish, qty, price, base, gain, pct, acq_date in top_decliners:
+    for name, rarity, color, finish, qty, price, base, gain, pct, acq_date in movers.get("top_decliners", []):
         r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
@@ -493,12 +515,52 @@ def generate_portfolio_report(
 | Card Name | Acquired | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Loss | Percent Loss |
 | :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 """
-        for name, rarity, color, finish, qty, price, prev_price, gain, pct, acq_date in top_l7d_decliners:
+        for name, rarity, color, finish, qty, price, prev_price, gain, pct, acq_date in movers.get("top_l7d_decliners", []):
             r_str = format_rarity(rarity, bold=True)
             dot = COLOR_DOTS.get(color, "")
             card_display = f"{dot} **{name}**" if dot else f"**{name}**"
             acq_display = f"`{acq_date}`" if acq_date else "—"
             md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+
+    return md_content
+
+
+def generate_portfolio_report(
+    db_path: str = "data/price_history.db",
+    output_md: str = "LATEST_PORTFOLIO_SUMMARY.md",
+    price_cache_dir: Optional[str] = None,
+    target_date: Optional[str] = None,
+) -> None:
+    """Orchestrates schema migration, data querying, and markdown report rendering."""
+    if not os.path.exists(db_path):
+        raise FileNotFoundError(f"Database not found at {db_path}")
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    ensure_report_schema(cur, conn)
+
+    summary_res = fetch_portfolio_summary(cur, target_date)
+    if not summary_res:
+        conn.close()
+        return
+
+    latest_date, summary = summary_res
+    breakdowns = fetch_portfolio_breakdowns(cur, latest_date)
+    movers = fetch_performance_movers(cur, latest_date)
+    conn.close()
+
+    total_val = summary[0]
+    total_cards = summary[1]
+    total_sealed = summary[7]
+    cost_basis = summary[10]
+    net_gain = summary[11]
+    net_pct = summary[12]
+
+    cost_print = f" | Cost Basis: ${cost_basis:,.2f} | Net Unrealized Gain: {'+' if net_gain >= 0 else ''}${net_gain:,.2f} ({'+' if net_pct >= 0 else ''}{net_pct:.2f}%)" if cost_basis > 0 else ""
+    print(f"\nPortfolio valuation report generated for {latest_date}: ${total_val:,.2f}{cost_print} across {total_cards} cards and {total_sealed} sealed items.")
+
+    md_content = render_markdown_report(summary, breakdowns, movers, latest_date)
 
     os.makedirs(os.path.dirname(output_md) or ".", exist_ok=True)
     with open(output_md, "w", encoding="utf-8") as f:
@@ -508,7 +570,7 @@ def generate_portfolio_report(
     try:
         with open(pointer_file, "w", encoding="utf-8") as f:
             f.write(os.path.abspath(output_md))
-    except Exception:
-        pass
+    except OSError as e:
+        print(f"Warning: Could not write latest report pointer to '{pointer_file}': {e}", file=sys.stderr)
 
     print(f"Markdown portfolio summary saved to {output_md}.")
