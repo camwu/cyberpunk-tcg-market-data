@@ -264,10 +264,11 @@ def main(argv: Optional[List[str]] = None):
         try:
             with open(price_file, "r", encoding="utf-8") as f:
                 p_data = json.load(f)
-                file_date = p_data.get("date")
-                if file_date:
-                    effective_date = file_date
-        except Exception:
+                if isinstance(p_data, dict):
+                    file_date = p_data.get("date")
+                    if file_date:
+                        effective_date = file_date
+        except (OSError, json.JSONDecodeError):
             pass
 
     try:
