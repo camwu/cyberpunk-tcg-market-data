@@ -16,14 +16,14 @@ from typing import Optional
 import urllib.error
 import urllib.request
 
+from tracker.constants import REPO_ROOT, REPO_PRICES_DIR, REPO_CARDS_FILE, USER_AGENT
+
 CATEGORY_ID = 92
 BASE_URL = "https://tcgcsv.com/tcgplayer"
 LAST_UPDATED_URL = "https://tcgcsv.com/last-updated.txt"
 ARCHIVE_BASE_URL = "https://tcgcsv.com/archive/tcgplayer"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/camwu/cyberpunk-tcg-market-data/main"
 GITHUB_RAW_URL = f"{GITHUB_RAW_BASE}/prices"
-from tracker.constants import REPO_ROOT, REPO_PRICES_DIR, REPO_CARDS_FILE, USER_AGENT
-
 RATE_LIMIT_DELAY = 0.2
 
 
