@@ -557,16 +557,15 @@ class TestReportGeneration(unittest.TestCase):
     def test_report_numerical_roi_and_net_return(self):
         conn = sqlite3.connect(self.db_path)
         try:
-            cur = conn.cursor()
-            cur.execute("""
-            UPDATE portfolio_daily_summary
-            SET total_value = 1250.00,
-                total_cost_basis = 1000.00,
-                net_unrealized_gain = 250.00,
-                net_unrealized_pct = 25.00
-            WHERE date = '2026-09-14'
-            """)
-            conn.commit()
+            seed_summary(
+                conn,
+                "2026-09-14",
+                total_value=1250.00,
+                total_cards=3,
+                cost_basis=1000.00,
+                net_unrealized_gain=250.00,
+                net_unrealized_pct=25.00,
+            )
         finally:
             conn.close()
 
@@ -580,14 +579,14 @@ class TestReportGeneration(unittest.TestCase):
     def test_report_rolling_l7d_delta_accuracy(self):
         conn = sqlite3.connect(self.db_path)
         try:
-            cur = conn.cursor()
-            cur.execute("""
-            UPDATE portfolio_daily_summary
-            SET l7d_dollar_delta = 250.00,
-                l7d_pct_delta = 25.00
-            WHERE date = '2026-09-14'
-            """)
-            conn.commit()
+            seed_summary(
+                conn,
+                "2026-09-14",
+                total_value=38.00,
+                total_cards=3,
+                l7d_dollar_delta=250.00,
+                l7d_pct_delta=25.00,
+            )
         finally:
             conn.close()
 

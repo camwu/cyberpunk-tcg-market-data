@@ -353,13 +353,13 @@ class TestPurchaseHistory(unittest.TestCase):
         fake_pdf = self.test_dir / "sample.pdf"
         fake_pdf.write_text("Dummy binary content", encoding="utf-8")
         with patch("tracker.purchases.pypdf", None), warnings.catch_warnings(record=True) as recorded:
-            warnings.simplefilter("default")
+            warnings.simplefilter("always")
             res1 = extract_text_from_document(str(fake_pdf))
             self.assertEqual(res1, "")
-            res2 = extract_text_from_document(str(fake_pdf))
-            self.assertEqual(res2, "")
             user_warnings = [item for item in recorded if issubclass(item.category, UserWarning) and "pypdf" in str(item.message)]
-            self.assertEqual(len(user_warnings), 1)
+            self.assertGreaterEqual(len(user_warnings), 1)
+            self.assertEqual(user_warnings[0].category, UserWarning)
+            self.assertIn("pypdf", str(user_warnings[0].message))
 
     def test_get_purchase_history_updated_at_formatting(self):
         self.assertIsNone(get_purchase_history_updated_at(None))

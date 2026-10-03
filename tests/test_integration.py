@@ -83,9 +83,47 @@ class TestPipelineIntegration(unittest.TestCase):
     def test_full_pipeline_csv_e2e(self):
         today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
 
-        create_daily_prices(self.prices_dir, today)
-        create_collection_csv(self.collection_csv)
-        create_receipt_file(self.purchases_dir, "receipt_01.txt", "Date: 2026-09-01\nTCGplayer Order Total: $200.00")
+        card_qty = 2
+        card_unit_price = 25.00
+        sealed_qty = 1
+        sealed_unit_price = 250.00
+        receipt_amount = 200.00
+
+        expected_total_value = (card_qty * card_unit_price) + (sealed_qty * sealed_unit_price)
+        expected_unrealized_gain = round(expected_total_value - receipt_amount, 2)
+        expected_unrealized_pct = round((expected_unrealized_gain / receipt_amount) * 100.0, 2)
+
+        create_daily_prices(self.prices_dir, today, {
+            "date": today,
+            "prices": {
+                "101": {
+                    "Normal": {"marketPrice": card_unit_price, "lowPrice": 20.00, "midPrice": 24.00, "highPrice": 30.00},
+                    "Foil": {"marketPrice": 50.00, "lowPrice": 40.00, "midPrice": 48.00, "highPrice": 60.00},
+                },
+                "102": {
+                    "Normal": {"marketPrice": sealed_unit_price, "lowPrice": 220.00, "midPrice": 245.00, "highPrice": 280.00},
+                },
+            },
+        })
+        create_collection_csv(self.collection_csv, [
+            {
+                "name": "Johnny Silverhand",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "001",
+                "finish": "Standard",
+                "totalQtyOwned": card_qty,
+                "notes": "2026-09-01: 2",
+            },
+            {
+                "name": "Welcome to Night City - Beta Booster Box",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "",
+                "finish": "Standard",
+                "totalQtyOwned": sealed_qty,
+                "notes": "2026-09-01",
+            },
+        ])
+        create_receipt_file(self.purchases_dir, "receipt_01.txt", f"Date: 2026-09-01\nTCGplayer Order Total: ${receipt_amount:.2f}")
 
         run_tracker.main(["--config", str(self.config_path)])
 
@@ -104,11 +142,11 @@ class TestPipelineIntegration(unittest.TestCase):
             row = cur.fetchone()
             self.assertIsNotNone(row)
             self.assertEqual(row[0], today)
-            self.assertEqual(row[1], 300.00)  # 2 * 25.00 (cards) + 1 * 250.00 (sealed)
-            self.assertEqual(row[2], 2)       # 2 cards
-            self.assertEqual(row[3], 200.00)  # receipt cost basis
-            self.assertEqual(row[4], 100.00)  # 300.00 - 200.00
-            self.assertEqual(row[5], 50.00)   # (100.00 / 200.00) * 100
+            self.assertEqual(row[1], expected_total_value)
+            self.assertEqual(row[2], card_qty)
+            self.assertEqual(row[3], receipt_amount)
+            self.assertEqual(row[4], expected_unrealized_gain)
+            self.assertEqual(row[5], expected_unrealized_pct)
 
             cur.execute("SELECT COUNT(*) FROM card_metadata")
             self.assertEqual(cur.fetchone()[0], 2)
@@ -119,15 +157,15 @@ class TestPipelineIntegration(unittest.TestCase):
             conn.close()
 
         report_text = self.output_md.read_text(encoding="utf-8")
-        self.assertIn("| **Total Portfolio Market Value** | **`$300.00`** |", report_text)
-        self.assertIn("| **Total Invested Cost Basis** | **`$200.00`** |", report_text)
-        self.assertIn("| **Net Unrealized Gain / Loss** | **+$100.00** (+50.00%) |", report_text)
+        self.assertIn(f"| **Total Portfolio Market Value** | **`${expected_total_value:,.2f}`** |", report_text)
+        self.assertIn(f"| **Total Invested Cost Basis** | **`${receipt_amount:,.2f}`** |", report_text)
+        self.assertIn(f"| **Net Unrealized Gain / Loss** | **+${expected_unrealized_gain:,.2f}** (+{expected_unrealized_pct:.2f}%) |", report_text)
         self.assertIn("Johnny Silverhand", report_text)
         self.assertIn("Welcome to Night City - Beta Booster Box", report_text)
 
     def test_multi_day_valuation_progression(self):
         date_1 = "2026-09-01"
-        date_2 = "2026-09-02"
+        date_8 = "2026-09-08"
 
         # Day 1: Johnny Silverhand at $20.00
         create_daily_prices(self.prices_dir, date_1, {
@@ -155,11 +193,13 @@ class TestPipelineIntegration(unittest.TestCase):
         try:
             cur = conn.cursor()
 
-            cur.execute("SELECT total_value, lifetime_dollar_gain, lifetime_pct_gain FROM portfolio_daily_summary WHERE date = ?", (date_1,))
+            cur.execute("SELECT total_value, lifetime_dollar_gain, lifetime_pct_gain, l7d_dollar_delta, l7d_pct_delta FROM portfolio_daily_summary WHERE date = ?", (date_1,))
             d1_summary = cur.fetchone()
             self.assertEqual(d1_summary[0], 20.00)
             self.assertEqual(d1_summary[1], 0.00)
             self.assertEqual(d1_summary[2], 0.0)
+            self.assertEqual(d1_summary[3], 0.0)
+            self.assertEqual(d1_summary[4], 0.0)
 
             cur.execute("SELECT unit_market_price, baseline_price, lifetime_gain_dollar, lifetime_gain_pct FROM daily_snapshots WHERE date = ?", (date_1,))
             d1_snapshot = cur.fetchone()
@@ -174,9 +214,9 @@ class TestPipelineIntegration(unittest.TestCase):
         finally:
             conn.close()
 
-        # Day 2: Johnny Silverhand rises to $30.00
-        create_daily_prices(self.prices_dir, date_2, {
-            "date": date_2,
+        # Day 8 (exactly 7 days after Day 1): Johnny Silverhand rises to $30.00
+        create_daily_prices(self.prices_dir, date_8, {
+            "date": date_8,
             "prices": {
                 "101": {
                     "Normal": {"marketPrice": 30.00, "lowPrice": 28.00, "midPrice": 30.00, "highPrice": 35.00},
@@ -184,32 +224,38 @@ class TestPipelineIntegration(unittest.TestCase):
             },
         })
 
-        run_tracker.main(["--config", str(self.config_path), "--backfill", date_2])
+        run_tracker.main(["--config", str(self.config_path), "--backfill", date_8])
 
         conn = sqlite3.connect(str(self.db_path))
         try:
             cur = conn.cursor()
 
-            cur.execute("SELECT total_value, lifetime_dollar_gain, lifetime_pct_gain FROM portfolio_daily_summary WHERE date = ?", (date_2,))
-            d2_summary = cur.fetchone()
-            self.assertEqual(d2_summary[0], 30.00)
-            self.assertEqual(d2_summary[1], 10.00)
-            self.assertEqual(d2_summary[2], 50.0)
+            cur.execute("SELECT total_value, lifetime_dollar_gain, lifetime_pct_gain, l7d_dollar_delta, l7d_pct_delta FROM portfolio_daily_summary WHERE date = ?", (date_8,))
+            d8_summary = cur.fetchone()
+            self.assertEqual(d8_summary[0], 30.00)
+            self.assertEqual(d8_summary[1], 10.00)
+            self.assertEqual(d8_summary[2], 50.0)
+            self.assertEqual(d8_summary[3], 10.00)  # Rolling L7D dollar delta: 30.00 - 20.00
+            self.assertEqual(d8_summary[4], 50.0)   # Rolling L7D percentage delta: (10.00 / 20.00) * 100
 
-            cur.execute("SELECT unit_market_price, baseline_price, lifetime_gain_dollar, lifetime_gain_pct FROM daily_snapshots WHERE date = ?", (date_2,))
-            d2_snapshot = cur.fetchone()
-            self.assertEqual(d2_snapshot[0], 30.00)
-            self.assertEqual(d2_snapshot[1], 20.00)  # Baseline carried forward
-            self.assertEqual(d2_snapshot[2], 10.00)
-            self.assertEqual(d2_snapshot[3], 50.0)
+            cur.execute("SELECT unit_market_price, baseline_price, lifetime_gain_dollar, lifetime_gain_pct FROM daily_snapshots WHERE date = ?", (date_8,))
+            d8_snapshot = cur.fetchone()
+            self.assertEqual(d8_snapshot[0], 30.00)
+            self.assertEqual(d8_snapshot[1], 20.00)  # Baseline carried forward
+            self.assertEqual(d8_snapshot[2], 10.00)
+            self.assertEqual(d8_snapshot[3], 50.0)
 
             # Metadata baseline should remain unchanged from Day 1
             cur.execute("SELECT baseline_market_price, first_seen_date FROM card_metadata")
-            d2_meta = cur.fetchone()
-            self.assertEqual(d2_meta[0], 20.00)
-            self.assertEqual(d2_meta[1], date_1)
+            d8_meta = cur.fetchone()
+            self.assertEqual(d8_meta[0], 20.00)
+            self.assertEqual(d8_meta[1], date_1)
         finally:
             conn.close()
+
+        report_text = self.output_md.read_text(encoding="utf-8")
+        self.assertIn("| **Rolling L7D Performance** | **+$10.00** (+50.00%) |", report_text)
+        self.assertIn("| **Lifetime Market Gain / Loss** | **+$10.00** (+50.00%) |", report_text)
 
     def test_purchase_history_invalidation_e2e(self):
         today = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")

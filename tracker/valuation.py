@@ -820,37 +820,20 @@ def calculate_portfolio_valuation(
         raw_acq_date = extract_raw_acquisition_date(row)
         if raw_acq_date:
             effective_acq_date = max(raw_acq_date, earliest_price_date) if earliest_price_date else raw_acq_date
+            prod, ctx, distinct_key, is_matched, label = match_collection_item(
+                row, catalog_indexes, effective_acq_date
+            )
         else:
-            item_type = row.get("item_type") or ("Sealed" if is_sealed_product(row.get("name", ""), row.get("expansion", "")) else "Card")
-            pnum = (row.get("printNumber") or "").strip() or None
-            name_raw = row["name"].strip()
-            exp_raw = row["expansion"].strip()
-            finish_raw = (row.get("finish") or "Standard").strip()
-            row_pid = row.get("productId")
-
-            prod_pre = None
-            if pnum:
-                prod_pre = catalog_indexes["by_group_pnum"].get((exp_raw.lower(), pnum.lower()))
-            if not prod_pre:
-                prod_pre = catalog_indexes["by_group_name"].get((exp_raw.lower(), name_raw.lower()))
-            if not prod_pre:
-                prod_pre = catalog_indexes["by_group_clean_name"].get((exp_raw.lower(), name_raw.lower()))
-            if not prod_pre:
-                prod_pre = catalog_indexes["by_name"].get(name_raw.lower())
-            if not prod_pre and row_pid:
-                prod_pre = catalog_indexes["by_pid"].get(int(row_pid)) or catalog_indexes["by_pid"].get(str(row_pid))
-
-            prod_id_pre = prod_pre["productId"] if prod_pre else (int(row_pid) if row_pid else None)
-            name_pre = sanitize_card_name(prod_pre.get("name") or name_raw) if prod_pre else sanitize_card_name(name_raw)
-            exp_pre = prod_pre.get("groupName") or exp_raw if prod_pre else exp_raw
-
-            effective_acq_date = lookup_first_seen_date(
-                cur, item_type, prod_id_pre, name_pre, exp_pre, pnum, finish_raw
-            ) or date_str
-
-        prod, ctx, distinct_key, is_matched, label = match_collection_item(
-            row, catalog_indexes, effective_acq_date
-        )
+            prod, ctx, distinct_key, is_matched, label = match_collection_item(
+                row, catalog_indexes, date_str
+            )
+            first_seen = lookup_first_seen_date(
+                cur, ctx.item_type, ctx.prod_id, ctx.name, ctx.expansion, ctx.print_number, ctx.finish
+            )
+            if first_seen and first_seen != date_str:
+                prod, ctx, distinct_key, is_matched, label = match_collection_item(
+                    row, catalog_indexes, first_seen
+                )
 
         if is_matched:
             if distinct_key not in seen_distinct:

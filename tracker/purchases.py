@@ -54,7 +54,7 @@ def extract_text_from_document(filepath: str) -> str:
             warnings.warn(
                 "Warning: 'pypdf' package is not installed; skipping PDF text extraction. Run 'pip install pypdf' to parse PDF receipts.",
                 category=UserWarning,
-                stacklevel=1,
+                stacklevel=2,
             )
             return ""
         try:

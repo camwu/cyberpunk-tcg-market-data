@@ -22,6 +22,7 @@ from tracker.valuation import (
     persist_portfolio_summary,
     init_database,
 )
+from tests.fixtures import seed_metadata, seed_snapshots, seed_summary
 
 
 class TestValuationHelpers(unittest.TestCase):
@@ -161,15 +162,10 @@ class TestValuationHelpers(unittest.TestCase):
         self.assertIsNone(extract_raw_acquisition_date(row_empty))
 
     def test_lookup_first_seen_date(self):
-        self.cur.execute("""
-        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, first_seen_date, item_type)
-        VALUES ('Night City::001::Standard::2026-08-15', 101, 'Johnny Silverhand', '001', 'Night City', 'Standard', 'Epic', '2026-08-15', 'Card')
-        """)
-        self.cur.execute("""
-        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, first_seen_date, item_type)
-        VALUES ('SEALED::Night City::102::2026-08-10', 102, 'Night City Booster Box', NULL, 'Night City', 'Standard', 'Sealed', '2026-08-10', 'Sealed')
-        """)
-        self.conn.commit()
+        seed_metadata(self.conn, [
+            {"card_key": "Night City::001::Standard::2026-08-15", "product_id": 101, "name": "Johnny Silverhand", "print_number": "001", "expansion": "Night City", "finish": "Standard", "rarity": "Epic", "first_seen_date": "2026-08-15", "item_type": "Card"},
+            {"card_key": "SEALED::Night City::102::2026-08-10", "product_id": 102, "name": "Night City Booster Box", "print_number": None, "expansion": "Night City", "finish": "Standard", "rarity": "Sealed", "first_seen_date": "2026-08-10", "item_type": "Sealed"},
+        ])
 
         # Lookup card
         card_date = lookup_first_seen_date(self.cur, "Card", 101, "Johnny Silverhand", "Night City", "001", "Standard")
@@ -206,14 +202,12 @@ class TestValuationHelpers(unittest.TestCase):
         self.assertEqual(total_p, 40.0)
 
         # 2. Product has no prices -> DB carry-forward
-        self.cur.execute("""
-        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish)
-        VALUES ('Night City::001::Standard::2026-08-01', 101, 'Johnny Silverhand', '001', 'Night City', 'Standard')
-        """)
-        self.cur.execute("""
-        INSERT INTO daily_snapshots (date, card_key, quantity, unit_market_price, line_total)
-        VALUES ('2026-09-30', 'Night City::001::Standard::2026-08-01', 1, 18.50, 18.50)
-        """)
+        seed_metadata(self.conn, [
+            {"card_key": "Night City::001::Standard::2026-08-01", "product_id": 101, "name": "Johnny Silverhand", "print_number": "001", "expansion": "Night City", "finish": "Standard"},
+        ])
+        seed_snapshots(self.conn, "2026-09-30", [
+            {"card_key": "Night City::001::Standard::2026-08-01", "quantity": 1, "unit_market_price": 18.50, "line_total": 18.50},
+        ])
         market_p2, _, _, _, total_p2 = resolve_item_market_price(None, ctx, "2026-10-01", self.cur)
         self.assertEqual(market_p2, 18.50)
         self.assertEqual(total_p2, 37.0)
@@ -245,15 +239,19 @@ class TestValuationHelpers(unittest.TestCase):
         self.assertEqual(row[1], "Epic")
 
     def test_calculate_l7d_metrics_and_summary_persistence(self):
-        self.cur.execute("""
-        INSERT INTO portfolio_daily_summary (date, total_value, total_cards, unique_items)
-        VALUES ('2026-09-24', 100.0, 10, 5)
-        """)
-        self.cur.execute("""
-        INSERT INTO daily_snapshots (date, card_key, quantity, unit_market_price, baseline_price)
-        VALUES ('2026-09-24', 'card_1', 2, 10.0, 10.0),
-               ('2026-10-01', 'card_1', 2, 15.0, 10.0)
-        """)
+        seed_summary(
+            self.conn,
+            "2026-09-24",
+            total_value=100.0,
+            total_cards=10,
+            unique_items=5,
+        )
+        seed_snapshots(self.conn, "2026-09-24", [
+            {"card_key": "card_1", "quantity": 2, "unit_market_price": 10.0, "baseline_price": 10.0},
+        ])
+        seed_snapshots(self.conn, "2026-10-01", [
+            {"card_key": "card_1", "quantity": 2, "unit_market_price": 15.0, "baseline_price": 10.0},
+        ])
         dollar_delta, pct_delta = calculate_l7d_metrics(self.cur, "2026-10-01")
         self.assertEqual(dollar_delta, 10.0)  # (15 - 10) * 2
         self.assertEqual(pct_delta, 50.0)
