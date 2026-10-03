@@ -68,6 +68,17 @@ class TestValuationHelpers(unittest.TestCase):
         self.assertIn(101, indexes["by_pid"])
         self.assertIn(("night city", "arasaka tower booster box"), indexes["by_group_name"])
 
+    def test_load_price_catalog_fallback_and_missing(self):
+        # 1. Fallback to repo prices/ directory when cache_dir lacks the date file
+        empty_cache_dir = str(self.test_dir / "empty_cache")
+        os.makedirs(empty_cache_dir, exist_ok=True)
+        prods, indexes = load_price_catalog(empty_cache_dir, "2026-09-11")
+        self.assertGreater(len(prods), 0)
+
+        # 2. FileNotFoundError raised when date file exists in neither candidate path
+        with self.assertRaises(FileNotFoundError):
+            load_price_catalog(empty_cache_dir, "1999-01-01")
+
     def test_deduplicate_and_merge_items(self):
         collection_rows = [
             {"name": "Booster Box", "expansion": "Night City", "item_type": "Sealed", "totalQtyOwned": 2},

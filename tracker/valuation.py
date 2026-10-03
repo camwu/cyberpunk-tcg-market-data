@@ -284,9 +284,16 @@ def load_price_catalog(
     price_file: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Loads price cache JSON and constructs catalog lookup indexes."""
-    cache_file = price_file if (price_file and os.path.isfile(price_file)) else os.path.join(cache_dir, f"{date_str}.json")
-    if not os.path.exists(cache_file):
-        raise FileNotFoundError(f"Price cache file not found for {date_str}: {cache_file}")
+    if price_file and os.path.isfile(price_file):
+        cache_file = price_file
+    else:
+        candidates = [
+            os.path.join(cache_dir, f"{date_str}.json"),
+            str(Path(__file__).resolve().parent.parent / "prices" / f"{date_str}.json"),
+        ]
+        cache_file = next((c for c in candidates if os.path.isfile(c)), None)
+        if not cache_file:
+            raise FileNotFoundError(f"Price cache file not found for {date_str} in candidates: {candidates}")
 
     with open(cache_file, "r", encoding="utf-8") as f:
         cache_data = json.load(f)

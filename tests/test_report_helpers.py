@@ -17,6 +17,7 @@ from tracker.report import (
     fetch_performance_movers,
     render_markdown_report,
 )
+from tracker.valuation import init_database
 
 
 class TestReportHelpers(unittest.TestCase):
@@ -25,76 +26,44 @@ class TestReportHelpers(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.test_dir = Path(self.temp_dir.name)
         self.db_path = str(self.test_dir / "test_report_helpers.db")
-        self.conn = sqlite3.connect(self.db_path)
+        self.conn = init_database(self.db_path)
         self.cur = self.conn.cursor()
-
-        self.cur.execute("""
-        CREATE TABLE card_metadata (
-            card_key TEXT PRIMARY KEY,
-            product_id INTEGER,
-            name TEXT,
-            print_number TEXT,
-            expansion TEXT,
-            finish TEXT,
-            rarity TEXT,
-            color TEXT,
-            first_seen_date TEXT,
-            baseline_market_price REAL,
-            item_type TEXT DEFAULT 'Card'
-        )
-        """)
-        self.cur.execute("""
-        CREATE TABLE daily_snapshots (
-            date TEXT,
-            card_key TEXT,
-            quantity INTEGER,
-            unit_market_price REAL,
-            unit_low_price REAL,
-            unit_mid_price REAL,
-            unit_high_price REAL,
-            line_total REAL,
-            baseline_price REAL,
-            lifetime_gain_dollar REAL,
-            lifetime_gain_pct REAL,
-            PRIMARY KEY (date, card_key)
-        )
-        """)
-        self.cur.execute("""
-        CREATE TABLE portfolio_daily_summary (
-            date TEXT PRIMARY KEY,
-            total_value REAL,
-            total_cards INTEGER,
-            unique_items INTEGER,
-            l7d_dollar_delta REAL,
-            l7d_pct_delta REAL,
-            lifetime_dollar_gain REAL,
-            lifetime_pct_gain REAL,
-            total_sealed INTEGER DEFAULT 0
-        )
-        """)
-        self.conn.commit()
 
     def tearDown(self):
         self.conn.close()
         self.temp_dir.cleanup()
 
     def test_ensure_report_schema_migrations(self):
+        # 1. Verify idempotency on initialized DB
         ensure_report_schema(self.cur, self.conn)
         self.cur.execute("PRAGMA table_info(card_metadata)")
         card_cols = {col[1] for col in self.cur.fetchall()}
         self.assertIn("card_type", card_cols)
 
-        self.cur.execute("PRAGMA table_info(portfolio_daily_summary)")
-        sum_cols = {col[1] for col in self.cur.fetchall()}
+        # 2. Verify migration adds columns to bare unmigrated tables
+        bare_db = str(self.test_dir / "test_bare.db")
+        bare_conn = sqlite3.connect(bare_db)
+        bare_cur = bare_conn.cursor()
+        bare_cur.execute("CREATE TABLE card_metadata (card_key TEXT PRIMARY KEY)")
+        bare_cur.execute("CREATE TABLE portfolio_daily_summary (date TEXT PRIMARY KEY)")
+        bare_conn.commit()
+
+        ensure_report_schema(bare_cur, bare_conn)
+        bare_cur.execute("PRAGMA table_info(card_metadata)")
+        bare_card_cols = {col[1] for col in bare_cur.fetchall()}
+        self.assertIn("card_type", bare_card_cols)
+
+        bare_cur.execute("PRAGMA table_info(portfolio_daily_summary)")
+        sum_cols = {col[1] for col in bare_cur.fetchall()}
         self.assertIn("collection_updated_at", sum_cols)
         self.assertIn("collection_source", sum_cols)
         self.assertIn("total_cost_basis", sum_cols)
         self.assertIn("net_unrealized_gain", sum_cols)
         self.assertIn("net_unrealized_pct", sum_cols)
         self.assertIn("purchases_updated_at", sum_cols)
+        bare_conn.close()
 
     def test_fetch_portfolio_summary(self):
-        ensure_report_schema(self.cur, self.conn)
         self.cur.execute("""
         INSERT INTO portfolio_daily_summary (date, total_value, total_cards, unique_items, total_cost_basis, net_unrealized_gain)
         VALUES ('2026-10-01', 250.0, 10, 5, 200.0, 50.0)
@@ -114,7 +83,6 @@ class TestReportHelpers(unittest.TestCase):
         self.assertEqual(res_latest[0], "2026-10-01")
 
     def test_fetch_portfolio_breakdowns_and_movers(self):
-        ensure_report_schema(self.cur, self.conn)
         self.cur.execute("""
         INSERT INTO card_metadata (card_key, name, expansion, finish, rarity, color, item_type, card_type)
         VALUES ('key1', 'Judy Alvarez', 'Night City', 'Standard', 'Iconic', 'Green', 'Card', 'Character'),
