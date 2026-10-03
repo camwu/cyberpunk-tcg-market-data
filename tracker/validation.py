@@ -7,7 +7,7 @@ import csv
 import datetime
 import os
 import re
-from typing import List, Optional, Set, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
 REQUIRED_COLUMNS = {"name", "expansion", "printNumber", "finish", "totalQtyOwned"}
 REQUIRED_SEALED_COLUMNS = {"productId", "name", "expansion", "totalQtyOwned", "acquisitionDate"}
@@ -214,275 +214,349 @@ def format_validation_report(
 DEFAULT_ERROR_EXPORT = "__DEFAULT__"
 
 
+class LotResolutionResult(NamedTuple):
+    lots: List[Tuple[Optional[str], int]]
+    errors: List[str]
+    mismatches: List[Dict[str, str]]
+
+
+class DuplicateTracker:
+    """Tracks seen lots across collection and sealed files to prevent duplicate entries."""
+
+    def __init__(self) -> None:
+        self.seen_sealed_lots: Set[Tuple[str, str, str]] = set()
+        self.seen_card_lots: Set[Tuple[str, str, str, str]] = set()
+        self.seen_dateless_cards: Set[Tuple[str, str, str]] = set()
+        self.seen_dateless_sealed: Set[Tuple[str, str]] = set()
+        self.seen_sealed_file_lots: Set[Tuple[int, str]] = set()
+
+    def check_and_record(
+        self,
+        row_data: Dict[str, Any],
+        lots: List[Tuple[Optional[str], int]],
+        row_idx: int,
+        errors: List[str],
+    ) -> bool:
+        """Validates lot uniqueness for collection entries, mutating seen sets in-place."""
+        is_sealed = row_data["is_sealed"]
+        name = row_data["name"]
+        expansion = row_data["expansion"]
+        print_number = row_data.get("printNumber")
+        normalized_finish = row_data["finish"]
+
+        for lot_date, _ in lots:
+            if is_sealed and lot_date:
+                lot_key = (name.lower(), expansion.lower(), lot_date)
+                if lot_key in self.seen_sealed_lots:
+                    errors.append(f"Row {row_idx}: Duplicate sealed lot for '{name}' and acquisitionDate '{lot_date}'. Combine quantities using 'totalQtyOwned'.")
+                    return False
+                self.seen_sealed_lots.add(lot_key)
+            elif not is_sealed and lot_date:
+                card_lot_key = (expansion.lower(), (print_number or "").lower(), normalized_finish.lower(), lot_date)
+                if card_lot_key in self.seen_card_lots:
+                    errors.append(f"Row {row_idx}: Duplicate card lot for '{name}' ({print_number}, {normalized_finish}) and acquisitionDate '{lot_date}'. Combine quantities using 'totalQtyOwned' or notes.")
+                    return False
+                self.seen_card_lots.add(card_lot_key)
+            elif not is_sealed and not lot_date:
+                dateless_key = (expansion.lower(), (print_number or "").lower(), normalized_finish.lower())
+                if dateless_key in self.seen_dateless_cards:
+                    errors.append(
+                        f"Row {row_idx}: Duplicate card '{name}' ({print_number}, {normalized_finish}) with no acquisition date. "
+                        f"Add an acquisition date to the notes field to distinguish purchase lots, or combine quantities using 'totalQtyOwned'."
+                    )
+                    return False
+                self.seen_dateless_cards.add(dateless_key)
+            elif is_sealed and not lot_date:
+                dateless_sealed_key = (name.lower(), expansion.lower())
+                if dateless_sealed_key in self.seen_dateless_sealed:
+                    errors.append(
+                        f"Row {row_idx}: Duplicate sealed item '{name}' ({expansion}) with no acquisition date. "
+                        f"Add an acquisition date to the notes field to distinguish purchase lots, or combine quantities using 'totalQtyOwned'."
+                    )
+                    return False
+                self.seen_dateless_sealed.add(dateless_sealed_key)
+        return True
+
+    def check_and_record_sealed_file(
+        self,
+        prod_id: int,
+        acq_date: str,
+        row_idx: int,
+        errors: List[str],
+    ) -> bool:
+        """Validates lot uniqueness for standalone sealed files, mutating seen sets in-place."""
+        if prod_id and acq_date:
+            lot_key = (prod_id, acq_date)
+            if lot_key in self.seen_sealed_file_lots:
+                errors.append(f"Row {row_idx}: Duplicate sealed lot for productId {prod_id} and acquisitionDate '{acq_date}'. Combine quantities using 'totalQtyOwned'.")
+                return False
+            self.seen_sealed_file_lots.add(lot_key)
+        return True
+
+
+def _parse_and_validate_row(
+    row: Dict[str, Any],
+    row_idx: int,
+    is_sealed: bool = False,
+    include_desc: bool = True,
+    require_product_id: bool = False,
+) -> Tuple[Optional[Dict[str, Any]], List[str]]:
+    """Validates common row fields, normalizes types and finishes, and collects formatting errors."""
+    errors: List[str] = []
+    name = (row.get("name") or "").strip()
+    expansion = (row.get("expansion") or "").strip()
+    print_number = (row.get("printNumber") or "").strip()
+    prod_id_raw = (row.get("productId") or "").strip()
+
+    # Item-type precedence:
+    # 1. Caller-supplied is_sealed parameter (e.g. from validate_sealed_file)
+    # 2. Explicit item_type column in unified collection exports
+    # 3. Keyword heuristic via is_sealed_product(name, expansion)
+    is_sealed = is_sealed or (row.get("item_type") == "Sealed") or is_sealed_product(name, expansion)
+    item_type = "Sealed" if is_sealed else "Card"
+    print_num_val = print_number or prod_id_raw or ("SEALED" if is_sealed else "N/A")
+
+    item_desc = f" for '{name}' ({print_num_val})" if (include_desc and name) else ((f" ({print_num_val})" if print_num_val != "N/A" else "") if include_desc else "")
+
+    if not name:
+        if include_desc:
+            name_ctx = f" (printNumber: '{print_number}')" if print_number else (f" (productId: '{prod_id_raw}')" if prod_id_raw else "")
+            errors.append(f"Row {row_idx}: 'name' is empty{name_ctx}.")
+        else:
+            errors.append(f"Row {row_idx}: 'name' is empty.")
+    if not expansion:
+        errors.append(f"Row {row_idx}: 'expansion' is empty{item_desc}.")
+
+    if not is_sealed and not print_number:
+        pn_desc = f" for '{name}'" if name else ""
+        errors.append(f"Row {row_idx}: 'printNumber' is empty{pn_desc}.")
+
+    normalized_finish = "Standard"
+    finish = (row.get("finish") or "").strip()
+    if finish:
+        finish_key = finish.lower()
+        if finish_key in FINISH_ALIASES:
+            normalized_finish = FINISH_ALIASES[finish_key]
+        elif finish_key in VALID_FINISHES:
+            normalized_finish = "Foil" if finish_key == "foil" else "Standard"
+        else:
+            errors.append(f"Row {row_idx}: 'finish' must be 'Standard' or 'Foil'{item_desc} (got '{finish}').")
+    elif not is_sealed:
+        errors.append(f"Row {row_idx}: 'finish' is empty{item_desc}.")
+
+    qty_raw = (row.get("totalQtyOwned") or "").strip()
+    qty = 0
+    try:
+        qty = int(qty_raw)
+        if qty < 1:
+            errors.append(f"Row {row_idx}: 'totalQtyOwned' must be at least 1{item_desc} (got '{qty_raw}').")
+    except (ValueError, TypeError):
+        errors.append(f"Row {row_idx}: 'totalQtyOwned' must be an integer{item_desc} (got '{qty_raw}').")
+
+    price_raw = (row.get("price") or "").strip()
+    price = 0.0
+    if price_raw:
+        try:
+            price = float(price_raw)
+            if price < 0.0:
+                errors.append(f"Row {row_idx}: 'price' must be non-negative{item_desc} (got '{price_raw}').")
+        except (ValueError, TypeError):
+            errors.append(f"Row {row_idx}: 'price' must be a valid number{item_desc} (got '{price_raw}').")
+
+    prod_id = None
+    if require_product_id:
+        try:
+            prod_id = int(prod_id_raw)
+            if prod_id <= 0:
+                errors.append(f"Row {row_idx}: 'productId' must be a positive integer (got '{prod_id_raw}').")
+        except (ValueError, TypeError):
+            errors.append(f"Row {row_idx}: 'productId' must be an integer (got '{prod_id_raw}').")
+    elif prod_id_raw:
+        try:
+            prod_id = int(prod_id_raw)
+        except (ValueError, TypeError):
+            prod_id = None
+
+    if errors:
+        return None, errors
+
+    parsed_data = {
+        "row": row,
+        "name": name,
+        "expansion": expansion,
+        "printNumber": print_number or None,
+        "finish": normalized_finish,
+        "totalQtyOwned": qty,
+        "price": price,
+        "productId": prod_id,
+        "is_sealed": is_sealed,
+        "item_type": item_type,
+        "print_num_val": print_num_val,
+        "item_desc": item_desc,
+        "notes": (row.get("notes") or "").strip(),
+        "acquisitionDate": (row.get("acquisitionDate") or "").strip(),
+    }
+    return parsed_data, []
+
+
+def _resolve_row_lots(
+    raw_notes: Optional[str],
+    acq_date_col: Optional[str],
+    qty: int,
+    today_str: str,
+    item_info: Dict[str, Any],
+) -> LotResolutionResult:
+    """Parses lot purchase tranches, validates date formats, and enforces future-date bounds."""
+    errors: List[str] = []
+    mismatches: List[Dict[str, str]] = []
+    lots: List[Tuple[Optional[str], int]] = []
+
+    name = item_info.get("name", "")
+    print_num_val = item_info.get("print_num_val", "")
+    row_idx = item_info.get("row_idx", 0)
+    item_desc = item_info.get("item_desc", "")
+
+    acq_date_future_flagged = False
+    if acq_date_col and not extract_date_from_text(acq_date_col):
+        errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format{item_desc} (got '{acq_date_col}').")
+    elif acq_date_col and acq_date_col > today_str:
+        errors.append(f"Row {row_idx}: Acquisition date '{acq_date_col}' for '{name}' ({print_num_val}) is in the future.")
+        acq_date_future_flagged = True
+
+    if qty >= 1:
+        if raw_notes and extract_date_from_text(raw_notes):
+            raw_to_parse = raw_notes
+        elif acq_date_col:
+            raw_to_parse = acq_date_col
+        else:
+            raw_to_parse = raw_notes or ""
+
+        parsed_lots, lot_err = parse_multi_lot_notes(raw_to_parse, qty)
+        if lot_err:
+            errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({print_num_val}). {lot_err} (notes: '{raw_to_parse}')")
+            parsed_qty = sum(q for _, q in parsed_lots)
+            mismatches.append({
+                "row": str(row_idx),
+                "print_number": str(print_num_val),
+                "name": name,
+                "parsed": str(parsed_qty),
+                "qty": str(qty),
+                "notes": raw_to_parse,
+            })
+        else:
+            future_lot_dates = [
+                d for d, _ in parsed_lots
+                if d and d > today_str and not (acq_date_future_flagged and d == acq_date_col)
+            ]
+            if future_lot_dates:
+                for fdate in future_lot_dates:
+                    errors.append(
+                        f"Row {row_idx}: Acquisition date '{fdate}' for '{name}' ({print_num_val}) is in the future (notes: '{raw_to_parse}')."
+                    )
+            else:
+                lots = parsed_lots
+
+    return LotResolutionResult(lots=lots, errors=errors, mismatches=mismatches)
+
+
+def _export_validation_errors(error_export_path: Optional[str], lot_mismatches: List[Dict[str, str]]) -> None:
+    """Persists lot mismatch diagnostics to disk as a CSV report."""
+    if not error_export_path or not lot_mismatches:
+        return
+    try:
+        parent_dir = os.path.dirname(error_export_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+        with open(error_export_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["row", "print_number", "name", "parsed", "qty", "notes"])
+            writer.writeheader()
+            for m in lot_mismatches:
+                writer.writerow(m)
+    except OSError:
+        pass
+
+
+def _cleanup_validation_error_export(error_export_path: Optional[str]) -> None:
+    """Removes stale error export files upon successful validation."""
+    if error_export_path and os.path.exists(error_export_path):
+        try:
+            os.remove(error_export_path)
+        except OSError:
+            pass
+
+
 def validate_collection_file(
     csv_path: str,
     max_row_errors: Optional[int] = 25,
     error_export_path: Optional[str] = DEFAULT_ERROR_EXPORT,
 ) -> Tuple[bool, List[str], List[dict]]:
-    """
-    Validates a collection CSV file against mandatory schema and data integrity constraints.
-    Supports unified CardNexus exports containing single cards and sealed products.
-    Returns (is_valid, list_of_error_strings, list_of_validated_rows).
-    """
+    """Validates collection CSV against schema and data constraints; returns (is_valid, errors, rows)."""
     if error_export_path == DEFAULT_ERROR_EXPORT:
-        parent_dir = os.path.dirname(os.path.abspath(csv_path)) if csv_path else "."
-        error_export_path = os.path.join(parent_dir, "validation_errors.csv")
-
-    errors: List[str] = []
-    lot_mismatches: List[dict] = []
-    validated_rows: List[dict] = []
-
+        error_export_path = os.path.join(os.path.dirname(os.path.abspath(csv_path)) if csv_path else ".", "validation_errors.csv")
     if not os.path.exists(csv_path):
         return False, [f"Collection file not found: {csv_path}"], []
-
     if os.path.isdir(csv_path):
         return False, [f"Expected a CSV file, but found a directory: {csv_path}"], []
 
     try:
         with open(csv_path, "r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
-            if reader.fieldnames is None:
+            if reader.fieldnames is None or not any(reader.fieldnames):
                 return False, ["CSV file is empty or missing header row."], []
-
             reader.fieldnames = [h.strip() for h in reader.fieldnames if h is not None]
-            if not reader.fieldnames or not any(reader.fieldnames):
-                return False, ["CSV file is empty or missing header row."], []
-
             headers = set(reader.fieldnames)
             missing = REQUIRED_COLUMNS - headers
             if missing:
-                errors.append(f"Missing required columns: {sorted(missing)} (required: {sorted(REQUIRED_COLUMNS)})")
+                return False, [f"Missing required columns: {sorted(missing)} (required: {sorted(REQUIRED_COLUMNS)})"], []
 
+            errors, lot_mismatches, validated_rows = [], [], []
+            tracker, today_str = DuplicateTracker(), datetime.date.today().isoformat()
             row_count = 0
-            row_errors = 0
-            seen_sealed_lots: Set[Tuple[str, str, str]] = set()
-            seen_card_lots: Set[Tuple[str, str, str, str]] = set()
-            seen_dateless_cards: Set[Tuple[str, str, str]] = set()
-            seen_dateless_sealed: Set[Tuple[str, str]] = set()
             for row_idx, row in enumerate(reader, start=2):
                 row_count += 1
-                if missing:
+                parsed, parse_errors = _parse_and_validate_row(row, row_idx, is_sealed=False, include_desc=True)
+                if parse_errors:
+                    errors.extend(parse_errors)
                     continue
 
-                name = (row.get("name") or "").strip()
-                expansion = (row.get("expansion") or "").strip()
-                print_number = (row.get("printNumber") or "").strip()
-                finish = (row.get("finish") or "").strip()
-                qty_raw = (row.get("totalQtyOwned") or "").strip()
-                price_raw = (row.get("price") or "").strip()
-                notes_raw = (row.get("notes") or "").strip()
-                acq_date_col = (row.get("acquisitionDate") or "").strip()
-
-                if not name:
-                    errors.append(f"Row {row_idx}: 'name' is empty.")
-                    row_errors += 1
-                if not expansion:
-                    errors.append(f"Row {row_idx}: 'expansion' is empty.")
-                    row_errors += 1
-
-                # Determine item type (Sealed vs Card)
-                is_sealed = (row.get("item_type") == "Sealed") or is_sealed_product(name, expansion)
-                item_type = "Sealed" if is_sealed else "Card"
-                prod_id_val = (row.get("productId") or "").strip()
-                print_num_val = print_number or prod_id_val or ("SEALED" if is_sealed else "N/A")
-                item_desc = f" for '{name}' ({print_num_val})" if name else (f" ({print_num_val})" if print_num_val != "N/A" else "")
-
-                if not name:
-                    name_ctx = f" (printNumber: '{print_number}')" if print_number else (f" (productId: '{prod_id_val}')" if prod_id_val else "")
-                    errors.append(f"Row {row_idx}: 'name' is empty{name_ctx}.")
-                    row_errors += 1
-                if not expansion:
-                    errors.append(f"Row {row_idx}: 'expansion' is empty{item_desc}.")
-                    row_errors += 1
-
-                if not is_sealed and not print_number:
-                    pn_desc = f" for '{name}'" if name else ""
-                    errors.append(f"Row {row_idx}: 'printNumber' is empty{pn_desc}.")
-                    row_errors += 1
-
-                # Normalize finish
-                normalized_finish = "Standard"
-                if finish:
-                    finish_key = finish.lower()
-                    if finish_key in FINISH_ALIASES:
-                        normalized_finish = FINISH_ALIASES[finish_key]
-                    elif finish_key in VALID_FINISHES:
-                        normalized_finish = "Foil" if finish_key == "foil" else "Standard"
-                    else:
-                        errors.append(f"Row {row_idx}: 'finish' must be 'Standard' or 'Foil'{item_desc} (got '{finish}').")
-                        row_errors += 1
-                elif not is_sealed:
-                    errors.append(f"Row {row_idx}: 'finish' is empty{item_desc}.")
-                    row_errors += 1
-
-                # Quantity parsing
-                qty = 0
-                try:
-                    qty = int(qty_raw)
-                    if qty < 1:
-                        errors.append(f"Row {row_idx}: 'totalQtyOwned' must be at least 1{item_desc} (got '{qty_raw}').")
-                        row_errors += 1
-                except (ValueError, TypeError):
-                    errors.append(f"Row {row_idx}: 'totalQtyOwned' must be an integer{item_desc} (got '{qty_raw}').")
-                    row_errors += 1
-
-                price = 0.0
-                if price_raw:
-                    try:
-                        price = float(price_raw)
-                        if price < 0.0:
-                            errors.append(f"Row {row_idx}: 'price' must be non-negative{item_desc} (got '{price_raw}').")
-                            row_errors += 1
-                    except (ValueError, TypeError):
-                        errors.append(f"Row {row_idx}: 'price' must be a valid number{item_desc} (got '{price_raw}').")
-                        row_errors += 1
-
-                # Acquisition date discovery and multi-lot parsing
-                today_str = datetime.date.today().isoformat()
-                acq_date_future_flagged = False
-                if acq_date_col and not extract_date_from_text(acq_date_col):
-                    errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format{item_desc} (got '{acq_date_col}').")
-                    row_errors += 1
-                elif acq_date_col and acq_date_col > today_str:
-                    errors.append(f"Row {row_idx}: Acquisition date '{acq_date_col}' for '{name}' ({print_num_val}) is in the future.")
-                    row_errors += 1
-                    acq_date_future_flagged = True
-
-                lots = []
-                if qty >= 1:
-                    if notes_raw and extract_date_from_text(notes_raw):
-                        raw_to_parse = notes_raw
-                    elif acq_date_col:
-                        raw_to_parse = acq_date_col
-                    else:
-                        raw_to_parse = notes_raw
-                    parsed_lots, lot_err = parse_multi_lot_notes(raw_to_parse, qty)
-                    if lot_err:
-                        errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({print_num_val}). {lot_err} (notes: '{raw_to_parse}')")
-                        row_errors += 1
-                        parsed_qty = sum(q for _, q in parsed_lots)
-                        lot_mismatches.append({
-                            "row": str(row_idx),
-                            "print_number": print_num_val,
-                            "name": name,
-                            "parsed": str(parsed_qty),
-                            "qty": str(qty),
-                            "notes": raw_to_parse,
-                        })
-                    else:
-                        # Check parsed lot dates for future dates; skip if acq_date_col already flagged this date
-                        future_lot_dates = [
-                            d for d, _ in parsed_lots
-                            if d and d > today_str and not (acq_date_future_flagged and d == acq_date_col)
-                        ]
-                        if future_lot_dates:
-                            for fdate in future_lot_dates:
-                                errors.append(
-                                    f"Row {row_idx}: Acquisition date '{fdate}' for '{name}' ({print_num_val}) is in the future (notes: '{raw_to_parse}')."
-                                )
-                                row_errors += 1
-                        else:
-                            lots = parsed_lots
-
-                if row_errors > 0 or not lots:
+                item_info = {"name": parsed["name"], "print_num_val": parsed["print_num_val"], "row_idx": row_idx, "item_desc": parsed["item_desc"]}
+                lot_res = _resolve_row_lots(parsed["notes"], parsed["acquisitionDate"], parsed["totalQtyOwned"], today_str, item_info)
+                if lot_res.errors:
+                    errors.extend(lot_res.errors)
+                    lot_mismatches.extend(lot_res.mismatches)
                     continue
 
-                # Expand lots and enforce uniqueness per lot
-                for lot_date, lot_qty in lots:
-                    if is_sealed and lot_date:
-                        lot_key = (name.lower(), expansion.lower(), lot_date)
-                        if lot_key in seen_sealed_lots:
-                            errors.append(f"Row {row_idx}: Duplicate sealed lot for '{name}' and acquisitionDate '{lot_date}'. Combine quantities using 'totalQtyOwned'.")
-                            row_errors += 1
-                            break
-                        seen_sealed_lots.add(lot_key)
-                    elif not is_sealed and lot_date:
-                        card_lot_key = (expansion.lower(), (print_number or "").lower(), normalized_finish.lower(), lot_date)
-                        if card_lot_key in seen_card_lots:
-                            errors.append(f"Row {row_idx}: Duplicate card lot for '{name}' ({print_number}, {normalized_finish}) and acquisitionDate '{lot_date}'. Combine quantities using 'totalQtyOwned' or notes.")
-                            row_errors += 1
-                            break
-                        seen_card_lots.add(card_lot_key)
-                    elif not is_sealed and not lot_date:
-                        # No acquisition date — two rows with the same (expansion, printNumber, finish) and
-                        # no date will produce the same card_key in the DB and silently overwrite each other.
-                        dateless_key = (expansion.lower(), (print_number or "").lower(), normalized_finish.lower())
-                        if dateless_key in seen_dateless_cards:
-                            errors.append(
-                                f"Row {row_idx}: Duplicate card '{name}' ({print_number}, {normalized_finish}) with no acquisition date. "
-                                f"Add an acquisition date to the notes field to distinguish purchase lots, or combine quantities using 'totalQtyOwned'."
-                            )
-                            row_errors += 1
-                            break
-                        seen_dateless_cards.add(dateless_key)
-                    elif is_sealed and not lot_date:
-                        # No acquisition date — two dateless sealed rows with the same (name, expansion) produce
-                        # the same card_key in the DB and the second silently overwrites the first.
-                        dateless_sealed_key = (name.lower(), expansion.lower())
-                        if dateless_sealed_key in seen_dateless_sealed:
-                            errors.append(
-                                f"Row {row_idx}: Duplicate sealed item '{name}' ({expansion}) with no acquisition date. "
-                                f"Add an acquisition date to the notes field to distinguish purchase lots, or combine quantities using 'totalQtyOwned'."
-                            )
-                            row_errors += 1
-                            break
-                        seen_dateless_sealed.add(dateless_sealed_key)
+                if not tracker.check_and_record(parsed, lot_res.lots, row_idx, errors):
+                    continue
 
-
-                    row_copy = dict(row)
-                    row_copy["name"] = name
-                    row_copy["expansion"] = expansion
-                    row_copy["printNumber"] = print_number or None
-                    row_copy["finish"] = normalized_finish
-                    row_copy["totalQtyOwned"] = lot_qty
-                    row_copy["price"] = price
-                    row_copy["item_type"] = item_type
-                    row_copy["acquisitionDate"] = lot_date
-                    if is_sealed:
+                for lot_date, lot_qty in lot_res.lots:
+                    row_copy = {**dict(parsed["row"]), **{
+                        "name": parsed["name"], "expansion": parsed["expansion"], "printNumber": parsed["printNumber"],
+                        "finish": parsed["finish"], "totalQtyOwned": lot_qty, "price": parsed["price"],
+                        "item_type": parsed["item_type"], "acquisitionDate": lot_date,
+                    }}
+                    if parsed["is_sealed"]:
                         row_copy["rarity"] = "Sealed"
                     validated_rows.append(row_copy)
 
             if row_count == 0 and not errors:
                 errors.append("Collection CSV contains 0 inventory rows.")
-
     except UnicodeDecodeError as e:
         return False, [f"Unable to decode CSV as UTF-8: {e}"], []
     except (OSError, csv.Error) as e:
         return False, [f"Failed to read CSV file: {e}"], []
 
-    is_valid = len(errors) == 0
-    if is_valid:
-        if error_export_path and os.path.exists(error_export_path):
-            try:
-                os.remove(error_export_path)
-            except OSError:
-                pass
+    if not errors:
+        _cleanup_validation_error_export(error_export_path)
         return True, [], validated_rows
 
-    if error_export_path and lot_mismatches:
-        try:
-            parent_dir = os.path.dirname(error_export_path)
-            if parent_dir:
-                os.makedirs(parent_dir, exist_ok=True)
-            with open(error_export_path, "w", encoding="utf-8", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=["row", "print_number", "name", "parsed", "qty", "notes"])
-                writer.writeheader()
-                for m in lot_mismatches:
-                    writer.writerow(m)
-        except OSError:
-            pass
-
-    total_errors = len(errors)
-    if max_row_errors is not None and max_row_errors > 0 and total_errors > max_row_errors:
-        reported_errors = errors[:max_row_errors]
-        overflow = total_errors - max_row_errors
-        reported_errors.append(f"... (truncated {overflow} additional row error{'s' if overflow != 1 else ''}; {total_errors} total errors encountered across CSV)")
-    else:
-        reported_errors = list(errors)
-
+    _export_validation_errors(error_export_path, lot_mismatches)
+    reported_errors = list(errors)
+    if max_row_errors is not None and max_row_errors > 0 and len(errors) > max_row_errors:
+        overflow = len(errors) - max_row_errors
+        reported_errors = errors[:max_row_errors] + [f"... (truncated {overflow} additional row error{'s' if overflow != 1 else ''}; {len(errors)} total errors encountered across CSV)"]
     if error_export_path and lot_mismatches:
         reported_errors.append(f"Full error report written to: {error_export_path}")
-
     return False, reported_errors, []
 
 
@@ -490,16 +564,9 @@ def validate_sealed_file(
     csv_path: str,
     max_row_errors: Optional[int] = 25,
 ) -> Tuple[bool, List[str], List[dict]]:
-    """
-    Validates a sealed inventory CSV file against schema and data constraints.
-    Returns (is_valid, list_of_error_strings, list_of_validated_rows).
-    """
-    errors: List[str] = []
-    validated_rows: List[dict] = []
-
+    """Validates sealed inventory CSV against schema and data constraints; returns (is_valid, errors, rows)."""
     if not os.path.exists(csv_path):
         return False, [f"Sealed inventory file not found: {csv_path}"], []
-
     if os.path.isdir(csv_path):
         return False, [f"Expected a CSV file, but found a directory: {csv_path}"], []
 
@@ -508,114 +575,55 @@ def validate_sealed_file(
             reader = csv.DictReader(f)
             if reader.fieldnames is None:
                 return False, ["Sealed CSV file is empty or missing header row."], []
-
             reader.fieldnames = [h.strip() for h in reader.fieldnames if h is not None]
             if not reader.fieldnames or not any(reader.fieldnames):
                 return False, ["Sealed CSV file is empty or missing header row."], []
-
             headers = set(reader.fieldnames)
             missing = REQUIRED_SEALED_COLUMNS - headers
             if missing:
-                errors.append(f"Missing required columns in sealed CSV: {sorted(missing)} (required: {sorted(REQUIRED_SEALED_COLUMNS)})")
+                return False, [f"Missing required columns in sealed CSV: {sorted(missing)} (required: {sorted(REQUIRED_SEALED_COLUMNS)})"], []
 
-            row_count = 0
-            row_errors = 0
-            seen_lots = set()
+            errors: List[str] = []
+            validated_rows: List[dict] = []
+            tracker = DuplicateTracker()
+
             for row_idx, row in enumerate(reader, start=2):
-                row_count += 1
-                if missing:
-                    continue
-
-                prod_id_raw = (row.get("productId") or "").strip()
-                name = (row.get("name") or "").strip()
-                expansion = (row.get("expansion") or "").strip()
-                qty_raw = (row.get("totalQtyOwned") or "").strip()
-                price_raw = (row.get("price") or "").strip()
-                finish = (row.get("finish") or "Standard").strip()
+                parsed, parse_errors = _parse_and_validate_row(row, row_idx, is_sealed=True, include_desc=False, require_product_id=True)
+                row_errors = list(parse_errors)
                 acq_date_raw = (row.get("acquisitionDate") or "").strip()
-
-                prod_id = None
-                try:
-                    prod_id = int(prod_id_raw)
-                    if prod_id <= 0:
-                        errors.append(f"Row {row_idx}: 'productId' must be a positive integer (got '{prod_id_raw}').")
-                        row_errors += 1
-                except (ValueError, TypeError):
-                    errors.append(f"Row {row_idx}: 'productId' must be an integer (got '{prod_id_raw}').")
-                    row_errors += 1
-
-                if not name:
-                    errors.append(f"Row {row_idx}: 'name' is empty.")
-                    row_errors += 1
-                if not expansion:
-                    errors.append(f"Row {row_idx}: 'expansion' is empty.")
-                    row_errors += 1
-
                 if not acq_date_raw:
-                    errors.append(f"Row {row_idx}: 'acquisitionDate' is required.")
-                    row_errors += 1
+                    row_errors.append(f"Row {row_idx}: 'acquisitionDate' is required.")
                 else:
                     try:
                         datetime.date.fromisoformat(acq_date_raw)
                     except ValueError:
-                        errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format (got '{acq_date_raw}').")
-                        row_errors += 1
+                        row_errors.append(f"Row {row_idx}: 'acquisitionDate' must be in YYYY-MM-DD format (got '{acq_date_raw}').")
 
-                if prod_id and acq_date_raw:
-                    lot_key = (prod_id, acq_date_raw)
-                    if lot_key in seen_lots:
-                        errors.append(f"Row {row_idx}: Duplicate sealed lot for productId {prod_id} and acquisitionDate '{acq_date_raw}'. Combine quantities using 'totalQtyOwned'.")
-                        row_errors += 1
-                    else:
-                        seen_lots.add(lot_key)
+                if parsed and parsed.get("productId") and acq_date_raw:
+                    tracker.check_and_record_sealed_file(parsed["productId"], acq_date_raw, row_idx, row_errors)
 
-                qty = 0
-                try:
-                    qty = int(qty_raw)
-                    if qty < 1:
-                        errors.append(f"Row {row_idx}: 'totalQtyOwned' must be at least 1 (got '{qty_raw}').")
-                        row_errors += 1
-                except (ValueError, TypeError):
-                    errors.append(f"Row {row_idx}: 'totalQtyOwned' must be an integer (got '{qty_raw}').")
-                    row_errors += 1
-
-                price = 0.0
-                if price_raw:
-                    try:
-                        price = float(price_raw)
-                        if price < 0.0:
-                            errors.append(f"Row {row_idx}: 'price' must be non-negative (got '{price_raw}').")
-                            row_errors += 1
-                    except (ValueError, TypeError):
-                        errors.append(f"Row {row_idx}: 'price' must be a valid number (got '{price_raw}').")
-                        row_errors += 1
+                if row_errors:
+                    errors.extend(row_errors)
+                    continue
 
                 row_copy = dict(row)
-                row_copy["productId"] = prod_id
-                row_copy["name"] = name
-                row_copy["expansion"] = expansion
-                row_copy["finish"] = finish or "Standard"
-                row_copy["totalQtyOwned"] = qty
-                row_copy["price"] = price
-                row_copy["acquisitionDate"] = acq_date_raw
-                row_copy["item_type"] = "Sealed"
+                row_copy.update({
+                    "productId": parsed["productId"], "name": parsed["name"], "expansion": parsed["expansion"],
+                    "finish": parsed["finish"], "totalQtyOwned": parsed["totalQtyOwned"], "price": parsed["price"],
+                    "acquisitionDate": acq_date_raw, "item_type": "Sealed",
+                })
                 validated_rows.append(row_copy)
-
     except UnicodeDecodeError as e:
         return False, [f"Unable to decode sealed CSV as UTF-8: {e}"], []
     except (OSError, csv.Error) as e:
         return False, [f"Failed to read sealed CSV file: {e}"], []
 
-    is_valid = len(errors) == 0
-    if is_valid:
+    if not errors:
         return True, [], validated_rows
 
-    total_errors = len(errors)
-    if max_row_errors is not None and max_row_errors > 0 and total_errors > max_row_errors:
-        reported_errors = errors[:max_row_errors]
-        overflow = total_errors - max_row_errors
-        reported_errors.append(f"... (truncated {overflow} additional sealed row error{'s' if overflow != 1 else ''}; {total_errors} total errors encountered across CSV)")
-    else:
-        reported_errors = list(errors)
-
+    reported_errors = list(errors)
+    if max_row_errors is not None and max_row_errors > 0 and len(errors) > max_row_errors:
+        overflow = len(errors) - max_row_errors
+        reported_errors = errors[:max_row_errors] + [f"... (truncated {overflow} additional sealed row error{'s' if overflow != 1 else ''}; {len(errors)} total errors encountered across CSV)"]
     return False, reported_errors, []
+

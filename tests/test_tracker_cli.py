@@ -484,6 +484,81 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         report_text = Path(report_file).read_text(encoding="utf-8")
         self.assertIn("$50.00", report_text)
 
+    def test_resolve_price_snapshot_date_valid(self):
+        price_file = self.test_dir / "valid_date.json"
+        price_file.write_text('{"date": "2026-09-15", "prices": {}}', encoding="utf-8")
+        date = run_tracker.resolve_price_snapshot_date(str(price_file), "2026-10-01")
+        self.assertEqual(date, "2026-09-15")
+
+    def test_resolve_price_snapshot_date_non_dict_fallback(self):
+        price_file = self.test_dir / "list_data.json"
+        price_file.write_text('[1, 2, 3]', encoding="utf-8")
+        date = run_tracker.resolve_price_snapshot_date(str(price_file), "2026-10-01")
+        self.assertEqual(date, "2026-10-01")
+
+    def test_resolve_price_snapshot_date_missing_fallback(self):
+        missing_file = str(self.test_dir / "does_not_exist.json")
+        date = run_tracker.resolve_price_snapshot_date(missing_file, "2026-10-01")
+        self.assertEqual(date, "2026-10-01")
+
+    @patch("run_tracker.sync_cardnexus_collection")
+    def test_resolve_and_sync_collection_24h_cache_hit(self, mock_sync_cn):
+        parser = run_tracker.build_tracker_argument_parser()
+        args = parser.parse_args([])
+        cfg = self._fake_load_config()
+
+        target_csv = self.test_dir / "active_collection.csv"
+        target_csv.write_text("name,expansion,printNumber,finish,totalQtyOwned\nV,Beta,001,Standard,1\n", encoding="utf-8")
+        fresh_time = time.time() - 1800
+        os.utime(target_csv, (fresh_time, fresh_time))
+        cfg.collection_csv = str(target_csv)
+
+        result = run_tracker.resolve_and_sync_collection(args, cfg)
+        self.assertIsInstance(result, run_tracker.CollectionSyncResult)
+        self.assertEqual(result.collection_source, "CardNexus API (cached)")
+        self.assertFalse(result.collection_updated)
+        mock_sync_cn.assert_not_called()
+
+    @patch("run_tracker.sync_cardnexus_collection")
+    def test_resolve_and_sync_collection_network_fallback(self, mock_sync_cn):
+        parser = run_tracker.build_tracker_argument_parser()
+        args = parser.parse_args([])
+        cfg = self._fake_load_config()
+
+        target_csv = self.test_dir / "active_collection.csv"
+        target_csv.write_text("name,expansion,printNumber,finish,totalQtyOwned\nV,Beta,001,Standard,1\n", encoding="utf-8")
+        stale_time = time.time() - 90000
+        os.utime(target_csv, (stale_time, stale_time))
+        cfg.collection_csv = str(target_csv)
+
+        mock_sync_cn.return_value = (False, None, 0)
+
+        with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
+            result = run_tracker.resolve_and_sync_collection(args, cfg)
+
+        self.assertIsInstance(result, run_tracker.CollectionSyncResult)
+        self.assertEqual(result.collection_source, "CardNexus API (fallback)")
+        self.assertFalse(result.collection_updated)
+        self.assertIn("Warning: CardNexus API sync failed. Falling back to cached collection", mock_stderr.getvalue())
+
+    @patch("run_tracker.sync_cardnexus_collection")
+    def test_resolve_and_sync_collection_validation_error_halts(self, mock_sync_cn):
+        parser = run_tracker.build_tracker_argument_parser()
+        args = parser.parse_args([])
+        cfg = self._fake_load_config()
+
+        target_csv = self.test_dir / "active_collection.csv"
+        target_csv.write_text("name,expansion,printNumber,finish,totalQtyOwned\nV,Beta,001,Standard,1\n", encoding="utf-8")
+        stale_time = time.time() - 90000
+        os.utime(target_csv, (stale_time, stale_time))
+        cfg.collection_csv = str(target_csv)
+
+        mock_sync_cn.side_effect = CollectionValidationError("Corrupt collection CSV data", errors=["Row 2: name is empty"])
+
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.resolve_and_sync_collection(args, cfg)
+        self.assertEqual(cm.exception.code, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
