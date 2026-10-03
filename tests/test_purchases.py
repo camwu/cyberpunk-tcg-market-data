@@ -9,8 +9,10 @@ import os
 from pathlib import Path
 import io
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
+import warnings
 
 import tracker.purchases
 from tracker.purchases import (
@@ -309,13 +311,14 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(len(records), 1)
         self.assertTrue(changed)
 
+        past_time = time.time() - 100.0
+        os.utime(self.cache_path, (past_time, past_time))
+        os.utime(self.ledger_path, (past_time, past_time))
         mtime_cache_1 = os.path.getmtime(self.cache_path)
         mtime_ledger_1 = os.path.getmtime(self.ledger_path)
         last_updated_1 = load_purchase_cache(self.cache_path)["last_updated"]
 
         # Second sync with zero modifications
-        import time
-        time.sleep(0.05)
         total2, records2, changed2 = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
@@ -333,7 +336,6 @@ class TestPurchaseHistory(unittest.TestCase):
         # Adding a new file triggers an update
         file2 = self.purchase_dir / "receipt2.txt"
         file2.write_text("eBay\nDate: 2026-09-13\nOrder Total: $50.00\n", encoding="utf-8")
-        time.sleep(0.05)
         total3, records3, changed3 = sync_purchase_history(
             purchase_dir=str(self.purchase_dir),
             cache_path=self.cache_path,
@@ -348,23 +350,16 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertGreater(os.path.getmtime(self.ledger_path), mtime_ledger_1)
 
     def test_extract_text_missing_pypdf_warning_deduplicated(self):
-        tracker.purchases._pypdf_warned = False
-        try:
-            fake_pdf = self.test_dir / "sample.pdf"
-            fake_pdf.write_text("Dummy binary content", encoding="utf-8")
-            with patch("tracker.purchases.pypdf", None), patch("sys.stderr", new=io.StringIO()) as fake_stderr:
-                res1 = extract_text_from_document(str(fake_pdf))
-                self.assertEqual(res1, "")
-                output1 = fake_stderr.getvalue()
-                self.assertIn("Warning: 'pypdf' package is not installed", output1)
-
-                # Second call should be deduplicated (no additional warning text)
-                res2 = extract_text_from_document(str(fake_pdf))
-                self.assertEqual(res2, "")
-                output2 = fake_stderr.getvalue()
-                self.assertEqual(output1, output2)
-        finally:
-            tracker.purchases._pypdf_warned = False
+        fake_pdf = self.test_dir / "sample.pdf"
+        fake_pdf.write_text("Dummy binary content", encoding="utf-8")
+        with patch("tracker.purchases.pypdf", None), warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("default")
+            res1 = extract_text_from_document(str(fake_pdf))
+            self.assertEqual(res1, "")
+            res2 = extract_text_from_document(str(fake_pdf))
+            self.assertEqual(res2, "")
+            user_warnings = [item for item in recorded if issubclass(item.category, UserWarning) and "pypdf" in str(item.message)]
+            self.assertEqual(len(user_warnings), 1)
 
     def test_get_purchase_history_updated_at_formatting(self):
         self.assertIsNone(get_purchase_history_updated_at(None))

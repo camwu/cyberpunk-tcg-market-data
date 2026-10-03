@@ -13,6 +13,8 @@ from tracker.valuation import (
     ItemValuationContext,
     load_price_catalog,
     deduplicate_and_merge_items,
+    extract_raw_acquisition_date,
+    lookup_first_seen_date,
     match_collection_item,
     resolve_item_market_price,
     resolve_and_persist_baseline,
@@ -138,7 +140,7 @@ class TestValuationHelpers(unittest.TestCase):
             "acquisitionDate": "2026-09-01",
         }
         prod, ctx, distinct_key, is_matched, label = match_collection_item(
-            row, indexes, "2026-10-01", "2026-08-01", self.cur
+            row, indexes, "2026-09-01"
         )
         self.assertTrue(is_matched)
         self.assertIsInstance(ctx, ItemValuationContext)
@@ -147,6 +149,39 @@ class TestValuationHelpers(unittest.TestCase):
         self.assertEqual(ctx.rarity, "Epic")
         self.assertEqual(ctx.color, "Yellow")
         self.assertEqual(ctx.qty, 3)
+
+    def test_extract_raw_acquisition_date_from_column_and_notes(self):
+        row_with_col = {"acquisitionDate": "2026-09-15", "notes": "Bought at LGS"}
+        self.assertEqual(extract_raw_acquisition_date(row_with_col), "2026-09-15")
+
+        row_with_notes = {"notes": "Acquired on 2026-08-20 from friend"}
+        self.assertEqual(extract_raw_acquisition_date(row_with_notes), "2026-08-20")
+
+        row_empty = {"name": "Test Card"}
+        self.assertIsNone(extract_raw_acquisition_date(row_empty))
+
+    def test_lookup_first_seen_date(self):
+        self.cur.execute("""
+        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, first_seen_date, item_type)
+        VALUES ('Night City::001::Standard::2026-08-15', 101, 'Johnny Silverhand', '001', 'Night City', 'Standard', 'Epic', '2026-08-15', 'Card')
+        """)
+        self.cur.execute("""
+        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, first_seen_date, item_type)
+        VALUES ('SEALED::Night City::102::2026-08-10', 102, 'Night City Booster Box', NULL, 'Night City', 'Standard', 'Sealed', '2026-08-10', 'Sealed')
+        """)
+        self.conn.commit()
+
+        # Lookup card
+        card_date = lookup_first_seen_date(self.cur, "Card", 101, "Johnny Silverhand", "Night City", "001", "Standard")
+        self.assertEqual(card_date, "2026-08-15")
+
+        # Lookup sealed
+        sealed_date = lookup_first_seen_date(self.cur, "Sealed", 102, "Night City Booster Box", "Night City", None, "Standard")
+        self.assertEqual(sealed_date, "2026-08-10")
+
+        # Lookup missing returns None
+        missing_date = lookup_first_seen_date(self.cur, "Card", 999, "Missing", "Night City", "999", "Standard")
+        self.assertIsNone(missing_date)
 
     def test_resolve_item_market_price_fallbacks(self):
         ctx = ItemValuationContext(

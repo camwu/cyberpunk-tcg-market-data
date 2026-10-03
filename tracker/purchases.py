@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple
+import warnings
 
 try:
     import pypdf
@@ -43,9 +44,6 @@ def compute_file_sha256(filepath: str) -> str:
     return hasher.hexdigest()
 
 
-_pypdf_warned = False
-
-
 def extract_text_from_document(filepath: str) -> str:
     """Extracts raw text content from PDF, CSV, TXT, or JSON file."""
     p = Path(filepath)
@@ -53,13 +51,11 @@ def extract_text_from_document(filepath: str) -> str:
 
     if ext == ".pdf":
         if pypdf is None:
-            global _pypdf_warned
-            if not _pypdf_warned:
-                print(
-                    "Warning: 'pypdf' package is not installed; skipping PDF text extraction. Run 'pip install pypdf' to parse PDF receipts.",
-                    file=sys.stderr,
-                )
-                _pypdf_warned = True
+            warnings.warn(
+                "Warning: 'pypdf' package is not installed; skipping PDF text extraction. Run 'pip install pypdf' to parse PDF receipts.",
+                category=UserWarning,
+                stacklevel=1,
+            )
             return ""
         try:
             reader = pypdf.PdfReader(filepath)
