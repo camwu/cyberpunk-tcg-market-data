@@ -7,6 +7,7 @@ import argparse
 import datetime
 import json
 import os
+import ssl
 import sys
 import time
 from typing import Optional
@@ -17,7 +18,8 @@ CATEGORY_ID = 92
 BASE_URL = "https://tcgcsv.com/tcgplayer"
 LAST_UPDATED_URL = "https://tcgcsv.com/last-updated.txt"
 USER_AGENT = "CyberpunkTCGMarketTracker/1.0 (contact: github-actions-collector)"
-RATE_LIMIT_DELAY = 0.2
+_SSL_CONTEXT: ssl.SSLContext = ssl.create_default_context()
+RATE_LIMIT_DELAY = float(os.getenv("TCGCSV_RATE_LIMIT_DELAY", "0.2"))
 MAX_RETRIES = 3
 RETRY_INITIAL_DELAY = 1.0
 RETRY_BACKOFF_FACTOR = 2.0
@@ -28,7 +30,7 @@ def fetch_text(url: str, max_retries: int = MAX_RETRIES) -> Optional[str]:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     for attempt in range(1, max_retries + 1):
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=30, context=_SSL_CONTEXT) as resp:
                 return resp.read().decode("utf-8").strip()
         except urllib.error.HTTPError as e:
             if e.code in RETRYABLE_STATUS_CODES and attempt < max_retries:
@@ -54,7 +56,7 @@ def fetch_json(endpoint: str, max_retries: int = MAX_RETRIES):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     for attempt in range(1, max_retries + 1):
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=30, context=_SSL_CONTEXT) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             if e.code in RETRYABLE_STATUS_CODES and attempt < max_retries:
@@ -82,8 +84,8 @@ def is_valid_snapshot(file_path: str) -> bool:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return bool(data.get("prices"))
-    except Exception:
+        return isinstance(data, dict) and bool(data.get("prices"))
+    except (OSError, json.JSONDecodeError):
         return False
 
 
@@ -129,8 +131,10 @@ def run_scraper(output_dir: str = "prices", force: bool = False, target_date: Op
     if os.path.exists(cards_file):
         try:
             with open(cards_file, "r", encoding="utf-8") as f:
-                existing_cards = json.load(f)
-        except Exception:
+                loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    existing_cards = loaded
+        except (OSError, json.JSONDecodeError):
             pass
 
     existing_groups = existing_cards.get("_groups", {})

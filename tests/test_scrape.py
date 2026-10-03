@@ -2,6 +2,7 @@
 Automated unit tests for scrape.py skip behavior, force override, and CLI options.
 """
 
+import importlib
 import io
 import json
 import os
@@ -15,10 +16,12 @@ from scrape import (
     extract_date_from_build,
     fetch_json,
     fetch_text,
+    is_valid_snapshot,
     run_scraper,
     MAX_RETRIES,
     RATE_LIMIT_DELAY,
 )
+import scrape
 
 
 class TestScraperSkipBehavior(unittest.TestCase):
@@ -431,6 +434,64 @@ class TestScraperRetryLogic(unittest.TestCase):
         self.assertIsNone(result)
         self.assertEqual(mock_urlopen.call_count, 3)
         self.assertEqual(mock_sleep.call_args_list, [call(1.0), call(2.0)])
+
+
+class TestScraperResilienceAndExceptions(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_path = Path(self.temp_dir.name)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_is_valid_snapshot_corrupted_json_and_non_dict(self):
+        corrupt_file = self.temp_path / "corrupt.json"
+        corrupt_file.write_text("{malformed_json: true", encoding="utf-8")
+        self.assertFalse(is_valid_snapshot(str(corrupt_file)))
+
+        empty_file = self.temp_path / "empty.json"
+        empty_file.write_text("", encoding="utf-8")
+        self.assertFalse(is_valid_snapshot(str(empty_file)))
+
+        array_file = self.temp_path / "array.json"
+        array_file.write_text("[1, 2, 3]", encoding="utf-8")
+        self.assertFalse(is_valid_snapshot(str(array_file)))
+
+        no_prices_file = self.temp_path / "no_prices.json"
+        no_prices_file.write_text(json.dumps({"category": "Cyberpunk TCG"}), encoding="utf-8")
+        self.assertFalse(is_valid_snapshot(str(no_prices_file)))
+
+    def test_is_valid_snapshot_unexpected_error_bubbles(self):
+        valid_file = self.temp_path / "test.json"
+        valid_file.write_text(json.dumps({"prices": {"1": {}}}), encoding="utf-8")
+
+        with patch("builtins.open", side_effect=RuntimeError("Disk hardware failure")):
+            with self.assertRaises(RuntimeError):
+                is_valid_snapshot(str(valid_file))
+
+    def test_rate_limit_env_override(self):
+        try:
+            with patch.dict(os.environ, {"TCGCSV_RATE_LIMIT_DELAY": "0.75"}):
+                reloaded = importlib.reload(scrape)
+                self.assertEqual(reloaded.RATE_LIMIT_DELAY, 0.75)
+        finally:
+            importlib.reload(scrape)
+
+    @patch("scrape.urllib.request.urlopen")
+    def test_ssl_context_passed_to_urlopen(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = b'{"prices": {}}'
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        fetch_text("https://tcgcsv.com/test")
+        self.assertIn("context", mock_urlopen.call_args.kwargs)
+        self.assertIs(mock_urlopen.call_args.kwargs["context"], scrape._SSL_CONTEXT)
+
+        fetch_json("https://tcgcsv.com/test")
+        self.assertIn("context", mock_urlopen.call_args.kwargs)
+        self.assertIs(mock_urlopen.call_args.kwargs["context"], scrape._SSL_CONTEXT)
 
 
 if __name__ == "__main__":

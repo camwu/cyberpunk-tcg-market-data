@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import ssl
 import subprocess
 import sys
 import time
@@ -24,7 +25,8 @@ LAST_UPDATED_URL = "https://tcgcsv.com/last-updated.txt"
 ARCHIVE_BASE_URL = "https://tcgcsv.com/archive/tcgplayer"
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/camwu/cyberpunk-tcg-market-data/main"
 GITHUB_RAW_URL = f"{GITHUB_RAW_BASE}/prices"
-RATE_LIMIT_DELAY = 0.2
+_SSL_CONTEXT: ssl.SSLContext = ssl.create_default_context()
+RATE_LIMIT_DELAY = float(os.getenv("TCGCSV_RATE_LIMIT_DELAY", "0.2"))
 
 
 def sync_cards_catalog(target_dir: str = "prices") -> str:
@@ -71,7 +73,7 @@ def find_7z() -> Optional[str]:
 def fetch_text(url: str) -> Optional[str]:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30, context=_SSL_CONTEXT) as resp:
             return resp.read().decode("utf-8").strip()
     except (urllib.error.URLError, TimeoutError, OSError) as e:
         print(f"Error fetching {url}: {e}", file=sys.stderr)
@@ -81,7 +83,7 @@ def fetch_text(url: str) -> Optional[str]:
 def fetch_json(url: str, quiet_not_found: bool = False):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30, context=_SSL_CONTEXT) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         if quiet_not_found and e.code == 404:
@@ -349,7 +351,7 @@ def backfill_market_prices(date_str: str, price_dir: str = "prices") -> str:
     print(f"Downloading historical archive for {date_str}...")
     req = urllib.request.Request(archive_url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp, open(temp_archive, "wb") as out_f:
+        with urllib.request.urlopen(req, timeout=120, context=_SSL_CONTEXT) as resp, open(temp_archive, "wb") as out_f:
             shutil.copyfileobj(resp, out_f)
     except (urllib.error.URLError, TimeoutError, OSError) as e:
         raise RuntimeError(f"Failed to download archive from {archive_url}: {e}")
