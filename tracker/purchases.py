@@ -16,6 +16,8 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 import warnings
 
+from tracker.validation import CollectionValidationError
+
 try:
     import pypdf
 except ImportError:
@@ -128,6 +130,39 @@ def validate_amount_string(val_str: str) -> Optional[float]:
         return None
 
 
+def validate_cash_record(
+    date_val: Any,
+    amount_val: Any,
+    merchant_val: Any,
+    description_val: Any = None,
+) -> Tuple[str, str, float, str]:
+    """
+    Validates and normalizes fields for a cash purchase record.
+    Returns (date, merchant, amount, description) or raises ValueError.
+    """
+    date_str = str(date_val or "").strip()
+    parsed_date = parse_date_candidate(date_str)
+    if not parsed_date:
+        raise ValueError(f"Invalid cash purchase date '{date_val}'. Expected valid YYYY-MM-DD format.")
+
+    if isinstance(amount_val, (int, float)):
+        if amount_val <= 0:
+            raise ValueError(f"Invalid cash purchase amount '{amount_val}'. Must be positive number.")
+        parsed_amount = round(float(amount_val), 2)
+    else:
+        amt_str = str(amount_val or "").strip()
+        parsed_amount = validate_amount_string(amt_str)
+        if parsed_amount is None:
+            raise ValueError(
+                f"Invalid cash purchase amount '{amount_val}'. Must be positive number formatted as integer or 2 decimal places (e.g. 10 or 10.00)."
+            )
+
+    merchant = str(merchant_val or "").strip() or "Cash Purchase"
+    desc = str(description_val or "").strip() or f"{merchant} Purchase ({parsed_date})"
+
+    return parsed_date, merchant, parsed_amount, desc
+
+
 def prompt_for_amount(
     filename: str,
     candidates: List[float],
@@ -196,6 +231,27 @@ def parse_receipt_document(
     if not text.strip():
         print(f"Warning: Could not parse purchase details from '{filename}' (empty text). Skipping file.")
         return None
+
+    if Path(filepath).suffix.lower() == ".json":
+        try:
+            data = json.loads(text)
+            if isinstance(data, dict) and data.get("cash") is True:
+                try:
+                    return validate_cash_record(
+                        date_val=data.get("date"),
+                        amount_val=data.get("amount"),
+                        merchant_val=data.get("merchant"),
+                        description_val=data.get("description"),
+                    )
+                except ValueError as err:
+                    raise CollectionValidationError(
+                        f"Corrupted cash purchase sentinel '{filename}': {err}. Halting to prevent cost basis omission."
+                    )
+        except json.JSONDecodeError as err:
+            if '"cash"' in text:
+                raise CollectionValidationError(
+                    f"Invalid JSON syntax in cash sentinel '{filename}': {err}. Halting to prevent cost basis omission."
+                )
 
     # 1. Date extraction strictly from text
     date_cand = parse_date_candidate(text)

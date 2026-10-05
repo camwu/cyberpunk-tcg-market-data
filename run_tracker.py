@@ -9,6 +9,7 @@ import datetime
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import sys
 import time
@@ -25,7 +26,11 @@ from tracker.validation import (
     CollectionValidationError,
 )
 from tracker.cardnexus import sync_cardnexus_collection
-from tracker.purchases import sync_purchase_history, get_purchase_history_updated_at
+from tracker.purchases import (
+    sync_purchase_history,
+    get_purchase_history_updated_at,
+    validate_cash_record,
+)
 from tracker.constants import CACHE_TTL_24H_SECONDS
 
 
@@ -87,6 +92,120 @@ def build_tracker_argument_parser() -> argparse.ArgumentParser:
         help="Force re-parsing of purchase history documents, bypassing SHA-256 cache and updating ledger",
     )
     return parser
+
+
+def build_add_cash_parser() -> argparse.ArgumentParser:
+    """Builds and returns the CLI parser for the add-cash subcommand."""
+    parser = argparse.ArgumentParser(
+        prog="run_tracker.py add-cash",
+        description="Record a cash purchase without a receipt into purchase history and exit",
+    )
+    parser.add_argument("--date", dest="cash_date", help="Purchase date in YYYY-MM-DD format (defaults to current date)")
+    parser.add_argument("--amount", dest="cash_amount", help="Purchase amount in USD (positive number, e.g. 35.00)")
+    parser.add_argument("--merchant", dest="cash_merchant", help="Store or seller name (defaults to 'Cash Purchase')")
+    parser.add_argument("--description", dest="cash_description", help="Description of items acquired")
+    return parser
+
+
+def handle_add_cash_subcommand(
+    cash_args: argparse.Namespace,
+    root_config: argparse.Namespace,
+    interactive: Optional[bool] = None,
+) -> int:
+    """Handles adding a cash purchase record without a receipt."""
+    if interactive is None:
+        interactive = sys.stdin.isatty()
+
+    date_input = cash_args.cash_date
+    amount_input = cash_args.cash_amount
+    merchant_input = cash_args.cash_merchant
+    desc_input = cash_args.cash_description
+
+    if interactive:
+        print("\n--- Record Cash Purchase (No Receipt) ---")
+        today_str = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
+
+        if not date_input:
+            prompt_date = input(f"Enter purchase date [default: {today_str}]: ").strip()
+            date_input = prompt_date or today_str
+
+        if not amount_input:
+            while True:
+                amt_str = input("Enter purchase amount in USD (e.g. 35.00): ").strip()
+                try:
+                    validate_cash_record(date_input, amt_str, merchant_input or "test")
+                    amount_input = amt_str
+                    break
+                except ValueError as e:
+                    print(f"Invalid amount: {e}")
+
+        if not merchant_input:
+            m_str = input("Enter merchant / seller name [default: Cash Purchase]: ").strip()
+            merchant_input = m_str or "Cash Purchase"
+
+        if not desc_input:
+            d_str = input("Enter description (optional): ").strip()
+            desc_input = d_str
+
+    if not date_input:
+        date_input = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
+
+    try:
+        val_date, val_merchant, val_amount, val_desc = validate_cash_record(
+            date_val=date_input,
+            amount_val=amount_input,
+            merchant_val=merchant_input,
+            description_val=desc_input,
+        )
+    except ValueError as err:
+        print(f"Error: {err}", file=sys.stderr)
+        return 1
+
+    cfg = load_config(
+        config_path=getattr(root_config, "config_path", None),
+        collection_csv=getattr(root_config, "collection_csv", None),
+        purchase_history_dir=getattr(root_config, "purchase_history_dir", None),
+        purchase_history_ledger=getattr(root_config, "purchase_history_ledger", None),
+        purchase_history_cache=getattr(root_config, "purchase_history_cache", None),
+    )
+
+    purchase_dir = cfg.purchase_history_dir
+    if not purchase_dir:
+        collection_dir = os.path.dirname(cfg.collection_csv) if cfg.collection_csv and os.path.isfile(cfg.collection_csv) else (cfg.collection_csv or "data")
+        purchase_dir = os.path.join(collection_dir, "purchase_history")
+
+    os.makedirs(purchase_dir, exist_ok=True)
+
+    slug = re.sub(r"[^a-z0-9]+", "_", val_merchant.lower()).strip("_") or "cash"
+    base_name = f"cash_{val_date}_{slug}.json"
+    target_file = os.path.join(purchase_dir, base_name)
+
+    counter = 2
+    while os.path.exists(target_file):
+        target_file = os.path.join(purchase_dir, f"cash_{val_date}_{slug}_{counter}.json")
+        counter += 1
+
+    payload = {
+        "date": val_date,
+        "amount": val_amount,
+        "merchant": val_merchant,
+        "description": val_desc,
+        "cash": True,
+    }
+
+    try:
+        with open(target_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+        print(f"\nSuccessfully recorded cash purchase:")
+        print(f"  Date:        {val_date}")
+        print(f"  Merchant:    {val_merchant}")
+        print(f"  Amount:      ${val_amount:,.2f}")
+        print(f"  Description: {val_desc}")
+        print(f"  Saved to:    {target_file}")
+        return 0
+    except OSError as err:
+        print(f"Error: Failed to write cash purchase record to '{target_file}': {err}", file=sys.stderr)
+        return 1
 
 
 def resolve_price_snapshot_date(price_file: str, fallback_date: str) -> str:
@@ -235,6 +354,22 @@ def execute_backfill(
 
 
 def main(argv: Optional[List[str]] = None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    root_parser = argparse.ArgumentParser(add_help=False)
+    root_parser.add_argument("--config", dest="config_path")
+    root_parser.add_argument("--collection", dest="collection_csv")
+    root_parser.add_argument("--purchase-dir", dest="purchase_history_dir")
+    root_parser.add_argument("--purchase-ledger", dest="purchase_history_ledger")
+    root_parser.add_argument("--purchase-cache", dest="purchase_history_cache")
+    known_root, remaining = root_parser.parse_known_args(argv)
+
+    if remaining and remaining[0] in ("add-cash", "add-cash-purchase"):
+        cash_parser = build_add_cash_parser()
+        cash_args = cash_parser.parse_args(remaining[1:])
+        sys.exit(handle_add_cash_subcommand(cash_args=cash_args, root_config=known_root))
+
     parser = build_tracker_argument_parser()
     args = parser.parse_args(argv)
 
