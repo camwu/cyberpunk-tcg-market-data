@@ -29,7 +29,9 @@ from tracker.purchases import (
     load_purchase_cache,
     save_purchase_cache,
     sync_purchase_history,
+    validate_cash_record,
 )
+from tracker.validation import CollectionValidationError
 from tracker.valuation import init_database, calculate_portfolio_valuation
 
 
@@ -378,6 +380,135 @@ class TestPurchaseHistory(unittest.TestCase):
         formatted_iso = get_purchase_history_updated_at(str(cache_file))
         self.assertEqual(formatted_iso, "2026-09-25 02:30 PM")
 
+    def test_validate_cash_record_valid_and_defaults(self):
+        # Explicit fields
+        d, m, a, desc = validate_cash_record("2026-09-15", "35.00", "Local Game Store", "3x packs")
+        self.assertEqual(d, "2026-09-15")
+        self.assertEqual(m, "Local Game Store")
+        self.assertEqual(a, 35.00)
+        self.assertEqual(desc, "3x packs")
+
+        # Defaults for merchant and description
+        d2, m2, a2, desc2 = validate_cash_record("2026-09-15", 50, None, None)
+        self.assertEqual(d2, "2026-09-15")
+        self.assertEqual(m2, "Cash Purchase")
+        self.assertEqual(a2, 50.00)
+        self.assertEqual(desc2, "Cash Purchase Purchase (2026-09-15)")
+
+    def test_validate_cash_record_invalid(self):
+        # Invalid dates
+        with self.assertRaises(ValueError):
+            validate_cash_record("invalid-date", "35.00", "Store")
+        with self.assertRaises(ValueError):
+            validate_cash_record("2026-02-31", "35.00", "Store")
+
+        # Invalid amounts
+        with self.assertRaises(ValueError):
+            validate_cash_record("2026-09-15", "0.00", "Store")
+        with self.assertRaises(ValueError):
+            validate_cash_record("2026-09-15", "-10.00", "Store")
+        with self.assertRaises(ValueError):
+            validate_cash_record("2026-09-15", "not_a_number", "Store")
+
+    def test_parse_receipt_document_cash_sentinel_valid(self):
+        cash_file = self.purchase_dir / "cash_2026-09-15_local_game_store.json"
+        cash_file.write_text(
+            json.dumps({
+                "date": "2026-09-15",
+                "amount": 35.00,
+                "merchant": "Local Game Store",
+                "description": "Cash trade, 3x booster packs",
+                "cash": True,
+            }),
+            encoding="utf-8",
+        )
+
+        parsed = parse_receipt_document(str(cash_file))
+        self.assertIsNotNone(parsed)
+        p_date, p_merchant, p_amount, p_desc = parsed
+        self.assertEqual(p_date, "2026-09-15")
+        self.assertEqual(p_merchant, "Local Game Store")
+        self.assertEqual(p_amount, 35.00)
+        self.assertEqual(p_desc, "Cash trade, 3x booster packs")
+
+    def test_parse_receipt_document_cash_sentinel_fail_closed(self):
+        # Corrupt data inside cash sentinel raises CollectionValidationError
+        corrupt_data_file = self.purchase_dir / "cash_corrupt_data.json"
+        corrupt_data_file.write_text(
+            json.dumps({
+                "date": "invalid-date",
+                "amount": 35.00,
+                "merchant": "Store",
+                "cash": True,
+            }),
+            encoding="utf-8",
+        )
+        with self.assertRaises(CollectionValidationError):
+            parse_receipt_document(str(corrupt_data_file))
+
+        # Invalid JSON syntax falls through to standard parser (returns None, skipped with warning)
+        # — only structurally valid cash: true sentinels with bad field values raise CollectionValidationError
+        corrupt_syntax_file = self.purchase_dir / "cash_corrupt_syntax.json"
+        corrupt_syntax_file.write_text('{"cash": true, "amount": 35.00, invalid_json', encoding="utf-8")
+        result = parse_receipt_document(str(corrupt_syntax_file))
+        self.assertIsNone(result)
+
+        # Non-sentinel .json files with corrupt syntax also fall through silently
+        corrupt_generic_json = self.purchase_dir / "bad_generic.json"
+        corrupt_generic_json.write_text('{not valid json at all', encoding="utf-8")
+        result2 = parse_receipt_document(str(corrupt_generic_json))
+        self.assertIsNone(result2)
+
+    def test_sync_purchase_history_cash_durability_and_caching(self):
+        cash_file = self.purchase_dir / "cash_2026-09-15_local_game_store.json"
+        cash_file.write_text(
+            json.dumps({
+                "date": "2026-09-15",
+                "amount": 35.00,
+                "merchant": "Local Game Store",
+                "description": "Cash purchase",
+                "cash": True,
+            }),
+            encoding="utf-8",
+        )
+
+        # Initial sync: should parse and record
+        total, records, changed = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(total, 35.00)
+        self.assertEqual(len(records), 1)
+        self.assertTrue(changed)
+        self.assertEqual(records[0].amount, 35.00)
+        self.assertEqual(records[0].merchant, "Local Game Store")
+
+        # Second sync: cache hit, zero re-parsing needed
+        total2, records2, changed2 = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(total2, 35.00)
+        self.assertEqual(len(records2), 1)
+        self.assertFalse(changed2)
+
+        # Third sync with reparse=True: cash entry is completely preserved
+        total3, records3, changed3 = sync_purchase_history(
+            purchase_dir=str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            reparse=True,
+            interactive=False,
+        )
+        self.assertEqual(total3, 35.00)
+        self.assertEqual(len(records3), 1)
+        self.assertTrue(changed3)
+        self.assertEqual(records3[0].amount, 35.00)
+
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
 
@@ -444,3 +575,4 @@ class TestValuationCostBasisIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -5,6 +5,7 @@ CardNexus API synchronization, cache evaluation, and orchestrator propagation.
 
 import datetime
 import io
+import json
 import os
 import sqlite3
 import sys
@@ -560,7 +561,115 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
         self.assertEqual(cm.exception.code, 1)
 
 
+class TestTrackerCLICashPurchase(unittest.TestCase):
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.test_dir = Path(self.temp_dir.name)
+        self.purchase_dir = self.test_dir / "purchase_history"
+        self.config_json = self.test_dir / "config.json"
+        self.config_json.write_text(
+            json.dumps({
+                "collection_csv": str(self.test_dir / "collection.csv"),
+                "purchase_history_dir": str(self.purchase_dir),
+            }),
+            encoding="utf-8",
+        )
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_add_cash_non_interactive_success(self):
+        argv = [
+            "--config", str(self.config_json),
+            "add-cash",
+            "--date", "2026-09-15",
+            "--amount", "35.00",
+            "--merchant", "Local Game Store",
+            "--description", "3x booster packs",
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertEqual(cm.exception.code, 0)
+
+        created_file = self.purchase_dir / "cash_2026-09-15_local_game_store.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["date"], "2026-09-15")
+        self.assertEqual(data["amount"], 35.00)
+        self.assertEqual(data["merchant"], "Local Game Store")
+        self.assertEqual(data["description"], "3x booster packs")
+        self.assertTrue(data["cash"])
+
+    def test_add_cash_with_preceding_root_flags(self):
+        argv = [
+            "--purchase-dir", str(self.purchase_dir),
+            "add-cash",
+            "--amount", "42.50",
+            "--merchant", "Downtown Cards",
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertEqual(cm.exception.code, 0)
+
+        created_files = list(self.purchase_dir.glob("cash_*_downtown_cards.json"))
+        self.assertEqual(len(created_files), 1)
+
+    def test_add_cash_interactive_prompts(self):
+        argv = ["--config", str(self.config_json), "add-cash"]
+        with patch("sys.stdin.isatty", return_value=True), patch("builtins.input", side_effect=["2026-09-16", "25.00", "Corner Shop", "Draft Entry"]):
+            with self.assertRaises(SystemExit) as cm:
+                run_tracker.main(argv)
+            self.assertEqual(cm.exception.code, 0)
+
+        created_file = self.purchase_dir / "cash_2026-09-16_corner_shop.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["amount"], 25.00)
+        self.assertEqual(data["merchant"], "Corner Shop")
+        self.assertEqual(data["description"], "Draft Entry")
+
+    def test_add_cash_missing_amount_non_interactive_error(self):
+        argv = ["--config", str(self.config_json), "add-cash", "--date", "2026-09-15"]
+        with patch("sys.stdin.isatty", return_value=False):
+            with self.assertRaises(SystemExit) as cm:
+                run_tracker.main(argv)
+            self.assertEqual(cm.exception.code, 1)
+
+    def test_add_cash_collision_resolution(self):
+        self.purchase_dir.mkdir(parents=True, exist_ok=True)
+        file1 = self.purchase_dir / "cash_2026-09-15_local_game_store.json"
+        file1.write_text('{"existing": true}', encoding="utf-8")
+
+        argv = [
+            "--config", str(self.config_json),
+            "add-cash",
+            "--date", "2026-09-15",
+            "--amount", "10.00",
+            "--merchant", "Local Game Store",
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertEqual(cm.exception.code, 0)
+
+        file2 = self.purchase_dir / "cash_2026-09-15_local_game_store_2.json"
+        self.assertTrue(file2.is_file())
+
+    def test_drag_and_drop_csv_not_broken_by_subcommand(self):
+        collection_file = self.test_dir / "drag_and_drop_collection.csv"
+        collection_file.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\nV,Beta,001,Standard,1\n",
+            encoding="utf-8",
+        )
+        with patch("run_tracker.generate_portfolio_report") as mock_report:
+            run_tracker.main([str(collection_file), "--report-only"])
+            mock_report.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 
