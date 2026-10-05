@@ -130,6 +130,23 @@ def validate_amount_string(val_str: str) -> Optional[float]:
         return None
 
 
+def validate_date_string(val_str: Any) -> Optional[str]:
+    """
+    Validates that val_str is strictly formatted as YYYY-MM-DD and represents a valid calendar date.
+    Returns the YYYY-MM-DD string if valid, otherwise None.
+    """
+    if not isinstance(val_str, str):
+        return None
+    s = val_str.strip()
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", s):
+        return None
+    try:
+        datetime.date.fromisoformat(s)
+        return s
+    except ValueError:
+        return None
+
+
 def validate_cash_record(
     date_val: Any,
     amount_val: Any,
@@ -141,7 +158,7 @@ def validate_cash_record(
     Returns (date, merchant, amount, description) or raises ValueError.
     """
     date_str = str(date_val or "").strip()
-    parsed_date = parse_date_candidate(date_str)
+    parsed_date = validate_date_string(date_str)
     if not parsed_date:
         raise ValueError(f"Invalid cash purchase date '{date_val}'. Expected valid YYYY-MM-DD format.")
 

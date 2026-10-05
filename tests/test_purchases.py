@@ -30,6 +30,7 @@ from tracker.purchases import (
     save_purchase_cache,
     sync_purchase_history,
     validate_cash_record,
+    validate_date_string,
 )
 from tracker.validation import CollectionValidationError
 from tracker.valuation import init_database, calculate_portfolio_valuation
@@ -395,12 +396,24 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(a2, 50.00)
         self.assertEqual(desc2, "Cash Purchase Purchase (2026-09-15)")
 
+    def test_validate_date_string(self):
+        self.assertEqual(validate_date_string("2026-09-15"), "2026-09-15")
+        self.assertIsNone(validate_date_string("Sep 15, 2026"))
+        self.assertIsNone(validate_date_string("invalid-date"))
+        self.assertIsNone(validate_date_string("09-15-2026"))
+        self.assertIsNone(validate_date_string("2026-9-15"))
+        self.assertIsNone(validate_date_string("2026-02-31"))
+        self.assertIsNone(validate_date_string(None))
+        self.assertIsNone(validate_date_string(12345))
+
     def test_validate_cash_record_invalid(self):
         # Invalid dates
         with self.assertRaises(ValueError):
             validate_cash_record("invalid-date", "35.00", "Store")
         with self.assertRaises(ValueError):
             validate_cash_record("2026-02-31", "35.00", "Store")
+        with self.assertRaises(ValueError):
+            validate_cash_record("Sep 15, 2026", "35.00", "Store")
 
         # Invalid amounts
         with self.assertRaises(ValueError):
