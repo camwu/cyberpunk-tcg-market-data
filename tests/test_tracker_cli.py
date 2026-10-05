@@ -631,6 +631,43 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
         self.assertEqual(data["merchant"], "Corner Shop")
         self.assertEqual(data["description"], "Draft Entry")
 
+    def test_add_cash_interactive_date_retry_loop(self):
+        argv = ["--config", str(self.config_json), "add-cash"]
+        with patch("sys.stdin.isatty", return_value=True), patch(
+            "builtins.input",
+            side_effect=["asd", "2026-09-16", "25.00", "Corner Shop", "Draft Entry"],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                run_tracker.main(argv)
+            self.assertEqual(cm.exception.code, 0)
+
+        created_file = self.purchase_dir / "cash_2026-09-16_corner_shop.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["date"], "2026-09-16")
+        self.assertEqual(data["amount"], 25.00)
+
+    def test_add_cash_interactive_defaults(self):
+        argv = ["--config", str(self.config_json), "add-cash"]
+        today_str = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
+        with patch("sys.stdin.isatty", return_value=True), patch(
+            "builtins.input",
+            side_effect=["", "30.00", "", ""],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                run_tracker.main(argv)
+            self.assertEqual(cm.exception.code, 0)
+
+        created_file = self.purchase_dir / f"cash_{today_str}_cash_purchase.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["date"], today_str)
+        self.assertEqual(data["amount"], 30.00)
+        self.assertEqual(data["merchant"], "Cash Purchase")
+        self.assertEqual(data["description"], f"Cash Purchase Purchase ({today_str})")
+
     def test_add_cash_missing_amount_non_interactive_error(self):
         argv = ["--config", str(self.config_json), "add-cash", "--date", "2026-09-15"]
         with patch("sys.stdin.isatty", return_value=False):

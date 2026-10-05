@@ -31,6 +31,7 @@ from tracker.purchases import (
     get_purchase_history_updated_at,
     validate_cash_record,
     validate_amount_string,
+    validate_date_string,
 )
 from tracker.constants import CACHE_TTL_24H_SECONDS
 
@@ -127,8 +128,13 @@ def handle_add_cash_subcommand(
         today_str = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
 
         if not date_input:
-            prompt_date = input(f"Enter purchase date [default: {today_str}]: ").strip()
-            date_input = prompt_date or today_str
+            while True:
+                prompt_date = input(f"Enter purchase date (YYYY-MM-DD) [press Enter for today: {today_str}]: ").strip()
+                cand = prompt_date or today_str
+                if validate_date_string(cand):
+                    date_input = cand
+                    break
+                print("Invalid date. Must be valid YYYY-MM-DD format (e.g. 2026-10-04).")
 
         if not amount_input:
             while True:
@@ -139,7 +145,7 @@ def handle_add_cash_subcommand(
                 print("Invalid amount. Must be positive number formatted as integer or 2 decimal places (e.g. 10 or 10.00).")
 
         if not merchant_input:
-            m_str = input("Enter merchant / seller name [default: Cash Purchase]: ").strip()
+            m_str = input("Enter merchant / seller name [press Enter for default: Cash Purchase]: ").strip()
             merchant_input = m_str or "Cash Purchase"
 
         if not desc_input:
