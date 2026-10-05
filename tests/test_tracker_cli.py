@@ -588,10 +588,9 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
             "--merchant", "Local Game Store",
             "--description", "3x booster packs",
         ]
-        with patch.object(sys, "argv", ["run_tracker.py"] + argv):
-            with self.assertRaises(SystemExit) as cm:
-                run_tracker.main(argv)
-            self.assertEqual(cm.exception.code, 0)
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertEqual(cm.exception.code, 0)
 
         created_file = self.purchase_dir / "cash_2026-09-15_local_game_store.json"
         self.assertTrue(created_file.is_file())

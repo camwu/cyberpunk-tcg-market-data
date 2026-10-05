@@ -446,11 +446,18 @@ class TestPurchaseHistory(unittest.TestCase):
         with self.assertRaises(CollectionValidationError):
             parse_receipt_document(str(corrupt_data_file))
 
-        # Corrupt JSON syntax in cash sentinel raises CollectionValidationError
+        # Invalid JSON syntax falls through to standard parser (returns None, skipped with warning)
+        # — only structurally valid cash: true sentinels with bad field values raise CollectionValidationError
         corrupt_syntax_file = self.purchase_dir / "cash_corrupt_syntax.json"
         corrupt_syntax_file.write_text('{"cash": true, "amount": 35.00, invalid_json', encoding="utf-8")
-        with self.assertRaises(CollectionValidationError):
-            parse_receipt_document(str(corrupt_syntax_file))
+        result = parse_receipt_document(str(corrupt_syntax_file))
+        self.assertIsNone(result)
+
+        # Non-sentinel .json files with corrupt syntax also fall through silently
+        corrupt_generic_json = self.purchase_dir / "bad_generic.json"
+        corrupt_generic_json.write_text('{not valid json at all', encoding="utf-8")
+        result2 = parse_receipt_document(str(corrupt_generic_json))
+        self.assertIsNone(result2)
 
     def test_sync_purchase_history_cash_durability_and_caching(self):
         cash_file = self.purchase_dir / "cash_2026-09-15_local_game_store.json"

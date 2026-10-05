@@ -235,22 +235,19 @@ def parse_receipt_document(
     if Path(filepath).suffix.lower() == ".json":
         try:
             data = json.loads(text)
-            if isinstance(data, dict) and data.get("cash") is True:
-                try:
-                    return validate_cash_record(
-                        date_val=data.get("date"),
-                        amount_val=data.get("amount"),
-                        merchant_val=data.get("merchant"),
-                        description_val=data.get("description"),
-                    )
-                except ValueError as err:
-                    raise CollectionValidationError(
-                        f"Corrupted cash purchase sentinel '{filename}': {err}. Halting to prevent cost basis omission."
-                    )
-        except json.JSONDecodeError as err:
-            if '"cash"' in text:
+        except json.JSONDecodeError:
+            data = None
+        if isinstance(data, dict) and data.get("cash") is True:
+            try:
+                return validate_cash_record(
+                    date_val=data.get("date"),
+                    amount_val=data.get("amount"),
+                    merchant_val=data.get("merchant"),
+                    description_val=data.get("description"),
+                )
+            except ValueError as err:
                 raise CollectionValidationError(
-                    f"Invalid JSON syntax in cash sentinel '{filename}': {err}. Halting to prevent cost basis omission."
+                    f"Corrupted cash purchase sentinel '{filename}': {err}. Halting to prevent cost basis omission."
                 )
 
     # 1. Date extraction strictly from text

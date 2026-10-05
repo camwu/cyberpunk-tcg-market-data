@@ -30,6 +30,7 @@ from tracker.purchases import (
     sync_purchase_history,
     get_purchase_history_updated_at,
     validate_cash_record,
+    validate_amount_string,
 )
 from tracker.constants import CACHE_TTL_24H_SECONDS
 
@@ -132,12 +133,10 @@ def handle_add_cash_subcommand(
         if not amount_input:
             while True:
                 amt_str = input("Enter purchase amount in USD (e.g. 35.00): ").strip()
-                try:
-                    validate_cash_record(date_input, amt_str, merchant_input or "test")
+                if validate_amount_string(amt_str) is not None:
                     amount_input = amt_str
                     break
-                except ValueError as e:
-                    print(f"Invalid amount: {e}")
+                print("Invalid amount. Must be positive number formatted as integer or 2 decimal places (e.g. 10 or 10.00).")
 
         if not merchant_input:
             m_str = input("Enter merchant / seller name [default: Cash Purchase]: ").strip()

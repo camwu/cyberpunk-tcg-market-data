@@ -9,5 +9,4 @@ if %ERRORLEVEL% neq 0 (
     pause
     exit /b %ERRORLEVEL%
 )
-echo.
-pause
+if "%~1"=="" pause
