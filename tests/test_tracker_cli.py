@@ -592,7 +592,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
             run_tracker.main(argv)
         self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / "cash_2026-09-15_local_game_store.json"
+        created_file = self.purchase_dir / "2026-09-15_local_game_store_3x_booster_packs_cash.json"
         self.assertTrue(created_file.is_file())
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -613,7 +613,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
             run_tracker.main(argv)
         self.assertEqual(cm.exception.code, 0)
 
-        created_files = list(self.purchase_dir.glob("cash_*_downtown_cards.json"))
+        created_files = list(self.purchase_dir.glob("*_downtown_cards_item_cash.json"))
         self.assertEqual(len(created_files), 1)
 
     def test_add_cash_interactive_prompts(self):
@@ -623,7 +623,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
                 run_tracker.main(argv)
             self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / "cash_2026-09-16_corner_shop.json"
+        created_file = self.purchase_dir / "2026-09-16_corner_shop_draft_entry_cash.json"
         self.assertTrue(created_file.is_file())
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -641,7 +641,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
                 run_tracker.main(argv)
             self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / "cash_2026-09-16_corner_shop.json"
+        created_file = self.purchase_dir / "2026-09-16_corner_shop_draft_entry_cash.json"
         self.assertTrue(created_file.is_file())
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -659,7 +659,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
                 run_tracker.main(argv)
             self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / f"cash_{today_str}_cash_purchase.json"
+        created_file = self.purchase_dir / f"{today_str}_cash_purchase_item_cash.json"
         self.assertTrue(created_file.is_file())
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -677,7 +677,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
 
     def test_add_cash_collision_resolution(self):
         self.purchase_dir.mkdir(parents=True, exist_ok=True)
-        file1 = self.purchase_dir / "cash_2026-09-15_local_game_store.json"
+        file1 = self.purchase_dir / "2026-09-15_local_game_store_item_cash.json"
         file1.write_text('{"existing": true}', encoding="utf-8")
 
         argv = [
@@ -691,7 +691,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
             run_tracker.main(argv)
         self.assertEqual(cm.exception.code, 0)
 
-        file2 = self.purchase_dir / "cash_2026-09-15_local_game_store_2.json"
+        file2 = self.purchase_dir / "2026-09-15_local_game_store_item_cash_2.json"
         self.assertTrue(file2.is_file())
 
     def test_drag_and_drop_csv_not_broken_by_subcommand(self):
