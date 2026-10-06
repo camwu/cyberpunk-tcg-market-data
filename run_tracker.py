@@ -181,13 +181,14 @@ def handle_add_cash_subcommand(
 
     os.makedirs(purchase_dir, exist_ok=True)
 
-    slug = re.sub(r"[^a-z0-9]+", "_", val_merchant.lower()).strip("_") or "cash"
-    base_name = f"cash_{val_date}_{slug}.json"
+    vendor_slug = re.sub(r"[^a-z0-9]+", "_", val_merchant.lower()).strip("_") or "cash_purchase"
+    item_slug = re.sub(r"[^a-z0-9]+", "_", (desc_input or "").lower()).strip("_") or "item"
+    base_name = f"{val_date}_{vendor_slug}_{item_slug}_cash.json"
     target_file = os.path.join(purchase_dir, base_name)
 
     counter = 2
     while os.path.exists(target_file):
-        target_file = os.path.join(purchase_dir, f"cash_{val_date}_{slug}_{counter}.json")
+        target_file = os.path.join(purchase_dir, f"{val_date}_{vendor_slug}_{item_slug}_cash_{counter}.json")
         counter += 1
 
     payload = {
