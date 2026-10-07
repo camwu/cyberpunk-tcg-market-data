@@ -66,7 +66,7 @@ The 1-click launchers (`update_portfolio.bat` on Windows and `update_portfolio.s
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Python 3.9+**: Core features (scraping, valuation, CardNexus sync, reporting, and plain text/CSV/JSON receipts) use the Python standard library with 0 external `pip` dependencies.
+- **Python 3.11+**: Core features (scraping, valuation, CardNexus sync, reporting, and plain text/CSV/JSON receipts) use the Python standard library with 0 external `pip` dependencies.
 - **pypdf** *(Optional)*: Required only when parsing `.pdf` receipt documents in `purchase_history/` (`pip install pypdf`). Plain text, CSV, and JSON receipts require no external packages.
 - **7-Zip** *(Optional)*: Required only when backfilling historical price archives via `--backfill`.
 
