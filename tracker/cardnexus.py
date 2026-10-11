@@ -288,18 +288,19 @@ def sync_cardnexus_collection(
     api_key: Optional[str] = None,
     include_marketplace: bool = True,
     refresh_catalog: bool = False,
+    cache_dir: Optional[str] = None,
 ) -> Tuple[bool, str, int]:
     """
     Orchestrates live CardNexus inventory sync:
     1. Fetches inventory lines from CardNexus API.
-    2. Resolves card metadata via Cyberpunk catalog feed.
+    2. Resolves card metadata via Cyberpunk catalog feed (cached in cache_dir, defaulting to 'data').
     3. Emits unified collection CSV snapshot.
     4. Validates snapshot via validate_collection_file().
     5. Only upon successful validation, promotes snapshot directly to target_csv.
     Returns (success, promoted_csv_path, total_physical_units).
     """
-    cache_dir = os.path.dirname(target_csv) or "data"
-    client = CardNexusClient(api_key=api_key, cache_dir=cache_dir)
+    resolved_cache_dir = cache_dir or "data"
+    client = CardNexusClient(api_key=api_key, cache_dir=resolved_cache_dir)
     if not client.api_key:
         print("Error: CardNexus API key is not configured.", file=sys.stderr)
         return False, "", 0
@@ -322,9 +323,10 @@ def sync_cardnexus_collection(
         return False, "", 0
 
     # Write timestamped snapshot
-    os.makedirs(os.path.dirname(target_csv) or ".", exist_ok=True)
+    target_dir = os.path.dirname(target_csv) or "."
+    os.makedirs(target_dir, exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    snapshot_path = os.path.join(os.path.dirname(target_csv) or ".", f"cardnexus_collection_{timestamp}.csv")
+    snapshot_path = os.path.join(target_dir, f"cardnexus_collection_{timestamp}.csv")
 
     fieldnames = ["name", "expansion", "printNumber", "finish", "totalQtyOwned", "notes"]
     with open(snapshot_path, "w", encoding="utf-8", newline="") as f:
@@ -335,7 +337,7 @@ def sync_cardnexus_collection(
     print(f"Saved authenticated API snapshot to {snapshot_path}")
 
     # Validate snapshot before promotion
-    error_csv = os.path.join(cache_dir, "validation_errors.csv")
+    error_csv = os.path.join(target_dir, "validation_errors.csv")
     is_valid, validation_errors, validated_rows = validate_collection_file(
         snapshot_path,
         error_export_path=error_csv,
