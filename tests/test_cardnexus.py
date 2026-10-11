@@ -338,11 +338,7 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         mock_instance.transform_inventory_rows.return_value = []
         mock_client_cls.return_value = mock_instance
 
-        custom_dir = self.test_dir / "custom_data"
-        custom_dir.mkdir()
-        custom_target = str(custom_dir / "my_collection.csv")
-
-        sync_cardnexus_collection(target_csv=custom_target, api_key="test_key")
+        sync_cardnexus_collection(target_csv=self.target_csv, api_key="test_key")
 
         mock_client_cls.assert_called_once_with(api_key="test_key", cache_dir="data")
 
@@ -354,13 +350,10 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         mock_instance.transform_inventory_rows.return_value = []
         mock_client_cls.return_value = mock_instance
 
-        custom_dir = self.test_dir / "custom_data"
-        custom_dir.mkdir()
-        custom_target = str(custom_dir / "my_collection.csv")
+        custom_cache = str(self.test_dir / "custom_cache")
+        sync_cardnexus_collection(target_csv=self.target_csv, api_key="test_key", cache_dir=custom_cache)
 
-        sync_cardnexus_collection(target_csv=custom_target, api_key="test_key", cache_dir=str(custom_dir))
-
-        mock_client_cls.assert_called_once_with(api_key="test_key", cache_dir=str(custom_dir))
+        mock_client_cls.assert_called_once_with(api_key="test_key", cache_dir=custom_cache)
 
 
 class TestTrackerMissingKeyFallback(unittest.TestCase):
