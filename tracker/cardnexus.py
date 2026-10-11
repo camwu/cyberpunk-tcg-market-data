@@ -288,6 +288,7 @@ def sync_cardnexus_collection(
     api_key: Optional[str] = None,
     include_marketplace: bool = True,
     refresh_catalog: bool = False,
+    cache_dir: Optional[str] = None,
 ) -> Tuple[bool, str, int]:
     """
     Orchestrates live CardNexus inventory sync:
@@ -298,8 +299,8 @@ def sync_cardnexus_collection(
     5. Only upon successful validation, promotes snapshot directly to target_csv.
     Returns (success, promoted_csv_path, total_physical_units).
     """
-    cache_dir = os.path.dirname(target_csv) or "data"
-    client = CardNexusClient(api_key=api_key, cache_dir=cache_dir)
+    resolved_cache_dir = cache_dir or "data"
+    client = CardNexusClient(api_key=api_key, cache_dir=resolved_cache_dir)
     if not client.api_key:
         print("Error: CardNexus API key is not configured.", file=sys.stderr)
         return False, "", 0
@@ -335,7 +336,8 @@ def sync_cardnexus_collection(
     print(f"Saved authenticated API snapshot to {snapshot_path}")
 
     # Validate snapshot before promotion
-    error_csv = os.path.join(cache_dir, "validation_errors.csv")
+    target_dir = os.path.dirname(target_csv) or "."
+    error_csv = os.path.join(target_dir, "validation_errors.csv")
     is_valid, validation_errors, validated_rows = validate_collection_file(
         snapshot_path,
         error_export_path=error_csv,

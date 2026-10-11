@@ -331,7 +331,7 @@ class TestSyncCardNexusCollection(unittest.TestCase):
             self.assertIn("Warning: Could not remove temporary staging file", mock_stderr.getvalue())
 
     @patch("tracker.cardnexus.CardNexusClient")
-    def test_sync_scopes_catalog_cache_to_target_dir(self, mock_client_cls):
+    def test_sync_defaults_catalog_cache_to_local_data_dir(self, mock_client_cls):
         mock_instance = MagicMock()
         mock_instance.api_key = "test_key"
         mock_instance.fetch_inventory.return_value = []
@@ -343,6 +343,22 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         custom_target = str(custom_dir / "my_collection.csv")
 
         sync_cardnexus_collection(target_csv=custom_target, api_key="test_key")
+
+        mock_client_cls.assert_called_once_with(api_key="test_key", cache_dir="data")
+
+    @patch("tracker.cardnexus.CardNexusClient")
+    def test_sync_allows_custom_cache_dir_override(self, mock_client_cls):
+        mock_instance = MagicMock()
+        mock_instance.api_key = "test_key"
+        mock_instance.fetch_inventory.return_value = []
+        mock_instance.transform_inventory_rows.return_value = []
+        mock_client_cls.return_value = mock_instance
+
+        custom_dir = self.test_dir / "custom_data"
+        custom_dir.mkdir()
+        custom_target = str(custom_dir / "my_collection.csv")
+
+        sync_cardnexus_collection(target_csv=custom_target, api_key="test_key", cache_dir=str(custom_dir))
 
         mock_client_cls.assert_called_once_with(api_key="test_key", cache_dir=str(custom_dir))
 
