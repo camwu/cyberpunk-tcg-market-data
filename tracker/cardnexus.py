@@ -12,13 +12,13 @@ from pathlib import Path
 import shutil
 import sys
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import urllib.error
 import urllib.parse
 import urllib.request
 
 from tracker.validation import validate_collection_file, is_sealed_product, CollectionValidationError
-from tracker.constants import USER_AGENT, CACHE_TTL_24H_SECONDS
+from tracker.constants import USER_AGENT, CACHE_TTL_24H_SECONDS, REPO_DATA_DIR
 
 API_BASE_URL = "https://public-api.cardnexus.com/v1"
 STEADY_STATE_SLEEP_SECONDS = 1.0  # CardNexus docs safe pattern: 1 req/s under 60 req/min cap
@@ -54,9 +54,9 @@ class CardNexusClient:
     Interacts with inventory endpoints and catalog feeds while strictly firewalling internal productIds.
     """
 
-    def __init__(self, api_key: Optional[str] = None, cache_dir: str = "data"):
+    def __init__(self, api_key: Optional[str] = None, cache_dir: Optional[Union[str, Path]] = None):
         self.api_key = resolve_cardnexus_api_key(api_key)
-        self.cache_dir = Path(cache_dir)
+        self.cache_dir = Path(cache_dir) if cache_dir is not None else REPO_DATA_DIR
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     def _make_request(self, url: str, method: str = "GET", headers: Optional[Dict[str, str]] = None) -> Tuple[int, Dict[str, str], bytes]:
@@ -288,19 +288,18 @@ def sync_cardnexus_collection(
     api_key: Optional[str] = None,
     include_marketplace: bool = True,
     refresh_catalog: bool = False,
-    cache_dir: Optional[str] = None,
+    cache_dir: Optional[Union[str, Path]] = None,
 ) -> Tuple[bool, str, int]:
     """
     Orchestrates live CardNexus inventory sync:
     1. Fetches inventory lines from CardNexus API.
-    2. Resolves card metadata via Cyberpunk catalog feed (cached in cache_dir, defaulting to 'data').
+    2. Resolves card metadata via Cyberpunk catalog feed (cached in cache_dir, defaulting to repository data dir).
     3. Emits unified collection CSV snapshot.
     4. Validates snapshot via validate_collection_file().
     5. Only upon successful validation, promotes snapshot directly to target_csv.
     Returns (success, promoted_csv_path, total_physical_units).
     """
-    resolved_cache_dir = cache_dir or "data"
-    client = CardNexusClient(api_key=api_key, cache_dir=resolved_cache_dir)
+    client = CardNexusClient(api_key=api_key, cache_dir=cache_dir)
     if not client.api_key:
         print("Error: CardNexus API key is not configured.", file=sys.stderr)
         return False, "", 0

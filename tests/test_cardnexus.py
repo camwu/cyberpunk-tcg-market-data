@@ -18,6 +18,7 @@ from tracker.cardnexus import (
     sync_cardnexus_collection,
     STEADY_STATE_SLEEP_SECONDS,
 )
+from tracker.constants import REPO_DATA_DIR
 from tracker.validation import REQUIRED_COLUMNS, CollectionValidationError
 
 
@@ -38,6 +39,18 @@ class TestCardNexusClient(unittest.TestCase):
 
     def tearDown(self):
         self.temp_dir.cleanup()
+
+    def test_catalog_cache_anchors_to_repo_root_regardless_of_cwd(self):
+        original_cwd = os.getcwd()
+        self.addCleanup(os.chdir, original_cwd)
+        with tempfile.TemporaryDirectory() as outside_dir:
+            try:
+                os.chdir(outside_dir)
+                client = CardNexusClient()
+                self.assertEqual(client.cache_dir, REPO_DATA_DIR)
+                self.assertEqual(os.listdir(outside_dir), [])
+            finally:
+                os.chdir(original_cwd)
 
     def test_init_reads_explicit_or_env_key(self):
         with patch.dict(os.environ, {"CARDNEXUS_API_KEY": "env_key_123"}):
@@ -340,7 +353,7 @@ class TestSyncCardNexusCollection(unittest.TestCase):
 
         sync_cardnexus_collection(target_csv=self.target_csv, api_key="test_key")
 
-        mock_client_cls.assert_called_once_with(api_key="test_key", cache_dir="data")
+        mock_client_cls.assert_called_once_with(api_key="test_key", cache_dir=None)
 
     @patch("tracker.cardnexus.CardNexusClient")
     def test_sync_allows_custom_cache_dir_override(self, mock_client_cls):

@@ -5,6 +5,7 @@ from pathlib import Path
 REPO_ROOT: Path = Path(__file__).resolve().parent.parent
 REPO_PRICES_DIR: Path = REPO_ROOT / "prices"
 REPO_CARDS_FILE: Path = REPO_ROOT / "cards.json"
+REPO_DATA_DIR: Path = REPO_ROOT / "data"
 
 USER_AGENT: str = "CyberpunkTCGMarketTracker/1.0"
 
