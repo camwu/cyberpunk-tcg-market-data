@@ -548,7 +548,7 @@ class TestPurchaseHistory(unittest.TestCase):
 
     def test_cash_sentinel_integer_round_trip(self):
         payload = build_cash_sentinel_payload("2026-09-15", "Local Game Store", 35.0, "3x packs")
-        sentinel_file = self.purchase_dir / "2026-09-15_local_game_store_cash.json"
+        sentinel_file = self.purchase_dir / "2026-09-15_local_game_store_roundtrip_cash.json"
         with open(sentinel_file, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2)
 
