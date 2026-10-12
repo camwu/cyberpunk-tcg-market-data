@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 import re
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import warnings
 
 from tracker.validation import CollectionValidationError
@@ -178,6 +178,27 @@ def validate_cash_record(
     desc = str(description_val or "").strip() or f"{merchant} Purchase ({parsed_date})"
 
     return parsed_date, merchant, parsed_amount, desc
+
+
+def build_cash_sentinel_payload(
+    date: str,
+    merchant: str,
+    amount: float,
+    description: str,
+) -> Dict[str, Any]:
+    """
+    Constructs a JSON-serializable dictionary for a cash purchase sentinel file.
+    Normalizes whole-dollar amounts to integer for clean JSON representation (e.g. 10 instead of 10.0),
+    while preserving fractional floats (e.g. 12.55).
+    """
+    serializable_amount: Union[int, float] = int(amount) if amount.is_integer() else amount
+    return {
+        "date": date,
+        "amount": serializable_amount,
+        "merchant": merchant,
+        "description": description,
+        "cash": True,
+    }
 
 
 def prompt_for_amount(
