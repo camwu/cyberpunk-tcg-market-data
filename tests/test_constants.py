@@ -7,6 +7,7 @@ from tracker.constants import (
     REPO_ROOT,
     REPO_PRICES_DIR,
     REPO_CARDS_FILE,
+    REPO_DATA_DIR,
     USER_AGENT,
     CACHE_TTL_24H_SECONDS,
 )
@@ -22,6 +23,7 @@ class TestConstants(unittest.TestCase):
         self.assertTrue(REPO_ROOT.is_dir())
         self.assertEqual(REPO_PRICES_DIR, REPO_ROOT / "prices")
         self.assertEqual(REPO_CARDS_FILE, REPO_ROOT / "cards.json")
+        self.assertEqual(REPO_DATA_DIR, REPO_ROOT / "data")
 
     def test_transport_and_cache_constants(self):
         self.assertIsInstance(USER_AGENT, str)
@@ -47,6 +49,7 @@ class TestConstants(unittest.TestCase):
         # tracker.cardnexus
         self.assertIs(tracker.cardnexus.USER_AGENT, USER_AGENT)
         self.assertIs(tracker.cardnexus.CACHE_TTL_24H_SECONDS, CACHE_TTL_24H_SECONDS)
+        self.assertIs(tracker.cardnexus.REPO_DATA_DIR, REPO_DATA_DIR)
 
 
 if __name__ == "__main__":
