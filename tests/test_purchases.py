@@ -31,6 +31,7 @@ from tracker.purchases import (
     sync_purchase_history,
     validate_cash_record,
     validate_date_string,
+    build_cash_sentinel_payload,
 )
 from tracker.validation import CollectionValidationError
 from tracker.valuation import init_database, calculate_portfolio_valuation
@@ -521,6 +522,45 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(len(records3), 1)
         self.assertTrue(changed3)
         self.assertEqual(records3[0].amount, 35.00)
+
+    def test_build_cash_sentinel_payload_amount_formatting(self):
+        # Whole-dollar amounts serialize as integers
+        p10 = build_cash_sentinel_payload("2026-10-04", "Store", 10.0, "Items")
+        self.assertEqual(p10["amount"], 10)
+        self.assertIsInstance(p10["amount"], int)
+
+        p35 = build_cash_sentinel_payload("2026-09-15", "Store", 35.0, "Items")
+        self.assertEqual(p35["amount"], 35)
+        self.assertIsInstance(p35["amount"], int)
+
+        # Fractional-dollar amounts preserve float decimals
+        p12 = build_cash_sentinel_payload("2026-10-04", "Store", 12.55, "Items")
+        self.assertEqual(p12["amount"], 12.55)
+        self.assertIsInstance(p12["amount"], float)
+
+        # JSON text formatting check
+        s10 = json.dumps(p10)
+        self.assertIn('"amount": 10', s10)
+        self.assertNotIn('"amount": 10.0', s10)
+
+        s12 = json.dumps(p12)
+        self.assertIn('"amount": 12.55', s12)
+
+    def test_cash_sentinel_integer_round_trip(self):
+        payload = build_cash_sentinel_payload("2026-09-15", "Local Game Store", 35.0, "3x packs")
+        sentinel_file = self.purchase_dir / "2026-09-15_local_game_store_roundtrip_cash.json"
+        with open(sentinel_file, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+
+        raw_text = sentinel_file.read_text(encoding="utf-8")
+        self.assertIn('"amount": 35', raw_text)
+        self.assertNotIn('"amount": 35.0', raw_text)
+
+        parsed = parse_receipt_document(str(sentinel_file))
+        self.assertIsNotNone(parsed)
+        p_date, p_merchant, p_amount, p_desc = parsed
+        self.assertEqual(p_amount, 35.0)
+        self.assertIsInstance(p_amount, float)
 
 
 class TestValuationCostBasisIntegration(unittest.TestCase):

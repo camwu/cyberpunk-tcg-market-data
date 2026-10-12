@@ -597,7 +597,8 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         self.assertEqual(data["date"], "2026-09-15")
-        self.assertEqual(data["amount"], 35.00)
+        self.assertEqual(data["amount"], 35)
+        self.assertIsInstance(data["amount"], int)
         self.assertEqual(data["merchant"], "Local Game Store")
         self.assertEqual(data["description"], "3x booster packs")
         self.assertTrue(data["cash"])

@@ -32,6 +32,7 @@ from tracker.purchases import (
     validate_cash_record,
     validate_amount_string,
     validate_date_string,
+    build_cash_sentinel_payload,
 )
 from tracker.constants import CACHE_TTL_24H_SECONDS
 
@@ -191,13 +192,12 @@ def handle_add_cash_subcommand(
         target_file = os.path.join(purchase_dir, f"{val_date}_{vendor_slug}_{item_slug}_cash_{counter}.json")
         counter += 1
 
-    payload = {
-        "date": val_date,
-        "amount": val_amount,
-        "merchant": val_merchant,
-        "description": val_desc,
-        "cash": True,
-    }
+    payload = build_cash_sentinel_payload(
+        date=val_date,
+        merchant=val_merchant,
+        amount=val_amount,
+        description=val_desc,
+    )
 
     try:
         with open(target_file, "w", encoding="utf-8") as f:
