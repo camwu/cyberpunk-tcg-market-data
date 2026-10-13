@@ -634,7 +634,7 @@ class TestReportGeneration(unittest.TestCase):
         self.assertTrue(idx_25 < idx_10)
 
     def test_breakdown_tables_two_percentage_columns_and_sum_to_100(self):
-        """Verifies that all four breakdown tables have both percentage columns and % of Portfolio sums to 100%."""
+        """Verifies that all four breakdown tables have both percentage columns, and % of Portfolio Value sums to 100% in pure singles portfolios."""
         conn = sqlite3.connect(self.db_path)
         try:
             cur = conn.cursor()
@@ -645,16 +645,14 @@ class TestReportGeneration(unittest.TestCase):
                 {"card_key": "NC::001::Standard::2026-09-01", "name": "Card A", "expansion": "Night City", "finish": "Standard", "rarity": "Common", "color": "Green", "card_type": "Unit", "item_type": "Card", "print_number": "001"},
                 {"card_key": "NC::002::Standard::2026-09-01", "name": "Card B", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Blue", "card_type": "Program", "item_type": "Card", "print_number": "002"},
                 {"card_key": "ER::001::Standard::2026-09-01", "name": "Card C", "expansion": "Edgerunners", "finish": "Standard", "rarity": "Epic", "color": "Red", "card_type": "Legend", "item_type": "Card", "print_number": "001"},
-                {"card_key": "SEALED::Night City::999::2026-09-01", "name": "Booster Box", "expansion": "Night City", "finish": "Standard", "rarity": "Sealed", "color": "", "card_type": "", "item_type": "Sealed", "product_id": 999},
             ])
             seed_snapshots(conn, "2026-09-14", [
                 {"card_key": "NC::001::Standard::2026-09-01", "quantity": 5, "unit_market_price": 2.00, "line_total": 10.00},
                 {"card_key": "NC::002::Standard::2026-09-01", "quantity": 3, "unit_market_price": 10.00, "line_total": 30.00},
                 {"card_key": "ER::001::Standard::2026-09-01", "quantity": 2, "unit_market_price": 30.00, "line_total": 60.00},
-                {"card_key": "SEALED::Night City::999::2026-09-01", "quantity": 1, "unit_market_price": 100.00, "line_total": 100.00},
             ])
-            # Total cards = 10 (5+3+2), Total singles value = $100.00, Sealed = $100.00, Portfolio total = $200.00
-            seed_summary(conn, "2026-09-14", total_value=200.00, total_cards=10, total_sealed=1)
+            # Pure singles portfolio: 10 cards, total value $100.00, sealed = 0
+            seed_summary(conn, "2026-09-14", total_value=100.00, total_cards=10, total_sealed=0)
         finally:
             conn.close()
 
@@ -687,7 +685,34 @@ class TestReportGeneration(unittest.TestCase):
             self.assertEqual(total_copies, 10, f"{section_name} total copies should equal total_cards (10)")
             self.assertAlmostEqual(total_pct_copies, 100.0, delta=0.2, msg=f"{section_name} % of Portfolio should sum to 100%")
             self.assertAlmostEqual(total_val, 100.00, delta=0.01, msg=f"{section_name} market values should sum to singles total ($100.00)")
-            self.assertAlmostEqual(total_pct_val, 50.0, delta=0.2, msg=f"{section_name} % of Portfolio Value should sum to 50% ($100 / $200)")
+            self.assertAlmostEqual(total_pct_val, 100.0, delta=0.2, msg=f"{section_name} % of Portfolio Value should sum to 100% in pure singles portfolio")
+
+        # Now test mixed portfolio with a sealed item ($100 singles + $100 sealed = $200 total)
+        conn = sqlite3.connect(self.db_path)
+        try:
+            seed_metadata(conn, [
+                {"card_key": "SEALED::Night City::999::2026-09-01", "name": "Booster Box", "expansion": "Night City", "finish": "Standard", "rarity": "Sealed", "color": "", "card_type": "", "item_type": "Sealed", "product_id": 999},
+            ])
+            seed_snapshots(conn, "2026-09-14", [
+                {"card_key": "SEALED::Night City::999::2026-09-01", "quantity": 1, "unit_market_price": 100.00, "line_total": 100.00, "baseline_price": 100.00, "lifetime_gain_dollar": 0.00, "lifetime_gain_pct": 0.0},
+            ])
+            seed_summary(conn, "2026-09-14", total_value=200.00, total_cards=10, total_sealed=1)
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content_mixed = Path(self.output_md).read_text(encoding="utf-8")
+
+        for section_name in ["Rarity", "Color", "Card Type", "Expansion"]:
+            section_header = f"### {section_name}"
+            section_part = content_mixed.split(section_header)[1].split("###")[0]
+            lines = [
+                line.strip() for line in section_part.strip().split("\n")
+                if line.strip().startswith("|") and not line.strip().startswith("| :---") and "Unique Items" not in line
+            ]
+
+            total_pct_val = sum(float(line.split("|")[1:-1][5].replace("%", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
+            self.assertAlmostEqual(total_pct_val, 50.0, delta=0.2, msg=f"{section_name} % of Portfolio Value should sum to 50% ($100 / $200) in mixed portfolio")
 
 
 if __name__ == "__main__":
