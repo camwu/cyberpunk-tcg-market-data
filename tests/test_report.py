@@ -102,9 +102,10 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("**Total Sealed Items** | **1** unit", content)
         self.assertIn("**Total Physical Cards** | **1** copies", content)
 
-        # Dedicated sealed section exists with Acquired column under Portfolio Breakdown
+        # Dedicated sealed section exists with Acquired and % of Portfolio Value columns (without Expansion)
         portfolio_section = content.split("## 📊 Portfolio Breakdown")[1].split("## 📈 Top Gainers")[0]
         self.assertIn("### Sealed Products", portfolio_section)
+        self.assertIn("| Product Name | Acquired | Qty | Unit Price | Total Value | % of Portfolio Value | Baseline Price | Lifetime Gain |", portfolio_section)
         self.assertIn("Welcome to Night City - Beta Booster Box", portfolio_section)
         self.assertIn("`2026-09-11`", portfolio_section)
         self.assertIn("$235.17", portfolio_section)
@@ -201,11 +202,11 @@ class TestReportGeneration(unittest.TestCase):
         content = Path(self.output_md).read_text(encoding="utf-8")
 
         self.assertIn("### Expansion", content)
-        self.assertIn("| Expansion | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |", content)
+        self.assertIn("| Expansion | Unique Items | Physical Copies | % of Cards | Market Value | % of Card Value |", content)
 
-        # Edgerunners is 2 copies (66.7%), $120.00 (32.0%); Welcome to Night City - Beta is 1 copy (33.3%), $20.00 (5.3%)
-        self.assertIn("| **Cyberpunk Edgerunners** | 1 | 2 | 66.7% | `$120.00` | 32.0% |", content)
-        self.assertIn("| **Welcome to Night City - Beta** | 1 | 1 | 33.3% | `$20.00` | 5.3% |", content)
+        # Edgerunners is 2 copies (66.7%), $120.00 (85.7% of singles value); Welcome to Night City - Beta is 1 copy (33.3%), $20.00 (14.3% of singles value)
+        self.assertIn("| **Cyberpunk Edgerunners** | 1 | 2 | 66.7% | `$120.00` | 85.7% |", content)
+        self.assertIn("| **Welcome to Night City - Beta** | 1 | 1 | 33.3% | `$20.00` | 14.3% |", content)
 
         # Confirm sorted order: Cyberpunk Edgerunners should appear before Welcome to Night City - Beta
         idx_edge = content.index("**Cyberpunk Edgerunners**")
@@ -662,7 +663,7 @@ class TestReportGeneration(unittest.TestCase):
         for section_name in ["Rarity", "Color", "Card Type", "Expansion"]:
             section_header = f"### {section_name}"
             self.assertIn(section_header, content)
-            table_header = f"| {section_name} | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |"
+            table_header = f"| {section_name} | Unique Items | Physical Copies | % of Cards | Market Value | % of Card Value |"
             self.assertIn(table_header, content)
 
             section_part = content.split(section_header)[1].split("###")[0]
@@ -683,9 +684,9 @@ class TestReportGeneration(unittest.TestCase):
                     total_pct_val += float(parts[5].replace("%", ""))
 
             self.assertEqual(total_copies, 10, f"{section_name} total copies should equal total_cards (10)")
-            self.assertAlmostEqual(total_pct_copies, 100.0, delta=0.2, msg=f"{section_name} % of Portfolio should sum to 100%")
+            self.assertAlmostEqual(total_pct_copies, 100.0, delta=0.2, msg=f"{section_name} % of Cards should sum to 100%")
             self.assertAlmostEqual(total_val, 100.00, delta=0.01, msg=f"{section_name} market values should sum to singles total ($100.00)")
-            self.assertAlmostEqual(total_pct_val, 100.0, delta=0.2, msg=f"{section_name} % of Portfolio Value should sum to 100% in pure singles portfolio")
+            self.assertAlmostEqual(total_pct_val, 100.0, delta=0.2, msg=f"{section_name} % of Card Value should sum to 100% in pure singles portfolio")
 
         # Now test mixed portfolio with a sealed item ($100 singles + $100 sealed = $200 total)
         conn = sqlite3.connect(self.db_path)
@@ -705,7 +706,7 @@ class TestReportGeneration(unittest.TestCase):
 
         for section_name in ["Rarity", "Color", "Card Type", "Expansion"]:
             section_header = f"### {section_name}"
-            table_header = f"| {section_name} | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |"
+            table_header = f"| {section_name} | Unique Items | Physical Copies | % of Cards | Market Value | % of Card Value |"
             section_part = content_mixed.split(section_header)[1].split("###")[0]
             lines = [
                 line.strip() for line in section_part.strip().split("\n")
@@ -713,7 +714,26 @@ class TestReportGeneration(unittest.TestCase):
             ]
 
             total_pct_val = sum(float(line.split("|")[1:-1][5].replace("%", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
-            self.assertAlmostEqual(total_pct_val, 50.0, delta=0.2, msg=f"{section_name} % of Portfolio Value should sum to 50% ($100 / $200) in mixed portfolio")
+            self.assertAlmostEqual(total_pct_val, 100.0, delta=0.2, msg=f"{section_name} % of Card Value should sum to 100% in mixed portfolio (cards-only normalization)")
+
+        # Verify Sealed Products table has % of Portfolio Value and matches individual share
+        sealed_section = content_mixed.split("### Sealed Products")[1].split("## 📈 Top Gainers")[0]
+        sealed_header = "| Product Name | Acquired | Qty | Unit Price | Total Value | % of Portfolio Value | Baseline Price | Lifetime Gain |"
+        self.assertIn(sealed_header, sealed_section)
+        sealed_lines = [
+            line.strip() for line in sealed_section.strip().split("\n")
+            if line.strip().startswith("|") and not line.strip().startswith("| :---") and sealed_header not in line
+        ]
+        self.assertEqual(len(sealed_lines), 1)
+        sealed_parts = [p.strip() for p in sealed_lines[0].split("|")[1:-1]]
+        # Product Name, Acquired, Qty, Unit Price, Total Value, % of Portfolio Value, Baseline Price, Lifetime Gain
+        self.assertEqual(sealed_parts[0], "**Booster Box**")
+        self.assertEqual(sealed_parts[5], "50.0%", "Booster box should represent 50.0% ($100 / $200) of total portfolio value")
+
+        # Combined invariant: sealed share (50.0%) + singles share ($100 / $200 = 50.0%) equals 100.0%
+        sealed_pct_sum = sum(float(l.split("|")[1:-1][5].replace("%", "").strip()) for l in sealed_lines)
+        singles_portfolio_pct = (100.00 / 200.00) * 100.0
+        self.assertAlmostEqual(sealed_pct_sum + singles_portfolio_pct, 100.0, delta=0.2)
 
 
 if __name__ == "__main__":
