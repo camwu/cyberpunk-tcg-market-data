@@ -54,3 +54,17 @@ jobs:
             git pull --rebase origin main
             git push origin main
           fi
+
+      - name: Ping Healthchecks
+        if: always()
+        env:
+          HEALTHCHECKS_PING_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ -n "$HEALTHCHECKS_PING_URL" ]; then
+            if [ "$JOB_STATUS" = "success" ]; then
+              curl -fsS -m 10 --retry 3 "$HEALTHCHECKS_PING_URL"
+            else
+              curl -fsS -m 10 --retry 3 "$HEALTHCHECKS_PING_URL/fail"
+            fi
+          fi
