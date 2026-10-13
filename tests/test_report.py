@@ -713,6 +713,7 @@ class TestReportGeneration(unittest.TestCase):
                 if line.strip().startswith("|") and not line.strip().startswith("| :---") and table_header not in line
             ]
 
+            rendered_singles_val = sum(float(line.split("|")[1:-1][4].replace("`", "").replace("$", "").replace(",", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
             total_pct_val = sum(float(line.split("|")[1:-1][5].replace("%", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
             self.assertAlmostEqual(total_pct_val, 100.0, delta=0.2, msg=f"{section_name} % of Card Value should sum to 100% in mixed portfolio (cards-only normalization)")
 
@@ -730,9 +731,13 @@ class TestReportGeneration(unittest.TestCase):
         self.assertEqual(sealed_parts[0], "**Booster Box**")
         self.assertEqual(sealed_parts[5], "50.0%", "Booster box should represent 50.0% ($100 / $200) of total portfolio value")
 
-        # Combined invariant: sealed share (50.0%) + singles share ($100 / $200 = 50.0%) equals 100.0%
+        # Parse total portfolio value dynamically from executive summary
+        summary_line = [l for l in content_mixed.split("\n") if "**Total Portfolio Market Value**" in l][0]
+        rendered_total_val = float(summary_line.split("|")[2].replace("**", "").replace("`", "").replace("$", "").replace(",", "").strip())
+
+        # Combined invariant: sealed share parsed from sealed table + singles share parsed from breakdown and summary tables equals 100.0%
         sealed_pct_sum = sum(float(l.split("|")[1:-1][5].replace("%", "").strip()) for l in sealed_lines)
-        singles_portfolio_pct = (100.00 / 200.00) * 100.0
+        singles_portfolio_pct = (rendered_singles_val / rendered_total_val) * 100.0
         self.assertAlmostEqual(sealed_pct_sum + singles_portfolio_pct, 100.0, delta=0.2)
 
 
