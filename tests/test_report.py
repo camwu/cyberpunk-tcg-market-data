@@ -704,6 +704,7 @@ class TestReportGeneration(unittest.TestCase):
         generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
         content_mixed = Path(self.output_md).read_text(encoding="utf-8")
 
+        singles_breakdown_totals = {}
         for section_name in ["Rarity", "Color", "Card Type", "Expansion"]:
             section_header = f"### {section_name}"
             table_header = f"| {section_name} | Unique Items | Physical Copies | % of Cards | Market Value | % of Card Value |"
@@ -713,9 +714,15 @@ class TestReportGeneration(unittest.TestCase):
                 if line.strip().startswith("|") and not line.strip().startswith("| :---") and table_header not in line
             ]
 
-            rendered_singles_val = sum(float(line.split("|")[1:-1][4].replace("`", "").replace("$", "").replace(",", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
+            section_val = sum(float(line.split("|")[1:-1][4].replace("`", "").replace("$", "").replace(",", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
             total_pct_val = sum(float(line.split("|")[1:-1][5].replace("%", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
+            self.assertAlmostEqual(section_val, 100.00, delta=0.01, msg=f"{section_name} market values should sum to singles total ($100.00)")
             self.assertAlmostEqual(total_pct_val, 100.0, delta=0.2, msg=f"{section_name} % of Card Value should sum to 100% in mixed portfolio (cards-only normalization)")
+            singles_breakdown_totals[section_name] = section_val
+
+        # Verify all four breakdown tables agree on the singles total ($100.00)
+        self.assertEqual(len(set(singles_breakdown_totals.values())), 1)
+        authoritative_singles_val = singles_breakdown_totals["Rarity"]
 
         # Verify Sealed Products table has % of Portfolio Value and matches individual share
         sealed_section = content_mixed.split("### Sealed Products")[1].split("## 📈 Top Gainers")[0]
@@ -737,7 +744,7 @@ class TestReportGeneration(unittest.TestCase):
 
         # Combined invariant: sealed share parsed from sealed table + singles share parsed from breakdown and summary tables equals 100.0%
         sealed_pct_sum = sum(float(l.split("|")[1:-1][5].replace("%", "").strip()) for l in sealed_lines)
-        singles_portfolio_pct = (rendered_singles_val / rendered_total_val) * 100.0
+        singles_portfolio_pct = (authoritative_singles_val / rendered_total_val) * 100.0
         self.assertAlmostEqual(sealed_pct_sum + singles_portfolio_pct, 100.0, delta=0.2)
 
 
