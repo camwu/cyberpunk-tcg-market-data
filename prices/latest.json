@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-12",
-  "timestamp": "2026-10-13T02:00:35.471703+00:00",
-  "tcgcsvBuild": "2026-10-12T20:05:44+0000",
+  "date": "2026-10-13",
+  "timestamp": "2026-10-13T23:43:27.618051+00:00",
+  "tcgcsvBuild": "2026-10-13T20:06:44+0000",
   "category": "Cyberpunk TCG",
   "categoryId": 92,
   "productCount": 475,
@@ -15,18 +15,27 @@
         "directLowPrice": null
       }
     },
+    "715222": {
+      "Normal": {
+        "marketPrice": null,
+        "lowPrice": 0.15,
+        "midPrice": 0.15,
+        "highPrice": 0.15,
+        "directLowPrice": null
+      }
+    },
     "715251": {
       "Foil": {
-        "marketPrice": 278.59,
-        "lowPrice": 199.99,
-        "midPrice": 298.0,
+        "marketPrice": 273.26,
+        "lowPrice": 218.0,
+        "midPrice": 287.51,
         "highPrice": 999.99,
         "directLowPrice": null
       }
     },
     "714499": {
       "Normal": {
-        "marketPrice": 44.77,
+        "marketPrice": 44.76,
         "lowPrice": 42.2,
         "midPrice": 44.94,
         "highPrice": 44.95,
@@ -36,52 +45,52 @@
     "714494": {
       "Normal": {
         "marketPrice": 1299.99,
-        "lowPrice": 1292.85,
-        "midPrice": 1292.93,
+        "lowPrice": 1289.88,
+        "midPrice": 1291.4,
         "highPrice": 1299.99,
         "directLowPrice": null
       }
     },
     "714495": {
       "Normal": {
-        "marketPrice": 237.43,
-        "lowPrice": 223.76,
-        "midPrice": 234.37,
+        "marketPrice": 236.36,
+        "lowPrice": 223.54,
+        "midPrice": 229.8,
         "highPrice": 239.79,
         "directLowPrice": null
       }
     },
     "715166": {
       "Foil": {
-        "marketPrice": 32.08,
+        "marketPrice": 31.93,
         "lowPrice": 31.0,
-        "midPrice": 36.0,
+        "midPrice": 37.04,
         "highPrice": 69.99,
         "directLowPrice": null
       }
     },
     "715170": {
       "Foil": {
-        "marketPrice": 44.64,
-        "lowPrice": 38.69,
-        "midPrice": 47.74,
+        "marketPrice": 43.61,
+        "lowPrice": 38.73,
+        "midPrice": 47.35,
         "highPrice": 94.99,
         "directLowPrice": null
       }
     },
     "715174": {
       "Foil": {
-        "marketPrice": 10.81,
-        "lowPrice": 9.69,
-        "midPrice": 14.51,
+        "marketPrice": 10.8,
+        "lowPrice": 10.34,
+        "midPrice": 13.99,
         "highPrice": 49.99,
         "directLowPrice": null
       }
     },
     "715179": {
       "Foil": {
-        "marketPrice": 15.6,
-        "lowPrice": 14.39,
+        "marketPrice": 15.42,
+        "lowPrice": 14.69,
         "midPrice": 19.99,
         "highPrice": 59.99,
         "directLowPrice": null
@@ -89,18 +98,18 @@
     },
     "715181": {
       "Foil": {
-        "marketPrice": 19.59,
+        "marketPrice": 19.4,
         "lowPrice": 20.0,
-        "midPrice": 23.95,
+        "midPrice": 23.0,
         "highPrice": 49.99,
         "directLowPrice": null
       }
     },
     "715185": {
       "Foil": {
-        "marketPrice": 12.61,
-        "lowPrice": 12.14,
-        "midPrice": 15.22,
+        "marketPrice": 12.49,
+        "lowPrice": 12.59,
+        "midPrice": 15.11,
         "highPrice": 50.0,
         "directLowPrice": null
       }
@@ -110,7 +119,7 @@
         "marketPrice": 6.03,
         "lowPrice": 4.0,
         "midPrice": 6.5,
-        "highPrice": 9.99,
+        "highPrice": 8.25,
         "directLowPrice": null
       }
     },
@@ -118,7 +127,7 @@
       "Normal": {
         "marketPrice": 0.19,
         "lowPrice": 0.1,
-        "midPrice": 0.23,
+        "midPrice": 0.25,
         "highPrice": 0.97,
         "directLowPrice": null
       }
@@ -162,7 +171,7 @@
     "714125": {
       "Normal": {
         "marketPrice": 0.63,
-        "lowPrice": 0.25,
+        "lowPrice": 0.26,
         "midPrice": 0.63,
         "highPrice": 1.97,
         "directLowPrice": null
@@ -190,7 +199,7 @@
       "Normal": {
         "marketPrice": 0.31,
         "lowPrice": 0.21,
-        "midPrice": 0.31,
+        "midPrice": 0.32,
         "highPrice": 0.97,
         "directLowPrice": null
       }
@@ -199,14 +208,14 @@
       "Foil": {
         "marketPrice": 1.22,
         "lowPrice": 0.33,
-        "midPrice": 1.12,
+        "midPrice": 1.17,
         "highPrice": 7.0,
         "directLowPrice": null
       }
     },
     "714130": {
       "Foil": {
-        "marketPrice": 5.87,
+        "marketPrice": 5.84,
         "lowPrice": 4.99,
         "midPrice": 7.23,
         "highPrice": 10.9,
@@ -217,7 +226,7 @@
       "Foil": {
         "marketPrice": 6.22,
         "lowPrice": 2.0,
-        "midPrice": 7.99,
+        "midPrice": 7.5,
         "highPrice": 10.21,
         "directLowPrice": null
       }
@@ -244,7 +253,7 @@
       "Normal": {
         "marketPrice": 0.41,
         "lowPrice": 0.24,
-        "midPrice": 0.38,
+        "midPrice": 0.4,
         "highPrice": 0.97,
         "directLowPrice": null
       }
@@ -260,7 +269,7 @@
     },
     "714136": {
       "Normal": {
-        "marketPrice": 0.19,
+        "marketPrice": 0.18,
         "lowPrice": 0.1,
         "midPrice": 0.19,
         "highPrice": 0.97,
@@ -271,7 +280,7 @@
       "Normal": {
         "marketPrice": 0.35,
         "lowPrice": 0.25,
-        "midPrice": 0.37,
+        "midPrice": 0.39,
         "highPrice": 1.97,
         "directLowPrice": null
       }
@@ -287,8 +296,8 @@
     },
     "714344": {
       "Normal": {
-        "marketPrice": 26.91,
-        "lowPrice": 27.43,
+        "marketPrice": 27.03,
+        "lowPrice": 27.95,
         "midPrice": 29.99,
         "highPrice": 75.0,
         "directLowPrice": null
@@ -305,27 +314,27 @@
     },
     "717125": {
       "Foil": {
-        "marketPrice": 14.94,
+        "marketPrice": 14.64,
         "lowPrice": 13.68,
-        "midPrice": 17.66,
+        "midPrice": 17.82,
         "highPrice": 53.0,
         "directLowPrice": null
       }
     },
     "717126": {
       "Foil": {
-        "marketPrice": 9.98,
+        "marketPrice": 9.56,
         "lowPrice": 7.5,
-        "midPrice": 11.98,
+        "midPrice": 11.93,
         "highPrice": 34.99,
         "directLowPrice": null
       }
     },
     "717127": {
       "Foil": {
-        "marketPrice": 14.35,
-        "lowPrice": 11.57,
-        "midPrice": 15.99,
+        "marketPrice": 14.05,
+        "lowPrice": 9.0,
+        "midPrice": 15.97,
         "highPrice": 31.99,
         "directLowPrice": null
       }
@@ -333,7 +342,7 @@
     "717231": {
       "Foil": {
         "marketPrice": 10.27,
-        "lowPrice": 9.0,
+        "lowPrice": 7.0,
         "midPrice": 11.0,
         "highPrice": 55.0,
         "directLowPrice": null
@@ -341,16 +350,16 @@
     },
     "717232": {
       "Foil": {
-        "marketPrice": 11.27,
-        "lowPrice": 10.28,
-        "midPrice": 12.74,
+        "marketPrice": 10.96,
+        "lowPrice": 10.0,
+        "midPrice": 12.25,
         "highPrice": 19.0,
         "directLowPrice": null
       }
     },
     "717233": {
       "Foil": {
-        "marketPrice": 9.64,
+        "marketPrice": 9.08,
         "lowPrice": 7.69,
         "midPrice": 10.95,
         "highPrice": 50.0,
@@ -359,70 +368,70 @@
     },
     "717235": {
       "Foil": {
-        "marketPrice": 18.9,
+        "marketPrice": 18.6,
         "lowPrice": 13.99,
-        "midPrice": 19.75,
-        "highPrice": 30.0,
+        "midPrice": 19.39,
+        "highPrice": 25.0,
         "directLowPrice": null
       }
     },
     "717236": {
       "Foil": {
-        "marketPrice": 10.77,
-        "lowPrice": 9.0,
-        "midPrice": 12.0,
+        "marketPrice": 10.78,
+        "lowPrice": 8.89,
+        "midPrice": 11.95,
         "highPrice": 21.0,
         "directLowPrice": null
       }
     },
     "717237": {
       "Foil": {
-        "marketPrice": 16.45,
-        "lowPrice": 14.01,
-        "midPrice": 16.88,
+        "marketPrice": 16.15,
+        "lowPrice": 11.0,
+        "midPrice": 16.49,
         "highPrice": 23.33,
         "directLowPrice": null
       }
     },
     "717238": {
       "Foil": {
-        "marketPrice": 29.57,
-        "lowPrice": 26.0,
-        "midPrice": 30.98,
+        "marketPrice": 29.45,
+        "lowPrice": 26.95,
+        "midPrice": 30.02,
         "highPrice": 55.0,
         "directLowPrice": null
       }
     },
     "717239": {
       "Foil": {
-        "marketPrice": 10.67,
+        "marketPrice": 10.56,
         "lowPrice": 9.0,
-        "midPrice": 15.0,
+        "midPrice": 14.74,
         "highPrice": 28.0,
         "directLowPrice": null
       }
     },
     "718647": {
       "Normal": {
-        "marketPrice": 99.48,
-        "lowPrice": 97.49,
-        "midPrice": 100.0,
+        "marketPrice": 99.12,
+        "lowPrice": 98.51,
+        "midPrice": 110.0,
         "highPrice": 175.0,
         "directLowPrice": null
       }
     },
     "714140": {
       "Foil": {
-        "marketPrice": 6.48,
+        "marketPrice": 6.15,
         "lowPrice": 4.49,
-        "midPrice": 6.7,
+        "midPrice": 6.75,
         "highPrice": 12.87,
         "directLowPrice": null
       }
     },
     "714141": {
       "Normal": {
-        "marketPrice": 8.79,
+        "marketPrice": 8.59,
         "lowPrice": 7.49,
         "midPrice": 10.0,
         "highPrice": 20.48,
@@ -451,7 +460,7 @@
       "Normal": {
         "marketPrice": 0.8,
         "lowPrice": 0.49,
-        "midPrice": 0.88,
+        "midPrice": 0.84,
         "highPrice": 2.0,
         "directLowPrice": null
       }
@@ -486,8 +495,8 @@
     "714148": {
       "Normal": {
         "marketPrice": 0.82,
-        "lowPrice": 0.58,
-        "midPrice": 0.79,
+        "lowPrice": 0.71,
+        "midPrice": 0.82,
         "highPrice": 1.97,
         "directLowPrice": null
       }
@@ -496,23 +505,23 @@
       "Normal": {
         "marketPrice": 0.2,
         "lowPrice": 0.1,
-        "midPrice": 0.23,
+        "midPrice": 0.25,
         "highPrice": 0.97,
         "directLowPrice": null
       }
     },
     "714150": {
       "Foil": {
-        "marketPrice": 18.1,
-        "lowPrice": 17.45,
-        "midPrice": 19.1,
+        "marketPrice": 18.11,
+        "lowPrice": 17.46,
+        "midPrice": 19.2,
         "highPrice": 49.98,
         "directLowPrice": null
       }
     },
     "714151": {
       "Foil": {
-        "marketPrice": 6.1,
+        "marketPrice": 6.17,
         "lowPrice": 6.09,
         "midPrice": 8.0,
         "highPrice": 13.0,
@@ -523,7 +532,7 @@
       "Normal": {
         "marketPrice": 0.15,
         "lowPrice": 0.1,
-        "midPrice": 0.2,
+        "midPrice": 0.19,
         "highPrice": 0.97,
         "directLowPrice": null
       }
@@ -539,7 +548,7 @@
     },
     "714154": {
       "Normal": {
-        "marketPrice": 12.53,
+        "marketPrice": 12.35,
         "lowPrice": 11.44,
         "midPrice": 14.3,
         "highPrice": 29.99,
@@ -550,7 +559,7 @@
       "Normal": {
         "marketPrice": 0.23,
         "lowPrice": 0.13,
-        "midPrice": 0.23,
+        "midPrice": 0.24,
         "highPrice": 0.97,
         "directLowPrice": null
       }
@@ -577,7 +586,7 @@
       "Normal": {
         "marketPrice": 0.27,
         "lowPrice": 0.26,
-        "midPrice": 0.3,
+        "midPrice": 0.33,
         "highPrice": 0.97,
         "directLowPrice": null
       }
@@ -586,16 +595,16 @@
       "Normal": {
         "marketPrice": 0.19,
         "lowPrice": 0.1,
-        "midPrice": 0.2,
+        "midPrice": 0.23,
         "highPrice": 0.97,
         "directLowPrice": null
       }
     },
     "714345": {
       "Normal": {
-        "marketPrice": 33.94,
+        "marketPrice": 35.7,
         "lowPrice": 36.0,
-        "midPrice": 50.87,
+        "midPrice": 51.75,
         "highPrice": 75.0,
         "directLowPrice": null
       }
@@ -611,7 +620,7 @@
     },
     "714162": {
       "Foil": {
-        "marketPrice": 0.86,
+        "marketPrice": 0.87,
         "lowPrice": 0.5,
         "midPrice": 1.25,
         "highPrice": 37.99,
@@ -620,7 +629,7 @@
     },
     "714163": {
       "Foil": {
-        "marketPrice": 0.22,
+        "marketPrice": 0.23,
         "lowPrice": 0.08,
         "midPrice": 0.26,
         "highPrice": 24.97,
@@ -629,16 +638,16 @@
     },
     "714164": {
       "Foil": {
-        "marketPrice": 27.11,
+        "marketPrice": 27.47,
         "lowPrice": 26.99,
-        "midPrice": 30.25,
+        "midPrice": 30.5,
         "highPrice": 149.97,
         "directLowPrice": null
       }
     },
     "714165": {
       "Foil": {
-        "marketPrice": 0.37,
+        "marketPrice": 0.38,
         "lowPrice": 0.2,
         "midPrice": 0.55,
         "highPrice": 99.0,
@@ -649,14 +658,14 @@
       "Foil": {
         "marketPrice": 0.33,
         "lowPrice": 0.13,
-        "midPrice": 0.41,
+        "midPrice": 0.4,
         "highPrice": 19.98,
         "directLowPrice": null
       }
     },
     "714167": {
       "Foil": {
-        "marketPrice": 0.32,
+        "marketPrice": 0.31,
         "lowPrice": 0.2,
         "midPrice": 0.5,
         "highPrice": 19.98,
@@ -674,7 +683,7 @@
     },
     "714169": {
       "Normal": {
-        "marketPrice": 0.11,
+        "marketPrice": 0.12,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.47,
@@ -701,7 +710,7 @@
     },
     "714172": {
       "Normal": {
-        "marketPrice": 0.11,
+        "marketPrice": 0.12,
         "lowPrice": 0.03,
         "midPrice": 0.15,
         "highPrice": 1.47,
@@ -710,7 +719,7 @@
     },
     "714173": {
       "Foil": {
-        "marketPrice": 9.72,
+        "marketPrice": 10.03,
         "lowPrice": 8.59,
         "midPrice": 10.99,
         "highPrice": 47.99,
@@ -730,16 +739,16 @@
       "Normal": {
         "marketPrice": 0.13,
         "lowPrice": 0.03,
-        "midPrice": 0.23,
+        "midPrice": 0.2,
         "highPrice": 4.97,
         "directLowPrice": null
       }
     },
     "714176": {
       "Foil": {
-        "marketPrice": 0.32,
+        "marketPrice": 0.34,
         "lowPrice": 0.1,
-        "midPrice": 0.49,
+        "midPrice": 0.47,
         "highPrice": 19.97,
         "directLowPrice": null
       }
@@ -755,7 +764,7 @@
     },
     "714178": {
       "Normal": {
-        "marketPrice": 0.1,
+        "marketPrice": 0.11,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 3.99,
@@ -773,9 +782,9 @@
     },
     "714180": {
       "Normal": {
-        "marketPrice": 0.09,
+        "marketPrice": 0.1,
         "lowPrice": 0.03,
-        "midPrice": 0.17,
+        "midPrice": 0.15,
         "highPrice": 1.58,
         "directLowPrice": null
       }
@@ -791,7 +800,7 @@
     },
     "714182": {
       "Foil": {
-        "marketPrice": 3.98,
+        "marketPrice": 4.27,
         "lowPrice": 3.55,
         "midPrice": 5.0,
         "highPrice": 37.99,
@@ -809,9 +818,9 @@
     },
     "714184": {
       "Foil": {
-        "marketPrice": 0.6,
+        "marketPrice": 0.58,
         "lowPrice": 0.3,
-        "midPrice": 0.95,
+        "midPrice": 0.92,
         "highPrice": 19.98,
         "directLowPrice": null
       }
@@ -820,7 +829,7 @@
       "Normal": {
         "marketPrice": 0.12,
         "lowPrice": 0.03,
-        "midPrice": 0.17,
+        "midPrice": 0.18,
         "highPrice": 1.47,
         "directLowPrice": null
       }
@@ -865,7 +874,7 @@
       "Normal": {
         "marketPrice": 0.11,
         "lowPrice": 0.03,
-        "midPrice": 0.19,
+        "midPrice": 0.18,
         "highPrice": 4.97,
         "directLowPrice": null
       }
@@ -892,7 +901,7 @@
       "Normal": {
         "marketPrice": 0.13,
         "lowPrice": 0.03,
-        "midPrice": 0.18,
+        "midPrice": 0.16,
         "highPrice": 1.51,
         "directLowPrice": null
       }
@@ -917,9 +926,9 @@
     },
     "714196": {
       "Normal": {
-        "marketPrice": 0.09,
+        "marketPrice": 0.1,
         "lowPrice": 0.03,
-        "midPrice": 0.18,
+        "midPrice": 0.17,
         "highPrice": 1.57,
         "directLowPrice": null
       }
@@ -935,7 +944,7 @@
     },
     "714198": {
       "Foil": {
-        "marketPrice": 0.31,
+        "marketPrice": 0.32,
         "lowPrice": 0.1,
         "midPrice": 0.5,
         "highPrice": 24.97,
@@ -962,16 +971,16 @@
     },
     "714201": {
       "Foil": {
-        "marketPrice": 0.52,
+        "marketPrice": 0.46,
         "lowPrice": 0.2,
-        "midPrice": 0.74,
+        "midPrice": 0.7,
         "highPrice": 19.98,
         "directLowPrice": null
       }
     },
     "714202": {
       "Foil": {
-        "marketPrice": 0.35,
+        "marketPrice": 0.37,
         "lowPrice": 0.2,
         "midPrice": 0.5,
         "highPrice": 19.98,
@@ -980,25 +989,25 @@
     },
     "714203": {
       "Foil": {
-        "marketPrice": 2.53,
+        "marketPrice": 2.62,
         "lowPrice": 2.0,
-        "midPrice": 3.23,
+        "midPrice": 3.21,
         "highPrice": 10.0,
         "directLowPrice": null
       }
     },
     "714204": {
       "Foil": {
-        "marketPrice": 0.23,
+        "marketPrice": 0.21,
         "lowPrice": 0.09,
-        "midPrice": 0.44,
+        "midPrice": 0.43,
         "highPrice": 24.97,
         "directLowPrice": null
       }
     },
     "714205": {
       "Normal": {
-        "marketPrice": 0.13,
+        "marketPrice": 0.14,
         "lowPrice": 0.05,
         "midPrice": 0.2,
         "highPrice": 1.47,
@@ -1009,7 +1018,7 @@
       "Foil": {
         "marketPrice": 0.13,
         "lowPrice": 0.04,
-        "midPrice": 0.23,
+        "midPrice": 0.21,
         "highPrice": 19.99,
         "directLowPrice": null
       }
@@ -1018,7 +1027,7 @@
       "Normal": {
         "marketPrice": 0.1,
         "lowPrice": 0.02,
-        "midPrice": 0.19,
+        "midPrice": 0.18,
         "highPrice": 1.51,
         "directLowPrice": null
       }
@@ -1034,7 +1043,7 @@
     },
     "714209": {
       "Normal": {
-        "marketPrice": 0.1,
+        "marketPrice": 0.11,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 5.0,
@@ -1043,9 +1052,9 @@
     },
     "714210": {
       "Foil": {
-        "marketPrice": 8.13,
+        "marketPrice": 8.43,
         "lowPrice": 7.0,
-        "midPrice": 9.99,
+        "midPrice": 10.0,
         "highPrice": 35.99,
         "directLowPrice": null
       }
@@ -1061,7 +1070,7 @@
     },
     "714212": {
       "Normal": {
-        "marketPrice": 0.11,
+        "marketPrice": 0.12,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.5,
@@ -1088,9 +1097,9 @@
     },
     "714215": {
       "Normal": {
-        "marketPrice": 0.39,
+        "marketPrice": 0.41,
         "lowPrice": 0.24,
-        "midPrice": 0.44,
+        "midPrice": 0.42,
         "highPrice": 2.39,
         "directLowPrice": null
       }
@@ -1124,9 +1133,9 @@
     },
     "714219": {
       "Foil": {
-        "marketPrice": 2.44,
+        "marketPrice": 2.36,
         "lowPrice": 1.98,
-        "midPrice": 3.39,
+        "midPrice": 3.34,
         "highPrice": 37.99,
         "directLowPrice": null
       }
@@ -1135,7 +1144,7 @@
       "Normal": {
         "marketPrice": 0.14,
         "lowPrice": 0.03,
-        "midPrice": 0.25,
+        "midPrice": 0.24,
         "highPrice": 3.99,
         "directLowPrice": null
       }
@@ -1178,8 +1187,8 @@
     },
     "714225": {
       "Foil": {
-        "marketPrice": 3.6,
-        "lowPrice": 2.99,
+        "marketPrice": 3.61,
+        "lowPrice": 3.0,
         "midPrice": 4.42,
         "highPrice": 37.99,
         "directLowPrice": null
@@ -1187,7 +1196,7 @@
     },
     "714226": {
       "Normal": {
-        "marketPrice": 0.15,
+        "marketPrice": 0.16,
         "lowPrice": 0.06,
         "midPrice": 0.25,
         "highPrice": 3.99,
@@ -1198,7 +1207,7 @@
       "Normal": {
         "marketPrice": 0.11,
         "lowPrice": 0.03,
-        "midPrice": 0.19,
+        "midPrice": 0.18,
         "highPrice": 1.47,
         "directLowPrice": null
       }
@@ -1223,7 +1232,7 @@
     },
     "714230": {
       "Normal": {
-        "marketPrice": 0.12,
+        "marketPrice": 0.13,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.52,
@@ -1232,7 +1241,7 @@
     },
     "714231": {
       "Normal": {
-        "marketPrice": 0.13,
+        "marketPrice": 0.12,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.59,
@@ -1250,18 +1259,18 @@
     },
     "714233": {
       "Foil": {
-        "marketPrice": 0.29,
-        "lowPrice": 0.13,
-        "midPrice": 0.48,
+        "marketPrice": 0.3,
+        "lowPrice": 0.12,
+        "midPrice": 0.46,
         "highPrice": 24.97,
         "directLowPrice": null
       }
     },
     "714234": {
       "Foil": {
-        "marketPrice": 0.4,
+        "marketPrice": 0.48,
         "lowPrice": 0.28,
-        "midPrice": 0.58,
+        "midPrice": 0.54,
         "highPrice": 24.97,
         "directLowPrice": null
       }
@@ -1270,7 +1279,7 @@
       "Foil": {
         "marketPrice": 0.38,
         "lowPrice": 0.25,
-        "midPrice": 0.64,
+        "midPrice": 0.61,
         "highPrice": 19.97,
         "directLowPrice": null
       }
@@ -1286,9 +1295,9 @@
     },
     "714237": {
       "Foil": {
-        "marketPrice": 0.95,
+        "marketPrice": 0.91,
         "lowPrice": 0.43,
-        "midPrice": 1.17,
+        "midPrice": 1.14,
         "highPrice": 59.9,
         "directLowPrice": null
       }
@@ -1297,7 +1306,7 @@
       "Normal": {
         "marketPrice": 0.09,
         "lowPrice": 0.03,
-        "midPrice": 0.2,
+        "midPrice": 0.19,
         "highPrice": 1.47,
         "directLowPrice": null
       }
@@ -1315,14 +1324,14 @@
       "Normal": {
         "marketPrice": 0.1,
         "lowPrice": 0.03,
-        "midPrice": 0.2,
+        "midPrice": 0.19,
         "highPrice": 1.47,
         "directLowPrice": null
       }
     },
     "714241": {
       "Normal": {
-        "marketPrice": 0.1,
+        "marketPrice": 0.11,
         "lowPrice": 0.03,
         "midPrice": 0.15,
         "highPrice": 1.5,
@@ -1331,9 +1340,9 @@
     },
     "714242": {
       "Normal": {
-        "marketPrice": 0.08,
+        "marketPrice": 0.09,
         "lowPrice": 0.03,
-        "midPrice": 0.18,
+        "midPrice": 0.16,
         "highPrice": 1.59,
         "directLowPrice": null
       }
@@ -1367,7 +1376,7 @@
     },
     "714246": {
       "Normal": {
-        "marketPrice": 0.08,
+        "marketPrice": 0.09,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.5,
@@ -1376,9 +1385,9 @@
     },
     "714247": {
       "Foil": {
-        "marketPrice": 17.1,
-        "lowPrice": 16.0,
-        "midPrice": 18.99,
+        "marketPrice": 16.82,
+        "lowPrice": 15.2,
+        "midPrice": 18.98,
         "highPrice": 99.99,
         "directLowPrice": null
       }
@@ -1387,24 +1396,24 @@
       "Normal": {
         "marketPrice": 0.22,
         "lowPrice": 0.03,
-        "midPrice": 0.28,
+        "midPrice": 0.27,
         "highPrice": 5.0,
         "directLowPrice": null
       }
     },
     "714249": {
       "Normal": {
-        "marketPrice": 0.09,
+        "marketPrice": 0.08,
         "lowPrice": 0.03,
-        "midPrice": 0.2,
+        "midPrice": 0.19,
         "highPrice": 1.5,
         "directLowPrice": null
       }
     },
     "714250": {
       "Foil": {
-        "marketPrice": 0.21,
-        "lowPrice": 0.12,
+        "marketPrice": 0.2,
+        "lowPrice": 0.11,
         "midPrice": 0.4,
         "highPrice": 19.98,
         "directLowPrice": null
@@ -1414,14 +1423,14 @@
       "Foil": {
         "marketPrice": 0.18,
         "lowPrice": 0.04,
-        "midPrice": 0.38,
+        "midPrice": 0.35,
         "highPrice": 19.98,
         "directLowPrice": null
       }
     },
     "714252": {
       "Normal": {
-        "marketPrice": 0.09,
+        "marketPrice": 0.1,
         "lowPrice": 0.03,
         "midPrice": 0.15,
         "highPrice": 1.58,
@@ -1448,16 +1457,16 @@
     },
     "714255": {
       "Foil": {
-        "marketPrice": 2.31,
+        "marketPrice": 2.36,
         "lowPrice": 1.5,
-        "midPrice": 3.16,
+        "midPrice": 3.25,
         "highPrice": 37.99,
         "directLowPrice": null
       }
     },
     "714256": {
       "Normal": {
-        "marketPrice": 0.16,
+        "marketPrice": 0.15,
         "lowPrice": 0.08,
         "midPrice": 0.25,
         "highPrice": 3.99,
@@ -1495,7 +1504,7 @@
       "Foil": {
         "marketPrice": 0.25,
         "lowPrice": 0.1,
-        "midPrice": 0.4,
+        "midPrice": 0.39,
         "highPrice": 19.97,
         "directLowPrice": null
       }
@@ -1504,7 +1513,7 @@
       "Foil": {
         "marketPrice": 0.16,
         "lowPrice": 0.03,
-        "midPrice": 0.37,
+        "midPrice": 0.35,
         "highPrice": 19.97,
         "directLowPrice": null
       }
@@ -1520,7 +1529,7 @@
     },
     "714263": {
       "Normal": {
-        "marketPrice": 0.13,
+        "marketPrice": 0.14,
         "lowPrice": 0.07,
         "midPrice": 0.25,
         "highPrice": 1.6,
@@ -1529,7 +1538,7 @@
     },
     "714264": {
       "Normal": {
-        "marketPrice": 0.14,
+        "marketPrice": 0.13,
         "lowPrice": 0.03,
         "midPrice": 0.25,
         "highPrice": 3.99,
@@ -1540,14 +1549,14 @@
       "Normal": {
         "marketPrice": 0.14,
         "lowPrice": 0.03,
-        "midPrice": 0.25,
+        "midPrice": 0.23,
         "highPrice": 3.99,
         "directLowPrice": null
       }
     },
     "714266": {
       "Normal": {
-        "marketPrice": 0.11,
+        "marketPrice": 0.12,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 3.99,
@@ -1556,7 +1565,7 @@
     },
     "714267": {
       "Normal": {
-        "marketPrice": 0.1,
+        "marketPrice": 0.11,
         "lowPrice": 0.03,
         "midPrice": 0.18,
         "highPrice": 1.56,
@@ -1565,8 +1574,8 @@
     },
     "714268": {
       "Foil": {
-        "marketPrice": 0.48,
-        "lowPrice": 0.1,
+        "marketPrice": 0.49,
+        "lowPrice": 0.09,
         "midPrice": 0.5,
         "highPrice": 24.97,
         "directLowPrice": null
@@ -1574,7 +1583,7 @@
     },
     "714269": {
       "Foil": {
-        "marketPrice": 0.25,
+        "marketPrice": 0.26,
         "lowPrice": 0.14,
         "midPrice": 0.29,
         "highPrice": 19.97,
@@ -1583,7 +1592,7 @@
     },
     "714270": {
       "Foil": {
-        "marketPrice": 1.12,
+        "marketPrice": 1.09,
         "lowPrice": 0.6,
         "midPrice": 1.5,
         "highPrice": 38.2,
@@ -1592,18 +1601,18 @@
     },
     "714271": {
       "Foil": {
-        "marketPrice": 16.46,
-        "lowPrice": 15.0,
-        "midPrice": 19.99,
+        "marketPrice": 16.58,
+        "lowPrice": 12.9,
+        "midPrice": 19.94,
         "highPrice": 88.99,
         "directLowPrice": null
       }
     },
     "714272": {
       "Foil": {
-        "marketPrice": 0.43,
+        "marketPrice": 0.44,
         "lowPrice": 0.25,
-        "midPrice": 0.61,
+        "midPrice": 0.6,
         "highPrice": 19.98,
         "directLowPrice": null
       }
@@ -1621,14 +1630,14 @@
       "Normal": {
         "marketPrice": 0.09,
         "lowPrice": 0.03,
-        "midPrice": 0.19,
+        "midPrice": 0.18,
         "highPrice": 1.47,
         "directLowPrice": null
       }
     },
     "714275": {
       "Normal": {
-        "marketPrice": 0.1,
+        "marketPrice": 0.11,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 5.0,
@@ -1637,7 +1646,7 @@
     },
     "714276": {
       "Normal": {
-        "marketPrice": 0.1,
+        "marketPrice": 0.11,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.47,
@@ -1648,23 +1657,23 @@
       "Normal": {
         "marketPrice": 0.12,
         "lowPrice": 0.03,
-        "midPrice": 0.25,
+        "midPrice": 0.24,
         "highPrice": 1.52,
         "directLowPrice": null
       }
     },
     "714278": {
       "Foil": {
-        "marketPrice": 13.46,
-        "lowPrice": 11.25,
-        "midPrice": 16.79,
+        "marketPrice": 13.33,
+        "lowPrice": 10.0,
+        "midPrice": 16.38,
         "highPrice": 120.0,
         "directLowPrice": null
       }
     },
     "714279": {
       "Foil": {
-        "marketPrice": 0.52,
+        "marketPrice": 0.54,
         "lowPrice": 0.25,
         "midPrice": 0.69,
         "highPrice": 19.97,
@@ -1684,14 +1693,14 @@
       "Foil": {
         "marketPrice": 0.22,
         "lowPrice": 0.09,
-        "midPrice": 0.4,
+        "midPrice": 0.36,
         "highPrice": 19.97,
         "directLowPrice": null
       }
     },
     "714282": {
       "Normal": {
-        "marketPrice": 0.13,
+        "marketPrice": 0.14,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.47,
@@ -1700,7 +1709,7 @@
     },
     "714283": {
       "Normal": {
-        "marketPrice": 0.1,
+        "marketPrice": 0.11,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.47,
@@ -1711,16 +1720,16 @@
       "Normal": {
         "marketPrice": 0.12,
         "lowPrice": 0.03,
-        "midPrice": 0.25,
+        "midPrice": 0.2,
         "highPrice": 1.52,
         "directLowPrice": null
       }
     },
     "714285": {
       "Foil": {
-        "marketPrice": 0.24,
+        "marketPrice": 0.25,
         "lowPrice": 0.08,
-        "midPrice": 0.45,
+        "midPrice": 0.44,
         "highPrice": 19.98,
         "directLowPrice": null
       }
@@ -1745,9 +1754,9 @@
     },
     "714288": {
       "Foil": {
-        "marketPrice": 1.61,
+        "marketPrice": 1.58,
         "lowPrice": 1.0,
-        "midPrice": 2.51,
+        "midPrice": 2.45,
         "highPrice": 37.99,
         "directLowPrice": null
       }
@@ -1799,7 +1808,7 @@
     },
     "714294": {
       "Normal": {
-        "marketPrice": 0.12,
+        "marketPrice": 0.11,
         "lowPrice": 0.03,
         "midPrice": 0.2,
         "highPrice": 1.47,
@@ -1819,14 +1828,14 @@
       "Foil": {
         "marketPrice": 0.28,
         "lowPrice": 0.18,
-        "midPrice": 0.47,
+        "midPrice": 0.4,
         "highPrice": 19.97,
         "directLowPrice": null
       }
     },
     "714297": {
       "Foil": {
-        "marketPrice": 0.31,
+        "marketPrice": 0.33,
         "lowPrice": 0.1,
         "midPrice": 0.5,
         "highPrice": 19.98,
@@ -1844,7 +1853,7 @@
     },
     "714299": {
       "Normal": {
-        "marketPrice": 0.2,
+        "marketPrice": 0.21,
         "lowPrice": 0.03,
         "midPrice": 0.25,
         "highPrice": 1.25,
@@ -1853,9 +1862,9 @@
     },
     "714300": {
       "Foil": {
-        "marketPrice": 10.39,
+        "marketPrice": 10.41,
         "lowPrice": 7.0,
-        "midPrice": 12.7,
+        "midPrice": 12.5,
         "highPrice": 34.99,
         "directLowPrice": null
       }
@@ -1864,7 +1873,7 @@
       "Normal": {
         "marketPrice": 0.13,
         "lowPrice": 0.06,
-        "midPrice": 0.25,
+        "midPrice": 0.23,
         "highPrice": 1.25,
         "directLowPrice": null
       }
@@ -1881,17 +1890,17 @@
     "714303": {
       "Foil": {
         "marketPrice": 118.14,
-        "lowPrice": 135.0,
-        "midPrice": 160.0,
+        "lowPrice": 109.87,
+        "midPrice": 149.99,
         "highPrice": 249.0,
         "directLowPrice": null
       }
     },
     "714304": {
       "Foil": {
-        "marketPrice": 77.77,
-        "lowPrice": 70.0,
-        "midPrice": 84.99,
+        "marketPrice": 77.98,
+        "lowPrice": 65.0,
+        "midPrice": 81.07,
         "highPrice": 150.0,
         "directLowPrice": null
       }
@@ -1900,15 +1909,15 @@
       "Foil": {
         "marketPrice": 69.47,
         "lowPrice": 66.33,
-        "midPrice": 69.75,
+        "midPrice": 68.5,
         "highPrice": 124.99,
         "directLowPrice": null
       }
     },
     "714306": {
       "Foil": {
-        "marketPrice": 127.01,
-        "lowPrice": 121.9,
+        "marketPrice": 125.56,
+        "lowPrice": 128.5,
         "midPrice": 135.99,
         "highPrice": 299.99,
         "directLowPrice": null
@@ -1918,16 +1927,16 @@
       "Foil": {
         "marketPrice": 66.58,
         "lowPrice": 62.44,
-        "midPrice": 70.0,
+        "midPrice": 70.75,
         "highPrice": 109.99,
         "directLowPrice": null
       }
     },
     "714308": {
       "Foil": {
-        "marketPrice": 66.88,
+        "marketPrice": 66.45,
         "lowPrice": 64.0,
-        "midPrice": 72.49,
+        "midPrice": 70.24,
         "highPrice": 99.99,
         "directLowPrice": null
       }
@@ -1935,24 +1944,24 @@
     "714309": {
       "Foil": {
         "marketPrice": 82.65,
-        "lowPrice": 74.0,
-        "midPrice": 88.94,
+        "lowPrice": 70.0,
+        "midPrice": 86.64,
         "highPrice": 100.49,
         "directLowPrice": null
       }
     },
     "714310": {
       "Foil": {
-        "marketPrice": 152.65,
-        "lowPrice": 140.0,
-        "midPrice": 152.5,
+        "marketPrice": 151.67,
+        "lowPrice": 141.0,
+        "midPrice": 149.43,
         "highPrice": 200.0,
         "directLowPrice": null
       }
     },
     "714311": {
       "Foil": {
-        "marketPrice": 86.81,
+        "marketPrice": 88.71,
         "lowPrice": 91.51,
         "midPrice": 101.25,
         "highPrice": 129.99,
@@ -1962,8 +1971,8 @@
     "714312": {
       "Foil": {
         "marketPrice": 66.3,
-        "lowPrice": 63.9,
-        "midPrice": 68.99,
+        "lowPrice": 62.51,
+        "midPrice": 66.3,
         "highPrice": 150.0,
         "directLowPrice": null
       }
@@ -1972,7 +1981,7 @@
       "Foil": {
         "marketPrice": 259.81,
         "lowPrice": 245.0,
-        "midPrice": 279.99,
+        "midPrice": 266.37,
         "highPrice": 349.99,
         "directLowPrice": null
       }
@@ -1981,7 +1990,7 @@
       "Foil": {
         "marketPrice": 65.03,
         "lowPrice": 70.0,
-        "midPrice": 75.0,
+        "midPrice": 72.95,
         "highPrice": 200.0,
         "directLowPrice": null
       }
@@ -1990,14 +1999,14 @@
       "Foil": {
         "marketPrice": 72.52,
         "lowPrice": 86.94,
-        "midPrice": 112.95,
+        "midPrice": 105.97,
         "highPrice": 290.0,
         "directLowPrice": null
       }
     },
     "714316": {
       "Foil": {
-        "marketPrice": 138.24,
+        "marketPrice": 136.87,
         "lowPrice": 128.0,
         "midPrice": 150.0,
         "highPrice": 249.99,
@@ -2006,27 +2015,27 @@
     },
     "714317": {
       "Foil": {
-        "marketPrice": 259.57,
+        "marketPrice": 257.81,
         "lowPrice": 280.0,
-        "midPrice": 299.49,
+        "midPrice": 298.99,
         "highPrice": 399.98,
         "directLowPrice": null
       }
     },
     "714318": {
       "Foil": {
-        "marketPrice": 83.85,
+        "marketPrice": 87.14,
         "lowPrice": 150.0,
-        "midPrice": 170.98,
+        "midPrice": 152.0,
         "highPrice": 248.99,
         "directLowPrice": null
       }
     },
     "714319": {
       "Foil": {
-        "marketPrice": 370.46,
-        "lowPrice": 345.0,
-        "midPrice": 369.0,
+        "marketPrice": 368.79,
+        "lowPrice": 346.51,
+        "midPrice": 370.6,
         "highPrice": 499.99,
         "directLowPrice": null
       }
@@ -2034,51 +2043,51 @@
     "714320": {
       "Foil": {
         "marketPrice": 89.31,
-        "lowPrice": 84.0,
-        "midPrice": 92.24,
+        "lowPrice": 74.99,
+        "midPrice": 89.31,
         "highPrice": 220.0,
         "directLowPrice": null
       }
     },
     "714321": {
       "Foil": {
-        "marketPrice": 51.29,
-        "lowPrice": 46.69,
-        "midPrice": 64.72,
+        "marketPrice": 50.46,
+        "lowPrice": 44.7,
+        "midPrice": 61.94,
         "highPrice": 249.99,
         "directLowPrice": null
       }
     },
     "714322": {
       "Foil": {
-        "marketPrice": 38.17,
-        "lowPrice": 38.48,
-        "midPrice": 51.5,
+        "marketPrice": 38.09,
+        "lowPrice": 35.01,
+        "midPrice": 45.0,
         "highPrice": 249.99,
         "directLowPrice": null
       }
     },
     "714323": {
       "Foil": {
-        "marketPrice": 17.53,
+        "marketPrice": 17.71,
         "lowPrice": 16.0,
-        "midPrice": 22.1,
+        "midPrice": 21.56,
         "highPrice": 97.99,
         "directLowPrice": null
       }
     },
     "714324": {
       "Foil": {
-        "marketPrice": 19.38,
-        "lowPrice": 18.88,
-        "midPrice": 28.12,
+        "marketPrice": 19.77,
+        "lowPrice": 17.89,
+        "midPrice": 29.26,
         "highPrice": 64.69,
         "directLowPrice": null
       }
     },
     "714325": {
       "Foil": {
-        "marketPrice": 13.63,
+        "marketPrice": 13.5,
         "lowPrice": 12.0,
         "midPrice": 22.0,
         "highPrice": 400.0,
@@ -2087,45 +2096,45 @@
     },
     "714326": {
       "Foil": {
-        "marketPrice": 15.09,
+        "marketPrice": 15.24,
         "lowPrice": 13.69,
-        "midPrice": 21.0,
+        "midPrice": 22.0,
         "highPrice": 98.99,
         "directLowPrice": null
       }
     },
     "714327": {
       "Foil": {
-        "marketPrice": 23.76,
-        "lowPrice": 24.0,
-        "midPrice": 26.65,
+        "marketPrice": 23.78,
+        "lowPrice": 23.85,
+        "midPrice": 27.38,
         "highPrice": 54.69,
         "directLowPrice": null
       }
     },
     "714328": {
       "Foil": {
-        "marketPrice": 12.05,
-        "lowPrice": 10.78,
-        "midPrice": 14.9,
+        "marketPrice": 12.02,
+        "lowPrice": 11.42,
+        "midPrice": 14.68,
         "highPrice": 97.99,
         "directLowPrice": null
       }
     },
     "714329": {
       "Foil": {
-        "marketPrice": 34.87,
-        "lowPrice": 31.0,
-        "midPrice": 37.49,
+        "marketPrice": 34.15,
+        "lowPrice": 30.0,
+        "midPrice": 37.98,
         "highPrice": 99.99,
         "directLowPrice": null
       }
     },
     "714330": {
       "Foil": {
-        "marketPrice": 1012.4,
-        "lowPrice": 1369.69,
-        "midPrice": 1499.99,
+        "marketPrice": 1034.46,
+        "lowPrice": 1299.99,
+        "midPrice": 1499.98,
         "highPrice": 1556.69,
         "directLowPrice": null
       }
@@ -2133,7 +2142,7 @@
     "714331": {
       "Foil": {
         "marketPrice": 881.82,
-        "lowPrice": 1250.0,
+        "lowPrice": 1400.0,
         "midPrice": 1598.5,
         "highPrice": 2999.99,
         "directLowPrice": null
@@ -2150,25 +2159,25 @@
     },
     "714333": {
       "Foil": {
-        "marketPrice": 787.69,
+        "marketPrice": 794.07,
         "lowPrice": 810.0,
-        "midPrice": 845.89,
+        "midPrice": 845.44,
         "highPrice": 1950.0,
         "directLowPrice": null
       }
     },
     "714346": {
       "Normal": {
-        "marketPrice": 312.22,
+        "marketPrice": 313.93,
         "lowPrice": 307.99,
-        "midPrice": 349.98,
+        "midPrice": 349.99,
         "highPrice": 500.0,
         "directLowPrice": null
       }
     },
     "714347": {
       "Normal": {
-        "marketPrice": 12.42,
+        "marketPrice": 12.54,
         "lowPrice": 9.0,
         "midPrice": 10.0,
         "highPrice": 15.0,
@@ -2177,19 +2186,10 @@
     },
     "714493": {
       "Normal": {
-        "marketPrice": 1619.6,
-        "lowPrice": 1770.0,
-        "midPrice": 2077.0,
-        "highPrice": 3077.77,
-        "directLowPrice": null
-      }
-    },
-    "717414": {
-      "Normal": {
-        "marketPrice": null,
-        "lowPrice": 2700.0,
-        "midPrice": 2700.0,
-        "highPrice": 2700.0,
+        "marketPrice": 1634.8,
+        "lowPrice": 1775.0,
+        "midPrice": 2088.88,
+        "highPrice": 3077.76,
         "directLowPrice": null
       }
     }
