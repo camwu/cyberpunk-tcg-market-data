@@ -351,9 +351,12 @@ def render_markdown_report(
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 """
         for name, exp, qty, u_price, total, base, gain, pct, acq_date in sealed_products:
-            gain_str = f"**{'+' if gain >= 0 else ''}${gain:,.2f}** ({'+' if pct >= 0 else ''}{pct:.1f}%)"
+            gain_str = f"**{'+' if gain >= 0 else ''}${gain:,.2f}** ({'+' if pct >= 0 else ''}{pct:.1f}%)" if (gain is not None and pct is not None) else "—"
             acq_display = f"`{acq_date}`" if acq_date else "—"
-            sealed_section += f"| **{name}** | {exp} | {acq_display} | {qty} | `${u_price:,.2f}` | `${total:,.2f}` | `${base:,.2f}` | {gain_str} |\n"
+            u_display = f"`${u_price:,.2f}`" if u_price is not None else "—"
+            total_display = f"`${total:,.2f}`" if total is not None else "—"
+            base_display = f"`${base:,.2f}`" if base is not None else "—"
+            sealed_section += f"| **{name}** | {exp} | {acq_display} | {qty} | {u_display} | {total_display} | {base_display} | {gain_str} |\n"
 
     report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
     purchases_line = f"**Purchases Last Updated**: `{purchases_timestamp_display}`  \n" if cost_basis > 0 else ""
@@ -383,49 +386,53 @@ def render_markdown_report(
 
 ### Rarity
 
-| Rarity | Unique Items | Physical Copies | Market Value | % of Portfolio |
-| :--- | :---: | :---: | :---: | :---: |
+| Rarity | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |
+| :--- | :---: | :---: | :---: | :---: | :---: |
 """
     for rarity, entries, qty, r_val in breakdowns.get("rarity", []):
-        pct_of_total = (r_val / total_val * 100.0) if total_val > 0 else 0.0
+        pct_cards = (qty / total_cards * 100.0) if total_cards > 0 else 0.0
+        pct_val = (r_val / total_val * 100.0) if total_val > 0 else 0.0
         r_lbl = format_rarity(rarity, bold=True)
-        md_content += f"| {r_lbl} | {entries} | {qty} | `${r_val:,.2f}` | {pct_of_total:.1f}% |\n"
+        md_content += f"| {r_lbl} | {entries} | {qty} | {pct_cards:.1f}% | `${r_val:,.2f}` | {pct_val:.1f}% |\n"
 
     md_content += """
 ### Color
 
-| Color | Unique Items | Physical Copies | Market Value | % of Portfolio |
-| :--- | :---: | :---: | :---: | :---: |
+| Color | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |
+| :--- | :---: | :---: | :---: | :---: | :---: |
 """
     for color, entries, qty, c_val in breakdowns.get("color", []):
-        pct_of_total = (c_val / total_val * 100.0) if total_val > 0 else 0.0
+        pct_cards = (qty / total_cards * 100.0) if total_cards > 0 else 0.0
+        pct_val = (c_val / total_val * 100.0) if total_val > 0 else 0.0
         dot = COLOR_DOTS.get(color)
         c_lbl = f"{dot} {color}" if dot else color
-        md_content += f"| **{c_lbl}** | {entries} | {qty} | `${c_val:,.2f}` | {pct_of_total:.1f}% |\n"
+        md_content += f"| **{c_lbl}** | {entries} | {qty} | {pct_cards:.1f}% | `${c_val:,.2f}` | {pct_val:.1f}% |\n"
 
     card_type_breakdown = breakdowns.get("card_type", [])
     if card_type_breakdown:
         md_content += """
 ### Card Type
 
-| Card Type | Unique Items | Physical Copies | Market Value | % of Portfolio |
-| :--- | :---: | :---: | :---: | :---: |
+| Card Type | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |
+| :--- | :---: | :---: | :---: | :---: | :---: |
 """
         for ctype, entries, qty, ct_val in card_type_breakdown:
-            pct_of_total = (ct_val / total_val * 100.0) if total_val > 0 else 0.0
-            md_content += f"| **{ctype}** | {entries} | {qty} | `${ct_val:,.2f}` | {pct_of_total:.1f}% |\n"
+            pct_cards = (qty / total_cards * 100.0) if total_cards > 0 else 0.0
+            pct_val = (ct_val / total_val * 100.0) if total_val > 0 else 0.0
+            md_content += f"| **{ctype}** | {entries} | {qty} | {pct_cards:.1f}% | `${ct_val:,.2f}` | {pct_val:.1f}% |\n"
 
     expansion_breakdown = breakdowns.get("expansion", [])
     if expansion_breakdown:
         md_content += """
 ### Expansion
 
-| Expansion | Unique Items | Physical Copies | Market Value | % of Portfolio |
-| :--- | :---: | :---: | :---: | :---: |
+| Expansion | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |
+| :--- | :---: | :---: | :---: | :---: | :---: |
 """
         for exp, entries, qty, exp_val in expansion_breakdown:
-            pct_of_total = (exp_val / total_val * 100.0) if total_val > 0 else 0.0
-            md_content += f"| **{exp}** | {entries} | {qty} | `${exp_val:,.2f}` | {pct_of_total:.1f}% |\n"
+            pct_cards = (qty / total_cards * 100.0) if total_cards > 0 else 0.0
+            pct_val = (exp_val / total_val * 100.0) if total_val > 0 else 0.0
+            md_content += f"| **{exp}** | {entries} | {qty} | {pct_cards:.1f}% | `${exp_val:,.2f}` | {pct_val:.1f}% |\n"
 
     high_value_cards = movers.get("high_value_cards", [])
     iconic_singles = [c for c in high_value_cards if (c[2] or "").startswith("Iconic")]

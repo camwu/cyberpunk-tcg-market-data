@@ -815,6 +815,8 @@ def calculate_portfolio_valuation(
     # Session-scoped historical price cache for get_historical_market_price calls
     session_price_cache: Dict[Tuple[str, str], Any] = {}
 
+    cur.execute("DELETE FROM daily_snapshots WHERE date = ?", (date_str,))
+
     for row in all_items:
         raw_acq_date = extract_raw_acquisition_date(row)
         if raw_acq_date:

@@ -28,12 +28,16 @@ class TestTrackerConfig(unittest.TestCase):
         sealed_csv = self.test_dir / "sealed_inventory.csv"
         sealed_csv.write_text("dummy", encoding="utf-8")
 
+        purchase_csv = self.test_dir / "purchase_history.csv"
+        purchase_csv.write_text("dummy", encoding="utf-8")
+
         collection_csv = self.test_dir / "active_collection.csv"
         collection_csv.write_text("dummy", encoding="utf-8")
 
-        # Set older mtime on collection to ensure globbing doesn't just pick newest if sealed is newer
+        # Set older mtime on collection to ensure globbing doesn't just pick newest if sealed/purchase is newer
         os.utime(collection_csv, (1000, 1000))
         os.utime(sealed_csv, (2000, 2000))
+        os.utime(purchase_csv, (2500, 2500))
         os.utime(backup_csv, (3000, 3000))
 
         resolved = resolve_collection_file(str(self.test_dir))
