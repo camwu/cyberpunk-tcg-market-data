@@ -705,10 +705,11 @@ class TestReportGeneration(unittest.TestCase):
 
         for section_name in ["Rarity", "Color", "Card Type", "Expansion"]:
             section_header = f"### {section_name}"
+            table_header = f"| {section_name} | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |"
             section_part = content_mixed.split(section_header)[1].split("###")[0]
             lines = [
                 line.strip() for line in section_part.strip().split("\n")
-                if line.strip().startswith("|") and not line.strip().startswith("| :---") and "Unique Items" not in line
+                if line.strip().startswith("|") and not line.strip().startswith("| :---") and table_header not in line
             ]
 
             total_pct_val = sum(float(line.split("|")[1:-1][5].replace("%", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
