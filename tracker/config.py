@@ -62,6 +62,7 @@ def resolve_collection_file(target_path: str, is_explicit_file: bool = False) ->
             and "backup" not in f.name.lower()
             and "backup" not in f.parent.name.lower()
             and "sealed" not in f.name.lower()
+            and "purchase" not in f.name.lower()
         ]
         if csv_candidates:
             csv_candidates.sort(key=lambda f: f.stat().st_mtime, reverse=True)

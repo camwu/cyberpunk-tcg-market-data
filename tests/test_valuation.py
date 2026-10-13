@@ -1393,6 +1393,89 @@ class TestPortfolioValuation(unittest.TestCase):
         self.assertIn("card_type", cols)
         conn2.close()
 
+    def test_valuation_clears_orphan_snapshots_on_rerun(self):
+        """Verifies that calculate_portfolio_valuation clears old snapshot rows for the target date before inserting."""
+        cards_catalog = {
+            "500": {
+                "productId": 500,
+                "name": "Towerfall",
+                "cleanName": "Towerfall",
+                "groupId": 1000,
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B034",
+                "rarity": "Rare",
+                "color": "Blue",
+            }
+        }
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        prices = {
+            "date": "2026-09-18",
+            "prices": {
+                "500": {"Standard": {"marketPrice": 15.00}}
+            }
+        }
+        with open(os.path.join(self.cache_dir, "2026-09-18.json"), "w", encoding="utf-8") as f:
+            json.dump(prices, f)
+
+        rows_1 = [
+            {
+                "name": "Towerfall",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "B034",
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 10.00,
+                "acquisitionDate": "2026-09-12",
+            }
+        ]
+        calculate_portfolio_valuation(
+            date_str="2026-09-18",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=rows_1,
+        )
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key FROM daily_snapshots WHERE date = '2026-09-18'")
+        snap_keys_1 = [r[0] for r in cur.fetchall()]
+        conn.close()
+        self.assertEqual(len(snap_keys_1), 1)
+        self.assertIn("Welcome to Night City - Beta::B034::Standard::2026-09-12", snap_keys_1)
+
+        rows_2 = [
+            {
+                "name": "Towerfall",
+                "expansion": "Welcome to Night City - Beta",
+                "printNumber": "B034",
+                "finish": "Standard",
+                "totalQtyOwned": 1,
+                "price": 10.00,
+                "acquisitionDate": "2026-09-18",
+            }
+        ]
+        calculate_portfolio_valuation(
+            date_str="2026-09-18",
+            collection_path="",
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=rows_2,
+        )
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key FROM daily_snapshots WHERE date = '2026-09-18'")
+        snap_keys_2 = [r[0] for r in cur.fetchall()]
+        conn.close()
+
+        self.assertEqual(len(snap_keys_2), 1)
+        self.assertEqual(snap_keys_2[0], "Welcome to Night City - Beta::B034::Standard::2026-09-18")
+
 
 class TestReportFormatting(unittest.TestCase):
 

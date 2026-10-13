@@ -201,11 +201,11 @@ class TestReportGeneration(unittest.TestCase):
         content = Path(self.output_md).read_text(encoding="utf-8")
 
         self.assertIn("### Expansion", content)
-        self.assertIn("| Expansion | Unique Items | Physical Copies | Market Value | % of Portfolio |", content)
+        self.assertIn("| Expansion | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |", content)
 
-        # Edgerunners is $120.00 (32.0%), Welcome to Night City - Beta is $20.00 (5.3%)
-        self.assertIn("| **Cyberpunk Edgerunners** | 1 | 2 | `$120.00` | 32.0% |", content)
-        self.assertIn("| **Welcome to Night City - Beta** | 1 | 1 | `$20.00` | 5.3% |", content)
+        # Edgerunners is 2 copies (66.7%), $120.00 (32.0%); Welcome to Night City - Beta is 1 copy (33.3%), $20.00 (5.3%)
+        self.assertIn("| **Cyberpunk Edgerunners** | 1 | 2 | 66.7% | `$120.00` | 32.0% |", content)
+        self.assertIn("| **Welcome to Night City - Beta** | 1 | 1 | 33.3% | `$20.00` | 5.3% |", content)
 
         # Confirm sorted order: Cyberpunk Edgerunners should appear before Welcome to Night City - Beta
         idx_edge = content.index("**Cyberpunk Edgerunners**")
@@ -364,7 +364,7 @@ class TestReportGeneration(unittest.TestCase):
 
         self.assertIn("### Color", content)
         self.assertNotIn("****", content)
-        self.assertIn("| **Unknown** | 1 | 1 | `$5.00` |", content)
+        self.assertIn("| **Unknown** | 1 | 1 | 100.0% | `$5.00` |", content)
 
     def test_multi_lot_high_value_cards_aggregated(self):
         conn = sqlite3.connect(self.db_path)
@@ -426,7 +426,7 @@ class TestReportGeneration(unittest.TestCase):
 
         # Rarity breakdown should count 1 distinct card and 3 copies for Rare
         rarity_section = content.split("### Rarity")[1].split("### Color")[0]
-        self.assertIn("| **◇ Rare** | 1 | 3 | `$45.00` |", rarity_section)
+        self.assertIn("| **◇ Rare** | 1 | 3 | 100.0% | `$45.00` |", rarity_section)
 
     def test_top_gainers_ranks_by_per_unit_delta_and_includes_acquired_date(self):
         conn = sqlite3.connect(self.db_path)
@@ -498,9 +498,9 @@ class TestReportGeneration(unittest.TestCase):
 
         # Card Type breakdown table assertion
         self.assertIn("### Card Type", content)
-        self.assertIn("| **Legend** | 1 | 1 | `$50.00` | 52.6% |", content)
-        self.assertIn("| **Gear** | 1 | 1 | `$30.00` | 31.6% |", content)
-        self.assertIn("| **Unit** | 1 | 1 | `$15.00` | 15.8% |", content)
+        self.assertIn("| **Legend** | 1 | 1 | 33.3% | `$50.00` | 52.6% |", content)
+        self.assertIn("| **Gear** | 1 | 1 | 33.3% | `$30.00` | 31.6% |", content)
+        self.assertIn("| **Unit** | 1 | 1 | 33.3% | `$15.00` | 15.8% |", content)
 
         # High-Value Singles partitioned subsections assertion
         singles_section = content.split("### High-Value Singles")[1].split("## 📈 Top Gainers")[0]
@@ -632,6 +632,88 @@ class TestReportGeneration(unittest.TestCase):
         idx_25 = content.index("Well Over Threshold Card")
         idx_10 = content.index("Exact Boundary Card")
         self.assertTrue(idx_25 < idx_10)
+
+    def test_breakdown_tables_two_percentage_columns_and_sum_to_100(self):
+        """Verifies that all four breakdown tables have both percentage columns, and % of Portfolio Value sums to 100% in pure singles portfolios."""
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM daily_snapshots WHERE date = '2026-09-14'")
+            cur.execute("DELETE FROM card_metadata")
+
+            seed_metadata(conn, [
+                {"card_key": "NC::001::Standard::2026-09-01", "name": "Card A", "expansion": "Night City", "finish": "Standard", "rarity": "Common", "color": "Green", "card_type": "Unit", "item_type": "Card", "print_number": "001"},
+                {"card_key": "NC::002::Standard::2026-09-01", "name": "Card B", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Blue", "card_type": "Program", "item_type": "Card", "print_number": "002"},
+                {"card_key": "ER::001::Standard::2026-09-01", "name": "Card C", "expansion": "Edgerunners", "finish": "Standard", "rarity": "Epic", "color": "Red", "card_type": "Legend", "item_type": "Card", "print_number": "001"},
+            ])
+            seed_snapshots(conn, "2026-09-14", [
+                {"card_key": "NC::001::Standard::2026-09-01", "quantity": 5, "unit_market_price": 2.00, "line_total": 10.00},
+                {"card_key": "NC::002::Standard::2026-09-01", "quantity": 3, "unit_market_price": 10.00, "line_total": 30.00},
+                {"card_key": "ER::001::Standard::2026-09-01", "quantity": 2, "unit_market_price": 30.00, "line_total": 60.00},
+            ])
+            # Pure singles portfolio: 10 cards, total value $100.00, sealed = 0
+            seed_summary(conn, "2026-09-14", total_value=100.00, total_cards=10, total_sealed=0)
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        for section_name in ["Rarity", "Color", "Card Type", "Expansion"]:
+            section_header = f"### {section_name}"
+            self.assertIn(section_header, content)
+            table_header = f"| {section_name} | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |"
+            self.assertIn(table_header, content)
+
+            section_part = content.split(section_header)[1].split("###")[0]
+            lines = [line.strip() for line in section_part.strip().split("\n") if line.strip().startswith("|") and not line.strip().startswith("| :---") and table_header not in line]
+
+            total_pct_copies = 0.0
+            total_copies = 0
+            total_val = 0.0
+            total_pct_val = 0.0
+
+            for line in lines:
+                parts = [p.strip() for p in line.split("|")[1:-1]]
+                if len(parts) == 6:
+                    total_copies += int(parts[2])
+                    total_pct_copies += float(parts[3].replace("%", ""))
+                    val_str = parts[4].replace("`", "").replace("$", "").replace(",", "")
+                    total_val += float(val_str)
+                    total_pct_val += float(parts[5].replace("%", ""))
+
+            self.assertEqual(total_copies, 10, f"{section_name} total copies should equal total_cards (10)")
+            self.assertAlmostEqual(total_pct_copies, 100.0, delta=0.2, msg=f"{section_name} % of Portfolio should sum to 100%")
+            self.assertAlmostEqual(total_val, 100.00, delta=0.01, msg=f"{section_name} market values should sum to singles total ($100.00)")
+            self.assertAlmostEqual(total_pct_val, 100.0, delta=0.2, msg=f"{section_name} % of Portfolio Value should sum to 100% in pure singles portfolio")
+
+        # Now test mixed portfolio with a sealed item ($100 singles + $100 sealed = $200 total)
+        conn = sqlite3.connect(self.db_path)
+        try:
+            seed_metadata(conn, [
+                {"card_key": "SEALED::Night City::999::2026-09-01", "name": "Booster Box", "expansion": "Night City", "finish": "Standard", "rarity": "Sealed", "color": "", "card_type": "", "item_type": "Sealed", "product_id": 999},
+            ])
+            seed_snapshots(conn, "2026-09-14", [
+                {"card_key": "SEALED::Night City::999::2026-09-01", "quantity": 1, "unit_market_price": 100.00, "line_total": 100.00, "baseline_price": 100.00, "lifetime_gain_dollar": 0.00, "lifetime_gain_pct": 0.0},
+            ])
+            seed_summary(conn, "2026-09-14", total_value=200.00, total_cards=10, total_sealed=1)
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md)
+        content_mixed = Path(self.output_md).read_text(encoding="utf-8")
+
+        for section_name in ["Rarity", "Color", "Card Type", "Expansion"]:
+            section_header = f"### {section_name}"
+            table_header = f"| {section_name} | Unique Items | Physical Copies | % of Portfolio | Market Value | % of Portfolio Value |"
+            section_part = content_mixed.split(section_header)[1].split("###")[0]
+            lines = [
+                line.strip() for line in section_part.strip().split("\n")
+                if line.strip().startswith("|") and not line.strip().startswith("| :---") and table_header not in line
+            ]
+
+            total_pct_val = sum(float(line.split("|")[1:-1][5].replace("%", "").strip()) for line in lines if len(line.split("|")[1:-1]) == 6)
+            self.assertAlmostEqual(total_pct_val, 50.0, delta=0.2, msg=f"{section_name} % of Portfolio Value should sum to 50% ($100 / $200) in mixed portfolio")
 
 
 if __name__ == "__main__":
