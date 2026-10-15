@@ -2,43 +2,43 @@
   "_groups": {
     "24845": {
       "name": "Welcome to Night City - Beta",
-      "modifiedOn": "2026-09-22T19:36:31.407"
+      "modifiedOn": "2026-10-15T19:00:07.43"
     },
     "24846": {
       "name": "Embracing Power - Beta Starter Deck",
-      "modifiedOn": "2026-09-02T20:08:53.53"
+      "modifiedOn": "2026-10-15T18:48:52.687"
     },
     "24847": {
       "name": "The Heist - Beta Starter Deck",
-      "modifiedOn": "2026-09-22T19:36:01.7"
+      "modifiedOn": "2026-10-15T18:56:14.833"
     },
     "24848": {
       "name": "Box Toppers - Beta",
-      "modifiedOn": "2026-09-22T19:34:39.3"
+      "modifiedOn": "2026-10-15T18:38:05.36"
     },
     "24855": {
       "name": "Welcome to Night City - Retail",
-      "modifiedOn": "2026-09-22T19:47:17.667"
+      "modifiedOn": "2026-10-15T19:42:25.39"
     },
     "24857": {
       "name": "Box Toppers - Retail",
-      "modifiedOn": "2026-09-22T19:34:53.097"
+      "modifiedOn": "2026-10-15T18:39:52.643"
     },
     "24858": {
       "name": "Embracing Power - Retail Starter Deck",
-      "modifiedOn": "2026-09-22T19:48:19.15"
+      "modifiedOn": "2026-10-15T18:50:02.783"
     },
     "24859": {
       "name": "The Heist - Retail Starter Deck",
-      "modifiedOn": "2026-09-22T19:49:07.137"
+      "modifiedOn": "2026-10-15T18:57:24.137"
     },
     "24860": {
       "name": "Set 1 Promos",
-      "modifiedOn": "2026-10-07T16:17:43.157"
+      "modifiedOn": "2026-10-15T18:54:21.53"
     },
     "24880": {
       "name": "Pre-Release Beta",
-      "modifiedOn": "2026-09-21T13:13:24.387"
+      "modifiedOn": "2026-10-15T18:53:01.823"
     },
     "24881": {
       "name": "Alpha Kit",
@@ -46,11 +46,11 @@
     },
     "24884": {
       "name": "Night City Brawl Season 1",
-      "modifiedOn": "2026-09-22T20:35:05.963"
+      "modifiedOn": "2026-10-15T18:51:50.733"
     },
     "24883": {
       "name": "Edgerunner Open Season 1",
-      "modifiedOn": "2026-09-18T18:37:27.03"
+      "modifiedOn": "2026-10-15T18:46:00.06"
     }
   },
   "715194": {
@@ -2227,7 +2227,7 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B006",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -2238,7 +2238,7 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B005",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -2271,7 +2271,7 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B002",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -2282,7 +2282,7 @@
     "groupId": 24848,
     "groupName": "Box Toppers - Beta",
     "printNumber": "B001",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2315,7 +2315,7 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B003",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2469,7 +2469,7 @@
     "groupId": 24846,
     "groupName": "Embracing Power - Beta Starter Deck",
     "printNumber": "B017",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -2546,7 +2546,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B002",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -2656,7 +2656,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B012",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -2689,7 +2689,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B015",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -2788,7 +2788,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B002",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2799,7 +2799,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B003",
-    "rarity": "Secret",
+    "rarity": "S",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2810,7 +2810,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B004",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2832,7 +2832,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B005b",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2898,7 +2898,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B011",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2931,7 +2931,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B014",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -3096,7 +3096,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B029",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3173,7 +3173,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B036",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -3184,7 +3184,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B037",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -3206,7 +3206,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B039",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -3217,7 +3217,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B040",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -3261,7 +3261,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B044",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3283,7 +3283,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B046",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3305,7 +3305,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B048",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3569,7 +3569,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B072",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -3580,7 +3580,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B073",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -3602,7 +3602,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B075",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -3712,7 +3712,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B085",
-    "rarity": "Secret",
+    "rarity": "S",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3745,7 +3745,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B088",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3756,7 +3756,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B089",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3855,7 +3855,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B098",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3965,7 +3965,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B108",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -3976,7 +3976,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B109",
-    "rarity": "Secret",
+    "rarity": "S",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -4053,7 +4053,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B116",
-    "rarity": "Secret",
+    "rarity": "S",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4185,7 +4185,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B128",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -4295,7 +4295,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B138",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4350,7 +4350,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B143",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -4383,7 +4383,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B146",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -4482,7 +4482,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B155",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -4548,7 +4548,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B161",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -4570,7 +4570,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B163",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -4603,7 +4603,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B166",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4647,7 +4647,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B170",
-    "rarity": "Iconic Secret",
+    "rarity": "IS",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -4757,7 +4757,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "006",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -4846,7 +4846,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "001",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Red",
     "cardType": "Unit"
   },
   "718539": {
@@ -4857,7 +4857,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "002",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Green",
     "cardType": "Unit"
   },
   "718540": {
@@ -4868,7 +4868,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "003",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Green",
     "cardType": "Unit"
   },
   "718541": {
@@ -4879,7 +4879,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "004",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Red",
     "cardType": "Program"
   },
   "718542": {
@@ -4890,7 +4890,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "005",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Yellow",
     "cardType": "Program"
   },
   "718543": {
@@ -4901,7 +4901,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "006",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Green",
     "cardType": "Program"
   },
   "718544": {
@@ -4912,7 +4912,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "007",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Blue",
     "cardType": "Program"
   },
   "718545": {
@@ -4923,7 +4923,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "012",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Red",
     "cardType": "Legend"
   },
   "718546": {
@@ -4934,7 +4934,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "013",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Red",
     "cardType": "Legend"
   },
   "718547": {
@@ -4945,7 +4945,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "014",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Yellow",
     "cardType": "Legend"
   },
   "718548": {
@@ -4956,7 +4956,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "015",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Blue",
     "cardType": "Legend"
   },
   "718549": {
@@ -4967,7 +4967,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "034",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Red",
     "cardType": "Legend"
   },
   "718550": {
@@ -4978,7 +4978,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "038",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Yellow",
     "cardType": "Legend"
   },
   "718551": {
@@ -4989,7 +4989,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "040",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Yellow",
     "cardType": "Legend"
   },
   "718552": {
@@ -5000,7 +5000,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "041",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Green",
     "cardType": "Legend"
   },
   "718553": {
@@ -5011,7 +5011,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "044",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Green",
     "cardType": "Legend"
   },
   "718554": {
@@ -5022,7 +5022,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "047",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Green",
     "cardType": "Legend"
   },
   "718555": {
@@ -5033,7 +5033,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "048",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Blue",
     "cardType": "Legend"
   },
   "718556": {
@@ -5044,7 +5044,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "049",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Blue",
     "cardType": "Legend"
   },
   "718557": {
@@ -5055,7 +5055,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "050",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Blue",
     "cardType": "Legend"
   },
   "718558": {
@@ -5066,7 +5066,7 @@
     "groupName": "Edgerunner Open Season 1",
     "printNumber": "053",
     "rarity": "Nova Rare",
-    "color": null,
+    "color": "Blue",
     "cardType": "Legend"
   },
   "719653": {
