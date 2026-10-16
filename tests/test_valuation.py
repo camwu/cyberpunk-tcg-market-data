@@ -1554,9 +1554,13 @@ class TestPortfolioValuation(unittest.TestCase):
             """, (ckey, pid, name, exp, finish, rarity, itype))
         conn.commit()
 
+        cur.execute("SELECT COUNT(*) FROM card_metadata WHERE COALESCE(item_type, 'Card') = 'Card' AND rarity NOT IN ('Common', 'Uncommon', 'Rare', 'Epic', 'Secret', 'Iconic', 'Nova', 'Sealed', 'Unknown')")
+        expected_to_update = cur.fetchone()[0]
+        self.assertEqual(expected_to_update, 4)
+
         # Initial migration normalizes legacy shorthand and mis-cased strings
         updated = migrate_card_metadata_rarities(cur, conn)
-        self.assertEqual(updated, 4)
+        self.assertEqual(updated, expected_to_update)
 
         cur.execute("SELECT card_key, rarity FROM card_metadata ORDER BY card_key")
         migrated = dict(cur.fetchall())

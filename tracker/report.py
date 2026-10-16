@@ -123,9 +123,6 @@ def ensure_report_schema(cur: sqlite3.Cursor, conn: sqlite3.Connection) -> None:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
         conn.commit()
 
-    from tracker.valuation import migrate_card_metadata_rarities
-    migrate_card_metadata_rarities(cur, conn)
-
 
 def fetch_portfolio_summary(cur: sqlite3.Cursor, target_date: Optional[str]) -> Optional[Tuple[str, tuple]]:
     """Resolves target or latest valuation date and fetches executive summary metrics."""
