@@ -21,6 +21,7 @@ from tracker.valuation import (
     calculate_l7d_metrics,
     persist_portfolio_summary,
     init_database,
+    migrate_card_metadata_rarities,
 )
 from tests.fixtures import seed_metadata, seed_snapshots, seed_summary
 
@@ -269,6 +270,82 @@ class TestValuationHelpers(unittest.TestCase):
         summary = self.cur.fetchone()
         self.assertEqual(summary[0], 110.0)
         self.assertEqual(summary[1], 30.0)
+
+    def test_match_collection_item_normalizes_shorthand_rarity(self):
+        indexes = {
+            "by_group_pnum": {
+                ("nc", "b007"): {"productId": 101, "name": "Royce", "groupName": "nc", "rarity": "IL", "color": "Red", "cardType": "Legend"},
+                ("nc", "b015"): {"productId": 102, "name": "Flathead", "groupName": "nc", "rarity": "UC", "color": "Blue", "cardType": "Unit"},
+            },
+            "by_pid": {},
+            "by_group_name": {},
+            "by_group_clean_name": {},
+            "by_name": {},
+        }
+        row_card = {"name": "Royce", "expansion": "nc", "printNumber": "B007", "totalQtyOwned": "1"}
+        _, ctx_card, _, _, _ = match_collection_item(row_card, indexes, "2026-09-01")
+        self.assertEqual(ctx_card.rarity, "Iconic")
+
+        row_uc = {"name": "Flathead", "expansion": "nc", "printNumber": "B015", "totalQtyOwned": "1"}
+        _, ctx_uc, _, _, _ = match_collection_item(row_uc, indexes, "2026-09-01")
+        self.assertEqual(ctx_uc.rarity, "Uncommon")
+
+        row_sealed = {"name": "Night City Booster Box", "expansion": "nc", "item_type": "Sealed", "totalQtyOwned": "1"}
+        _, ctx_sealed, _, _, _ = match_collection_item(row_sealed, indexes, "2026-09-01")
+        self.assertEqual(ctx_sealed.rarity, "Sealed")
+
+    def test_migrate_card_metadata_rarities_bulk_and_idempotent(self):
+        seed_metadata(self.conn, [
+            {"card_key": "c1", "name": "Royce", "expansion": "nc", "finish": "Foil", "rarity": "IL", "item_type": "Card"},
+            {"card_key": "c2", "name": "Jackie", "expansion": "bt", "finish": "Foil", "rarity": "NR", "item_type": "Card"},
+            {"card_key": "c3", "name": "Flathead", "expansion": "th", "finish": "Standard", "rarity": "UC", "item_type": "Card"},
+            {"card_key": "c4", "name": "Kerry", "expansion": "nc", "finish": "Foil", "rarity": "iconic", "item_type": "Card"},
+            {"card_key": "c5", "name": "Johnny", "expansion": "nc", "finish": "Foil", "rarity": "Rare", "item_type": "Card"},
+            {"card_key": "s1", "name": "Booster Box", "expansion": "nc", "finish": "Standard", "rarity": "Sealed", "item_type": "Sealed"},
+        ])
+
+        # Initial migration updates shorthand and mis-cased records
+        updated_count = migrate_card_metadata_rarities(self.cur, self.conn)
+        self.assertEqual(updated_count, 4)
+
+        self.cur.execute("SELECT card_key, rarity FROM card_metadata ORDER BY card_key")
+        migrated = dict(self.cur.fetchall())
+        self.assertEqual(migrated["c1"], "Iconic")
+        self.assertEqual(migrated["c2"], "Nova")
+        self.assertEqual(migrated["c3"], "Uncommon")
+        self.assertEqual(migrated["c4"], "Iconic")
+        self.assertEqual(migrated["c5"], "Rare")
+        self.assertEqual(migrated["s1"], "Sealed")
+
+        # Second execution on clean DB performs 0 row updates
+        noop_count = migrate_card_metadata_rarities(self.cur, self.conn)
+        self.assertEqual(noop_count, 0)
+
+    def test_resolve_and_persist_baseline_updates_stale_shorthand_rarity(self):
+        seed_metadata(self.conn, [
+            {"card_key": "Exp::001::Foil::2026-09-01", "name": "Royce", "expansion": "Exp", "finish": "Foil", "rarity": "IL", "item_type": "Card"},
+        ])
+        ctx = ItemValuationContext(
+            card_key="Exp::001::Foil::2026-09-01",
+            item_type="Card",
+            prod_id=101,
+            name="Royce",
+            print_number="001",
+            expansion="Exp",
+            finish="Foil",
+            rarity="Iconic",
+            color="Red",
+            card_type="Legend",
+            effective_acq_date="2026-09-01",
+            fallback_price=50.0,
+            qty=1,
+        )
+        resolve_and_persist_baseline(self.cur, ctx, "2026-09-01", market_price=60.0, cache_dir=self.cache_dir, price_cache={})
+        self.conn.commit()
+
+        self.cur.execute("SELECT rarity FROM card_metadata WHERE card_key = ?", (ctx.card_key,))
+        row = self.cur.fetchone()
+        self.assertEqual(row[0], "Iconic")
 
 
 if __name__ == "__main__":

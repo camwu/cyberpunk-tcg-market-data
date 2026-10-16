@@ -23,7 +23,7 @@ from tracker.validation import (
     CollectionValidationError,
 )
 
-from tracker.constants import REPO_ROOT, REPO_PRICES_DIR, REPO_CARDS_FILE
+from tracker.constants import REPO_ROOT, REPO_PRICES_DIR, REPO_CARDS_FILE, normalize_rarity
 
 
 @dataclass
@@ -276,8 +276,42 @@ def init_database(db_path: str) -> sqlite3.Connection:
     if "purchases_updated_at" not in sum_cols:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
 
+    migrate_card_metadata_rarities(cur, conn)
+
     conn.commit()
     return conn
+
+
+def migrate_card_metadata_rarities(cur: sqlite3.Cursor, conn: sqlite3.Connection) -> int:
+    """
+    Normalizes legacy card rarity shorthand codes to canonical rarity tiers in card_metadata.
+    Guarded by 'rarity NOT IN (...)' so it executes as a zero-row no-op on clean databases.
+    Returns the number of rows updated.
+    """
+    cur.execute("PRAGMA table_info(card_metadata)")
+    cols = {col[1] for col in cur.fetchall()}
+    if "rarity" not in cols:
+        return 0
+
+    cur.execute("""
+    UPDATE card_metadata
+    SET rarity = CASE 
+        WHEN UPPER(rarity) IN ('IL', 'IO', 'IS') OR UPPER(rarity) LIKE 'ICONIC%' THEN 'Iconic'
+        WHEN UPPER(rarity) = 'NR' OR UPPER(rarity) LIKE 'NOVA%' THEN 'Nova'
+        WHEN UPPER(rarity) IN ('S', 'SECRET') THEN 'Secret'
+        WHEN UPPER(rarity) IN ('E', 'EPIC') THEN 'Epic'
+        WHEN UPPER(rarity) IN ('R', 'RARE') THEN 'Rare'
+        WHEN UPPER(rarity) IN ('UC', 'UNCOMMON') THEN 'Uncommon'
+        WHEN UPPER(rarity) IN ('C', 'COMMON') THEN 'Common'
+        ELSE rarity
+    END
+    WHERE COALESCE(item_type, 'Card') = 'Card'
+      AND rarity NOT IN ('Common', 'Uncommon', 'Rare', 'Epic', 'Secret', 'Iconic', 'Nova', 'Sealed', 'Unknown')
+    """)
+    updated_rows = cur.rowcount
+    if updated_rows > 0:
+        conn.commit()
+    return updated_rows
 
 
 def load_price_catalog(
@@ -505,7 +539,7 @@ def match_collection_item(
         print_number=print_number,
         expansion=expansion,
         finish=finish,
-        rarity=rarity,
+        rarity=normalize_rarity(rarity) if item_type != "Sealed" else "Sealed",
         color=color,
         card_type=card_type,
         effective_acq_date=effective_acq_date,

@@ -11,12 +11,15 @@ import sqlite3
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
+from tracker.constants import CANONICAL_RARITIES, normalize_rarity
+from tracker.valuation import migrate_card_metadata_rarities
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 HIGH_VALUE_THRESHOLD = 10.0
 
-RARITY_ORDER = ["Common", "Uncommon", "Rare", "Epic", "Secret", "Iconic", "Nova"]
+RARITY_ORDER = list(CANONICAL_RARITIES)
 
 RARITY_ICONS = {
     "Common": "▽",
@@ -34,18 +37,6 @@ COLOR_DOTS = {
     "Red": "🔴",
     "Yellow": "🟡",
 }
-
-
-def normalize_rarity(rarity: str) -> str:
-    if not rarity:
-        return "Unknown"
-    r = rarity.strip()
-    if r.startswith("Iconic"):
-        return "Iconic"
-    if r.startswith("Nova"):
-        return "Nova"
-    return r
-
 
 def format_rarity(rarity: str, bold: bool = False) -> str:
     norm = normalize_rarity(rarity)
@@ -133,6 +124,8 @@ def ensure_report_schema(cur: sqlite3.Cursor, conn: sqlite3.Connection) -> None:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
         conn.commit()
 
+    migrate_card_metadata_rarities(cur, conn)
+
 
 def fetch_portfolio_summary(cur: sqlite3.Cursor, target_date: Optional[str]) -> Optional[Tuple[str, tuple]]:
     """Resolves target or latest valuation date and fetches executive summary metrics."""
@@ -168,9 +161,14 @@ def fetch_portfolio_breakdowns(cur: sqlite3.Cursor, latest_date: str) -> Dict[st
     """Queries rarity, color, card type, expansion, and sealed product breakdowns."""
     cur.execute("""
     SELECT CASE 
-               WHEN m.rarity LIKE 'Iconic%' THEN 'Iconic'
-               WHEN m.rarity LIKE 'Nova%' THEN 'Nova'
-               ELSE m.rarity 
+               WHEN UPPER(m.rarity) IN ('IL', 'IO', 'IS') OR UPPER(m.rarity) LIKE 'ICONIC%' THEN 'Iconic'
+               WHEN UPPER(m.rarity) = 'NR' OR UPPER(m.rarity) LIKE 'NOVA%' THEN 'Nova'
+               WHEN UPPER(m.rarity) IN ('S', 'SECRET') THEN 'Secret'
+               WHEN UPPER(m.rarity) IN ('E', 'EPIC') THEN 'Epic'
+               WHEN UPPER(m.rarity) IN ('R', 'RARE') THEN 'Rare'
+               WHEN UPPER(m.rarity) IN ('UC', 'UNCOMMON') THEN 'Uncommon'
+               WHEN UPPER(m.rarity) IN ('C', 'COMMON') THEN 'Common'
+               ELSE COALESCE(NULLIF(m.rarity, ''), 'Unknown')
            END AS clean_rarity,
            COUNT(DISTINCT (m.name || '::' || m.expansion || '::' || m.finish)), 
            SUM(s.quantity), 
@@ -440,9 +438,9 @@ def render_markdown_report(
             md_content += f"| **{exp}** | {entries} | {qty} | {pct_cards:.1f}% | `${exp_val:,.2f}` | {pct_val:.1f}% |\n"
 
     high_value_cards = movers.get("high_value_cards", [])
-    iconic_singles = [c for c in high_value_cards if (c[2] or "").startswith("Iconic")]
-    nova_singles = [c for c in high_value_cards if (c[2] or "").startswith("Nova")]
-    non_iconic_nova_singles = [c for c in high_value_cards if not (c[2] or "").startswith("Iconic") and not (c[2] or "").startswith("Nova")]
+    iconic_singles = [c for c in high_value_cards if normalize_rarity(c[2]) == "Iconic"]
+    nova_singles = [c for c in high_value_cards if normalize_rarity(c[2]) == "Nova"]
+    non_iconic_nova_singles = [c for c in high_value_cards if normalize_rarity(c[2]) not in ("Iconic", "Nova")]
 
     md_content += f"""
 ### High-Value Singles (`${HIGH_VALUE_THRESHOLD:,.2f}`+)
