@@ -13,6 +13,10 @@ from tracker.valuation import (
     calculate_portfolio_valuation,
     init_database,
     get_historical_market_price,
+    match_collection_item,
+    resolve_and_persist_baseline,
+    migrate_card_metadata_rarities,
+    ItemValuationContext,
 )
 from tracker.report import format_rarity, RARITY_ICONS
 
@@ -1475,6 +1479,102 @@ class TestPortfolioValuation(unittest.TestCase):
 
         self.assertEqual(len(snap_keys_2), 1)
         self.assertEqual(snap_keys_2[0], "Welcome to Night City - Beta::B034::Standard::2026-09-18")
+
+    def test_match_collection_item_canonical_rarity_normalization(self):
+        indexes = {
+            "by_group_pnum": {
+                ("nc", "b007"): {"productId": 101, "name": "Royce", "groupName": "nc", "rarity": "IL", "color": "Red", "cardType": "Legend"},
+                ("nc", "b003"): {"productId": 102, "name": "Jackie", "groupName": "nc", "rarity": "NR", "color": "Blue", "cardType": "Legend"},
+                ("nc", "b015"): {"productId": 103, "name": "Flathead", "groupName": "nc", "rarity": "UC", "color": "Blue", "cardType": "Unit"},
+            },
+            "by_pid": {},
+            "by_group_name": {},
+            "by_group_clean_name": {},
+            "by_name": {},
+        }
+        _, ctx_il, _, _, _ = match_collection_item({"name": "Royce", "expansion": "nc", "printNumber": "B007", "totalQtyOwned": "1"}, indexes, "2026-09-01")
+        self.assertEqual(ctx_il.rarity, "Iconic")
+
+        _, ctx_nr, _, _, _ = match_collection_item({"name": "Jackie", "expansion": "nc", "printNumber": "B003", "totalQtyOwned": "1"}, indexes, "2026-09-01")
+        self.assertEqual(ctx_nr.rarity, "Nova")
+
+        _, ctx_uc, _, _, _ = match_collection_item({"name": "Flathead", "expansion": "nc", "printNumber": "B015", "totalQtyOwned": "1"}, indexes, "2026-09-01")
+        self.assertEqual(ctx_uc.rarity, "Uncommon")
+
+        _, ctx_sealed, _, _, _ = match_collection_item({"name": "Booster Box", "expansion": "nc", "item_type": "Sealed", "totalQtyOwned": "1"}, indexes, "2026-09-01")
+        self.assertEqual(ctx_sealed.rarity, "Sealed")
+
+    def test_resolve_and_persist_baseline_updates_stale_metadata_rarity(self):
+        conn = init_database(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type)
+        VALUES ('nc::b007::Foil::2026-09-01', 101, 'Royce', 'B007', 'nc', 'Foil', 'IL', 'Red', '2026-09-01', 50.0, 'Card')
+        """)
+        conn.commit()
+
+        ctx = ItemValuationContext(
+            card_key="nc::b007::Foil::2026-09-01",
+            item_type="Card",
+            prod_id=101,
+            name="Royce",
+            print_number="B007",
+            expansion="nc",
+            finish="Foil",
+            rarity="Iconic",
+            color="Red",
+            card_type="Legend",
+            effective_acq_date="2026-09-01",
+            fallback_price=50.0,
+            qty=1,
+        )
+        resolve_and_persist_baseline(cur, ctx, "2026-09-01", market_price=60.0, cache_dir=self.cache_dir, price_cache={})
+        conn.commit()
+
+        cur.execute("SELECT rarity FROM card_metadata WHERE card_key = ?", (ctx.card_key,))
+        row = cur.fetchone()
+        conn.close()
+        self.assertEqual(row[0], "Iconic")
+
+    def test_migrate_card_metadata_rarities_in_valuation(self):
+        conn = init_database(self.db_path)
+        cur = conn.cursor()
+        test_cards = [
+            ("c1", 1, "Royce", "nc", "Foil", "IL", "Card"),
+            ("c2", 2, "Jackie", "bt", "Foil", "NR", "Card"),
+            ("c3", 3, "Flathead", "th", "Standard", "UC", "Card"),
+            ("c4", 4, "Kerry", "nc", "Foil", "iconic", "Card"),
+            ("c5", 5, "Johnny", "nc", "Foil", "Rare", "Card"),
+            ("s1", 6, "Booster Box", "nc", "Standard", "Sealed", "Sealed"),
+        ]
+        for ckey, pid, name, exp, finish, rarity, itype in test_cards:
+            cur.execute("""
+            INSERT INTO card_metadata (card_key, product_id, name, expansion, finish, rarity, item_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (ckey, pid, name, exp, finish, rarity, itype))
+        conn.commit()
+
+        cur.execute("SELECT COUNT(*) FROM card_metadata WHERE COALESCE(item_type, 'Card') = 'Card' AND rarity NOT IN ('Common', 'Uncommon', 'Rare', 'Epic', 'Secret', 'Iconic', 'Nova', 'Sealed', 'Unknown')")
+        expected_to_update = cur.fetchone()[0]
+        self.assertEqual(expected_to_update, 4)
+
+        # Initial migration normalizes legacy shorthand and mis-cased strings
+        updated = migrate_card_metadata_rarities(cur, conn)
+        self.assertEqual(updated, expected_to_update)
+
+        cur.execute("SELECT card_key, rarity FROM card_metadata ORDER BY card_key")
+        migrated = dict(cur.fetchall())
+        self.assertEqual(migrated["c1"], "Iconic")
+        self.assertEqual(migrated["c2"], "Nova")
+        self.assertEqual(migrated["c3"], "Uncommon")
+        self.assertEqual(migrated["c4"], "Iconic")
+        self.assertEqual(migrated["c5"], "Rare")
+        self.assertEqual(migrated["s1"], "Sealed")
+
+        # Second run on clean database is a strict 0-row no-op
+        noop = migrate_card_metadata_rarities(cur, conn)
+        conn.close()
+        self.assertEqual(noop, 0)
 
 
 class TestReportFormatting(unittest.TestCase):

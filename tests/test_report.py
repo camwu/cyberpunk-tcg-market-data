@@ -514,6 +514,65 @@ class TestReportGeneration(unittest.TestCase):
         self.assertIn("#### Non-Iconic/Nova Rare Singles", singles_section)
         self.assertIn("| 🔵 **Jackie Epic** | Unit | Welcome to Night City - Beta | **◈ Epic** | Foil | 1 | `$15.00` | `$15.00` |", singles_section)
 
+    def test_high_value_singles_shorthand_rarity_partitioning(self):
+        conn = sqlite3.connect(self.db_path)
+        seed_metadata(conn, [
+            {"card_key": "Exp::001::Foil::2026-09-02", "product_id": 901, "name": "Royce", "print_number": "B007", "expansion": "Welcome to Night City - Beta", "finish": "Foil", "rarity": "IL", "color": "Red", "first_seen_date": "2026-09-02", "baseline_market_price": 60.00, "item_type": "Card", "card_type": "Legend"},
+            {"card_key": "Exp::002::Foil::2026-09-02", "product_id": 902, "name": "Alt Cunningham", "print_number": "B052", "expansion": "Welcome to Night City - Beta", "finish": "Foil", "rarity": "IO", "color": "Yellow", "first_seen_date": "2026-09-02", "baseline_market_price": 15.00, "item_type": "Card", "card_type": "Unit"},
+            {"card_key": "Exp::003::Foil::2026-09-02", "product_id": 903, "name": "Jackie Box Topper", "print_number": "B003", "expansion": "Box Toppers - Beta", "finish": "Foil", "rarity": "NR", "color": "Blue", "first_seen_date": "2026-09-02", "baseline_market_price": 40.00, "item_type": "Card", "card_type": "Legend"},
+            {"card_key": "Exp::004::Foil::2026-09-02", "product_id": 904, "name": "Johnny Secret", "print_number": "B001", "expansion": "Welcome to Night City - Beta", "finish": "Foil", "rarity": "S", "color": "Red", "first_seen_date": "2026-09-02", "baseline_market_price": 25.00, "item_type": "Card", "card_type": "Legend"},
+            {"card_key": "Exp::005::Standard::2026-09-02", "product_id": 905, "name": "Flathead", "print_number": "B015", "expansion": "The Heist - Beta Starter Deck", "finish": "Standard", "rarity": "UC", "color": "Blue", "first_seen_date": "2026-09-02", "baseline_market_price": 12.00, "item_type": "Card", "card_type": "Unit"},
+            {"card_key": "Exp::006::Foil::2026-09-02", "product_id": 906, "name": "Towerfall", "print_number": "B034", "expansion": "Welcome to Night City - Beta", "finish": "Foil", "rarity": "E", "color": "Blue", "first_seen_date": "2026-09-02", "baseline_market_price": 10.00, "item_type": "Card", "card_type": "Program"},
+        ])
+        seed_snapshots(conn, "2026-09-25", [
+            {"card_key": "Exp::001::Foil::2026-09-02", "quantity": 1, "unit_market_price": 67.89, "unit_low_price": 60.00, "unit_mid_price": 67.89, "unit_high_price": 70.00, "line_total": 67.89, "baseline_price": 60.00, "lifetime_gain_dollar": 7.89, "lifetime_gain_pct": 13.15},
+            {"card_key": "Exp::002::Foil::2026-09-02", "quantity": 1, "unit_market_price": 17.46, "unit_low_price": 15.00, "unit_mid_price": 17.46, "unit_high_price": 20.00, "line_total": 17.46, "baseline_price": 15.00, "lifetime_gain_dollar": 2.46, "lifetime_gain_pct": 16.4},
+            {"card_key": "Exp::003::Foil::2026-09-02", "quantity": 1, "unit_market_price": 41.49, "unit_low_price": 40.00, "unit_mid_price": 41.49, "unit_high_price": 45.00, "line_total": 41.49, "baseline_price": 40.00, "lifetime_gain_dollar": 1.49, "lifetime_gain_pct": 3.73},
+            {"card_key": "Exp::004::Foil::2026-09-02", "quantity": 1, "unit_market_price": 28.18, "unit_low_price": 25.00, "unit_mid_price": 28.18, "unit_high_price": 30.00, "line_total": 28.18, "baseline_price": 25.00, "lifetime_gain_dollar": 3.18, "lifetime_gain_pct": 12.72},
+            {"card_key": "Exp::005::Standard::2026-09-02", "quantity": 1, "unit_market_price": 12.36, "unit_low_price": 10.00, "unit_mid_price": 12.36, "unit_high_price": 15.00, "line_total": 12.36, "baseline_price": 12.00, "lifetime_gain_dollar": 0.36, "lifetime_gain_pct": 3.0},
+            {"card_key": "Exp::006::Foil::2026-09-02", "quantity": 1, "unit_market_price": 10.03, "unit_low_price": 10.00, "unit_mid_price": 10.03, "unit_high_price": 12.00, "line_total": 10.03, "baseline_price": 10.00, "lifetime_gain_dollar": 0.03, "lifetime_gain_pct": 0.3},
+        ])
+        seed_summary(
+            conn,
+            "2026-09-25",
+            total_value=177.41,
+            total_cards=6,
+            unique_items=6,
+            lifetime_gain=15.41,
+            lifetime_pct=9.5,
+        )
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-25")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        # Rarity breakdown collapses shorthand into canonical tiers without orphan abbreviation rows
+        rarity_section = content.split("### Rarity")[1].split("### Color")[0]
+        self.assertIn("| **★ Iconic** |", rarity_section)
+        self.assertIn("| **▣ Nova** |", rarity_section)
+        self.assertIn("| **◆ Secret** |", rarity_section)
+        self.assertIn("| **◈ Epic** |", rarity_section)
+        self.assertIn("| **△ Uncommon** |", rarity_section)
+        for orphan in ["| **IL** |", "| **IO** |", "| **NR** |", "| **UC** |", "| **E** |", "| **S** |"]:
+            self.assertNotIn(orphan, rarity_section)
+
+        # High-value singles partitioning correctly routes shorthand rarities
+        singles_section = content.split("### High-Value Singles")[1].split("## 📈 Top Gainers")[0]
+        iconic_sub = singles_section.split("#### Iconic Singles")[1].split("#### Nova Rare Singles")[0]
+        nova_sub = singles_section.split("#### Nova Rare Singles")[1].split("#### Non-Iconic/Nova Rare Singles")[0]
+        non_iconic_sub = singles_section.split("#### Non-Iconic/Nova Rare Singles")[1]
+
+        self.assertIn("Royce", iconic_sub)
+        self.assertIn("Alt Cunningham", iconic_sub)
+        self.assertIn("Jackie Box Topper", nova_sub)
+        self.assertIn("Johnny Secret", non_iconic_sub)
+        self.assertIn("Flathead", non_iconic_sub)
+        self.assertIn("Towerfall", non_iconic_sub)
+
+        # Non-iconic section must NOT contain Iconic or Nova cards
+        self.assertNotIn("Royce", non_iconic_sub)
+        self.assertNotIn("Alt Cunningham", non_iconic_sub)
+        self.assertNotIn("Jackie Box Topper", non_iconic_sub)
 
     def test_report_header_with_purchases_updated_at(self):
         conn = sqlite3.connect(self.db_path)
