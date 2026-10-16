@@ -12,7 +12,6 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 from tracker.constants import CANONICAL_RARITIES, normalize_rarity
-from tracker.valuation import migrate_card_metadata_rarities
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -124,6 +123,7 @@ def ensure_report_schema(cur: sqlite3.Cursor, conn: sqlite3.Connection) -> None:
         cur.execute("ALTER TABLE portfolio_daily_summary ADD COLUMN purchases_updated_at TEXT")
         conn.commit()
 
+    from tracker.valuation import migrate_card_metadata_rarities
     migrate_card_metadata_rarities(cur, conn)
 
 
