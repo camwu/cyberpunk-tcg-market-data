@@ -38,7 +38,7 @@
     },
     "24880": {
       "name": "Pre-Release Beta",
-      "modifiedOn": "2026-10-15T18:53:01.823"
+      "modifiedOn": "2026-10-16T19:12:55.367"
     },
     "24881": {
       "name": "Alpha Kit",
@@ -4702,7 +4702,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "001",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -4713,7 +4713,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "002",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -4724,7 +4724,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "003",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -4735,7 +4735,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "004",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -4746,7 +4746,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "005",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -4768,7 +4768,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "007",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -4779,7 +4779,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "008",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -4790,7 +4790,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "009",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -4801,7 +4801,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "010",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -4812,7 +4812,7 @@
     "groupId": 24880,
     "groupName": "Pre-Release Beta",
     "printNumber": "011",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -5277,5 +5277,16 @@
     "rarity": "Nova Rare",
     "color": "Blue",
     "cardType": "Program"
+  },
+  "724462": {
+    "productId": 724462,
+    "name": "Pre-Release Beta - Beta Event Kit Case",
+    "cleanName": "Pre Release Beta Beta Event Kit Case",
+    "groupId": 24880,
+    "groupName": "Pre-Release Beta",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
   }
 }
