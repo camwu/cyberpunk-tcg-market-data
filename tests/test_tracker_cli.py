@@ -706,6 +706,26 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
             mock_report.assert_called_once()
 
 
+
+class TestLauncherScripts(unittest.TestCase):
+    """Verifies cross-platform launcher script integrity, git checks, and parity."""
+
+    def test_update_portfolio_bat_git_pull_guard(self):
+        bat_file = Path(__file__).resolve().parent.parent / "update_portfolio.bat"
+        self.assertTrue(bat_file.is_file())
+        content = bat_file.read_text(encoding="utf-8")
+        self.assertIn('if exist "%~dp0.git"', content)
+        self.assertIn('git -C "%~dp0." pull --ff-only 2>nul', content)
+        self.assertIn("REM Best-effort fast-forward; ignore exit code if offline, detached, or dirty", content)
+
+    def test_update_portfolio_sh_git_pull_guard(self):
+        sh_file = Path(__file__).resolve().parent.parent / "update_portfolio.sh"
+        self.assertTrue(sh_file.is_file())
+        content = sh_file.read_text(encoding="utf-8")
+        self.assertIn('if [ -d "$DIR/.git" ] || [ -f "$DIR/.git" ]; then', content)
+        self.assertIn('git -C "$DIR" pull --ff-only 2>/dev/null || true', content)
+
+
 if __name__ == "__main__":
     unittest.main()
 

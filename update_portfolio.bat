@@ -3,6 +3,10 @@ title Cyberpunk TCG Portfolio Tracker
 echo ================================================================
 echo   CYBERPUNK TCG - UPDATING PORTFOLIO AND MARKET PRICES
 echo ================================================================
+if exist "%~dp0.git" (
+    REM Best-effort fast-forward; ignore exit code if offline, detached, or dirty
+    git -C "%~dp0." pull --ff-only 2>nul
+)
 python "%~dp0run_tracker.py" %*
 if %ERRORLEVEL% neq 0 (
     echo.
