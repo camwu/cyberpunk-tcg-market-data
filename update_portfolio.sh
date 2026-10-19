@@ -5,6 +5,10 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
 echo "================================================================"
 echo "  CYBERPUNK TCG - UPDATING PORTFOLIO AND MARKET PRICES"
 echo "================================================================"
+if [ -d "$DIR/.git" ] || [ -f "$DIR/.git" ]; then
+    # Best-effort fast-forward; ignore exit code if offline, detached, or dirty
+    git -C "$DIR" pull --ff-only 2>/dev/null || true
+fi
 python3 "$DIR/run_tracker.py" "$@"
 
 REPORT=""
