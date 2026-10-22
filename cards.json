@@ -18,7 +18,7 @@
     },
     "24855": {
       "name": "Welcome to Night City - Retail",
-      "modifiedOn": "2026-10-15T19:42:25.39"
+      "modifiedOn": "2026-10-22T18:51:54.85"
     },
     "24857": {
       "name": "Box Toppers - Retail",
@@ -26,11 +26,11 @@
     },
     "24858": {
       "name": "Embracing Power - Retail Starter Deck",
-      "modifiedOn": "2026-10-15T18:50:02.783"
+      "modifiedOn": "2026-10-22T18:53:39.95"
     },
     "24859": {
       "name": "The Heist - Retail Starter Deck",
-      "modifiedOn": "2026-10-15T18:57:24.137"
+      "modifiedOn": "2026-10-22T18:52:46.43"
     },
     "24860": {
       "name": "Set 1 Promos",
@@ -148,7 +148,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "001",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -159,7 +159,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "002",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -170,7 +170,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "003",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -181,7 +181,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "004",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -192,7 +192,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "005",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -203,7 +203,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "006",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -214,7 +214,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "007",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -225,7 +225,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "008",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -236,7 +236,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "009",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -247,7 +247,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "010",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -258,7 +258,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "011",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Program"
   },
@@ -269,7 +269,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "012",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -280,7 +280,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "013",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -291,7 +291,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "014",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -302,7 +302,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "015",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -313,7 +313,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "016",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -324,7 +324,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "017",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -335,7 +335,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "018",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -346,7 +346,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "019",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -357,7 +357,7 @@
     "groupId": 24858,
     "groupName": "Embracing Power - Retail Starter Deck",
     "printNumber": "020",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -423,7 +423,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "001",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -434,7 +434,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "002",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -445,7 +445,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "003",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -456,7 +456,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "004",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -467,7 +467,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "005",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -478,7 +478,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "006",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -489,7 +489,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "007",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -500,7 +500,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "008",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -511,7 +511,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "009",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -522,7 +522,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "010",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -533,7 +533,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "011",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -544,7 +544,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "012",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -555,7 +555,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "013",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -566,7 +566,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "014",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -577,7 +577,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "015",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -588,7 +588,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "016",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -599,7 +599,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "017",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -610,7 +610,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "018",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -621,7 +621,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "019",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -632,7 +632,7 @@
     "groupId": 24859,
     "groupName": "The Heist - Retail Starter Deck",
     "printNumber": "020",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -676,7 +676,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "098",
-    "rarity": null,
+    "rarity": "R",
     "color": "Green",
     "cardType": "Program"
   },
@@ -687,7 +687,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "006",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -698,7 +698,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "001",
-    "rarity": null,
+    "rarity": "E",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -709,7 +709,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "041",
-    "rarity": null,
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -720,7 +720,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "059",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -731,7 +731,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "065",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -742,7 +742,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "027",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -753,7 +753,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "042",
-    "rarity": null,
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -764,7 +764,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "106",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -775,7 +775,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "007",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -786,7 +786,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "028",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -797,7 +797,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "023",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -808,7 +808,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "043",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -819,7 +819,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "029",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -830,7 +830,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "066",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -841,7 +841,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "044",
-    "rarity": null,
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -852,7 +852,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "030",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -863,7 +863,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "008",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -874,7 +874,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "131",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -885,7 +885,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "076",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -896,7 +896,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "097",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -907,7 +907,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "067",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -918,7 +918,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "024",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -929,7 +929,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "111",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -940,7 +940,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "112",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -951,7 +951,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "031",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -962,7 +962,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "002",
-    "rarity": null,
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -973,7 +973,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "036",
-    "rarity": null,
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -984,7 +984,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "128",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -995,7 +995,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "009",
-    "rarity": null,
+    "rarity": "R",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1006,7 +1006,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "077",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1017,7 +1017,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "107",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -1028,7 +1028,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "113",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1039,7 +1039,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "078",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1050,7 +1050,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "132",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -1061,7 +1061,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "099",
-    "rarity": null,
+    "rarity": "R",
     "color": "Green",
     "cardType": "Program"
   },
@@ -1072,7 +1072,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "045",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1083,7 +1083,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "060",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -1094,7 +1094,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "071",
-    "rarity": null,
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -1105,7 +1105,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "032",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -1116,7 +1116,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "114",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1127,7 +1127,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "072",
-    "rarity": null,
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -1138,7 +1138,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "046",
-    "rarity": null,
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1149,7 +1149,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "047",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1160,7 +1160,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "033",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -1171,7 +1171,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "115",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1182,7 +1182,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "073",
-    "rarity": null,
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -1193,7 +1193,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "048",
-    "rarity": null,
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1204,7 +1204,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "010",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1215,7 +1215,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "011",
-    "rarity": null,
+    "rarity": "E",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1226,7 +1226,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "003",
-    "rarity": null,
+    "rarity": "S",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -1237,7 +1237,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "108",
-    "rarity": null,
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -1248,7 +1248,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "116",
-    "rarity": null,
+    "rarity": "S",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1259,7 +1259,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "037",
-    "rarity": null,
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -1270,7 +1270,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "012",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1281,7 +1281,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "061",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -1292,7 +1292,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "013",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1303,7 +1303,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "133",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -1314,7 +1314,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "068",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -1325,7 +1325,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "117",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1336,7 +1336,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "049",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1347,7 +1347,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "079",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1358,7 +1358,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "118",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1369,7 +1369,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "062",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -1380,7 +1380,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "025",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -1391,7 +1391,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "080",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1402,7 +1402,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "081",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1413,7 +1413,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "082",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1424,7 +1424,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "050",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1435,7 +1435,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "100",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -1446,7 +1446,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "014",
-    "rarity": null,
+    "rarity": "R",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1457,7 +1457,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "119",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1468,7 +1468,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "120",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1479,7 +1479,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "121",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1490,7 +1490,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "122",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1501,7 +1501,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "038",
-    "rarity": null,
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -1512,7 +1512,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "083",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1523,7 +1523,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "129",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -1534,7 +1534,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "134",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -1545,7 +1545,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "015",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1556,7 +1556,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "051",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1567,7 +1567,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "034",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -1578,7 +1578,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "093",
-    "rarity": null,
+    "rarity": "E",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -1589,7 +1589,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "084",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1600,7 +1600,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "074",
-    "rarity": null,
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -1611,7 +1611,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "075",
-    "rarity": null,
+    "rarity": "E",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -1622,7 +1622,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "085",
-    "rarity": null,
+    "rarity": "S",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1633,7 +1633,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "101",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Program"
   },
@@ -1644,7 +1644,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "086",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1655,7 +1655,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "123",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1666,7 +1666,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "124",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1677,7 +1677,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "135",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -1688,7 +1688,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "136",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -1699,7 +1699,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "087",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1710,7 +1710,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "094",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -1721,7 +1721,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "125",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1732,7 +1732,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "039",
-    "rarity": null,
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -1743,7 +1743,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "052",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1754,7 +1754,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "040",
-    "rarity": null,
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -1765,7 +1765,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "126",
-    "rarity": null,
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -1776,7 +1776,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "016",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1787,7 +1787,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "004",
-    "rarity": null,
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -1798,7 +1798,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "017",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1809,7 +1809,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "069",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -1820,7 +1820,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "088",
-    "rarity": null,
+    "rarity": "R",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1831,7 +1831,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "095",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -1842,7 +1842,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "109",
-    "rarity": null,
+    "rarity": "S",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -1853,7 +1853,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "026",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -1864,7 +1864,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "089",
-    "rarity": null,
+    "rarity": "R",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -1875,7 +1875,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "018",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1886,7 +1886,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "053",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1897,7 +1897,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "035",
-    "rarity": null,
+    "rarity": "R",
     "color": "Red",
     "cardType": "Program"
   },
@@ -1908,7 +1908,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "054",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1919,7 +1919,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "019",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -1930,7 +1930,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "102",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -1941,7 +1941,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "055",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -1952,7 +1952,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "103",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -1963,7 +1963,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "130",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -1974,7 +1974,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "070",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -1985,7 +1985,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "063",
-    "rarity": null,
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -1996,7 +1996,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "137",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -2007,7 +2007,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "138",
-    "rarity": null,
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -2018,7 +2018,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "056",
-    "rarity": null,
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -2029,7 +2029,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "139",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -2040,7 +2040,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "090",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -2051,7 +2051,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "140",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -2062,7 +2062,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "020",
-    "rarity": null,
+    "rarity": "E",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2073,7 +2073,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "005a",
-    "rarity": null,
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2084,7 +2084,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "005",
-    "rarity": null,
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2095,7 +2095,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "021",
-    "rarity": null,
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2106,7 +2106,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "091",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -2117,7 +2117,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "057",
-    "rarity": null,
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -2128,7 +2128,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "058",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -2139,7 +2139,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "110",
-    "rarity": null,
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -2150,7 +2150,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "104",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -2161,7 +2161,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "127",
-    "rarity": null,
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -2172,7 +2172,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "105",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Program"
   },
@@ -2183,7 +2183,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "092",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -2194,7 +2194,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "022",
-    "rarity": null,
+    "rarity": "R",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2205,7 +2205,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "096",
-    "rarity": null,
+    "rarity": "C",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -2216,7 +2216,7 @@
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
     "printNumber": "064",
-    "rarity": null,
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Gear"
   },
