@@ -2,7 +2,7 @@
   "_groups": {
     "24845": {
       "name": "Welcome to Night City - Beta",
-      "modifiedOn": "2026-10-15T19:00:07.43"
+      "modifiedOn": "2026-10-23T14:23:10.627"
     },
     "24846": {
       "name": "Embracing Power - Beta Starter Deck",
@@ -18,7 +18,7 @@
     },
     "24855": {
       "name": "Welcome to Night City - Retail",
-      "modifiedOn": "2026-10-22T18:51:54.85"
+      "modifiedOn": "2026-10-23T14:22:58.503"
     },
     "24857": {
       "name": "Box Toppers - Retail",
@@ -34,7 +34,7 @@
     },
     "24860": {
       "name": "Set 1 Promos",
-      "modifiedOn": "2026-10-15T18:54:21.53"
+      "modifiedOn": "2026-10-23T16:01:08.827"
     },
     "24880": {
       "name": "Pre-Release Beta",
@@ -368,7 +368,7 @@
     "groupId": 24860,
     "groupName": "Set 1 Promos",
     "printNumber": "008",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -379,7 +379,7 @@
     "groupId": 24860,
     "groupName": "Set 1 Promos",
     "printNumber": "005",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -390,7 +390,7 @@
     "groupId": 24860,
     "groupName": "Set 1 Promos",
     "printNumber": "007",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2777,7 +2777,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B001",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2821,7 +2821,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B005a",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -2843,7 +2843,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B006",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2854,7 +2854,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B007",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2865,7 +2865,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B008",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2876,7 +2876,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B009",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2887,7 +2887,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B010",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2909,7 +2909,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B012",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2920,7 +2920,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B013",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2942,7 +2942,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B015",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2953,7 +2953,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B016",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2964,7 +2964,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B017",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2975,7 +2975,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B018",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2986,7 +2986,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B019",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -2997,7 +2997,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B020",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -3008,7 +3008,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B021",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -3019,7 +3019,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B022",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -3030,7 +3030,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B023",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -3041,7 +3041,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B024",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -3052,7 +3052,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B025",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -3063,7 +3063,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B026",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -3074,7 +3074,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B027",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3085,7 +3085,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B028",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3107,7 +3107,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B030",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3118,7 +3118,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B031",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3129,7 +3129,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B032",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3140,7 +3140,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B033",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3151,7 +3151,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B034",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3162,7 +3162,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B035",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Red",
     "cardType": "Program"
   },
@@ -3195,7 +3195,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B038",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -3228,7 +3228,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B041",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3239,7 +3239,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B042",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3250,7 +3250,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B043",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3272,7 +3272,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B045",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3294,7 +3294,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B047",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3316,7 +3316,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B049",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3327,7 +3327,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B050",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3338,7 +3338,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B051",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3349,7 +3349,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B052",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3360,7 +3360,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B053",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3371,7 +3371,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B054",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3382,7 +3382,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B055",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3393,7 +3393,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B056",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3404,7 +3404,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B057",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3415,7 +3415,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B058",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -3426,7 +3426,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B059",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -3437,7 +3437,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B060",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -3448,7 +3448,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B061",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -3459,7 +3459,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B062",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -3470,7 +3470,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B063",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -3481,7 +3481,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B064",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -3492,7 +3492,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B065",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -3503,7 +3503,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B066",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -3514,7 +3514,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B067",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -3525,7 +3525,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B068",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -3536,7 +3536,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B069",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -3547,7 +3547,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B070",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -3558,7 +3558,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B071",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -3591,7 +3591,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B074",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -3613,7 +3613,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B076",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3624,7 +3624,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B077",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3635,7 +3635,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B078",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3646,7 +3646,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B079",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3657,7 +3657,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B080",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3668,7 +3668,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B081",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3679,7 +3679,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B082",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3690,7 +3690,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B083",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3701,7 +3701,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B084",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3723,7 +3723,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B086",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3734,7 +3734,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B087",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3767,7 +3767,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B090",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3778,7 +3778,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B091",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3789,7 +3789,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B092",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -3800,7 +3800,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B093",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -3811,7 +3811,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B094",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -3822,7 +3822,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B095",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -3833,7 +3833,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B096",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -3844,7 +3844,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B097",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3866,7 +3866,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B099",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3877,7 +3877,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B100",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3888,7 +3888,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B101",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3899,7 +3899,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B102",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3910,7 +3910,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B103",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3921,7 +3921,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B104",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3932,7 +3932,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B105",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Green",
     "cardType": "Program"
   },
@@ -3943,7 +3943,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B106",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -3954,7 +3954,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B107",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -3987,7 +3987,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B110",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -3998,7 +3998,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B111",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4009,7 +4009,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B112",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4020,7 +4020,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B113",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4031,7 +4031,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B114",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4042,7 +4042,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B115",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4064,7 +4064,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B117",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4075,7 +4075,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B118",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4086,7 +4086,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B119",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4097,7 +4097,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B120",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4108,7 +4108,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B121",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4119,7 +4119,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B122",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4130,7 +4130,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B123",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4141,7 +4141,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B124",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4152,7 +4152,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B125",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4163,7 +4163,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B126",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4174,7 +4174,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B127",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -4196,7 +4196,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B129",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -4207,7 +4207,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B130",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -4218,7 +4218,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B131",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4229,7 +4229,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B132",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4240,7 +4240,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B133",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4251,7 +4251,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B134",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4262,7 +4262,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B135",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4273,7 +4273,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B136",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4284,7 +4284,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B137",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4306,7 +4306,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B139",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4317,7 +4317,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B140",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4328,7 +4328,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B141",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -4339,7 +4339,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B142",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -4361,7 +4361,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B144",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -4372,7 +4372,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B145",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -4394,7 +4394,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B147",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -4405,7 +4405,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B148",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -4416,7 +4416,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B149",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -4427,7 +4427,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B150",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -4438,7 +4438,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B151",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -4449,7 +4449,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B152",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -4460,7 +4460,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B153",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -4471,7 +4471,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B154",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Green",
     "cardType": "Legend"
   },
@@ -4493,7 +4493,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B156",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -4504,7 +4504,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B157",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -4515,7 +4515,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B158",
-    "rarity": "Iconic Legend",
+    "rarity": "IL",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -4526,7 +4526,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B159",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -4537,7 +4537,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B160",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -4559,7 +4559,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B162",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -4581,7 +4581,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B164",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -4592,7 +4592,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B165",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Green",
     "cardType": "Gear"
   },
@@ -4614,7 +4614,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B167",
-    "rarity": "Iconic Other",
+    "rarity": "IO",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -4625,7 +4625,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B168",
-    "rarity": "Iconic Secret",
+    "rarity": "IS",
     "color": "Red",
     "cardType": "Legend"
   },
@@ -4636,7 +4636,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B169",
-    "rarity": "Iconic Secret",
+    "rarity": "IS",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -4658,7 +4658,7 @@
     "groupId": 24845,
     "groupName": "Welcome to Night City - Beta",
     "printNumber": "B171",
-    "rarity": "Iconic Secret",
+    "rarity": "IS",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -5076,7 +5076,7 @@
     "groupId": 24860,
     "groupName": "Set 1 Promos",
     "printNumber": "006",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -5288,5 +5288,16 @@
     "rarity": null,
     "color": null,
     "cardType": null
+  },
+  "725838": {
+    "productId": 725838,
+    "name": "Gorilla Arms (Pre-release)",
+    "cleanName": "Gorilla Arms Pre release",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "011",
+    "rarity": "NR",
+    "color": "Yellow",
+    "cardType": "Gear"
   }
 }
