@@ -51,7 +51,8 @@ def format_color(color: str) -> str:
 
 _L7D_GAINER_QUERY = """
 WITH evaluated AS (
-    SELECT m.name, m.rarity, m.color, m.finish, s.quantity,
+    SELECT m.name, m.expansion, m.print_number, m.rarity, m.color, m.finish,
+           COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS card_type, s.quantity,
            COALESCE(NULLIF(s.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS curr_price,
            COALESCE(NULLIF(prev.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS prev_price,
            m.item_type,
@@ -61,19 +62,22 @@ WITH evaluated AS (
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
 )
-SELECT name, rarity, color, finish, quantity, curr_price, prev_price,
-       ROUND((curr_price - prev_price) * quantity, 2) AS dollar_gain,
-       CASE WHEN prev_price > 0 THEN ROUND(((curr_price - prev_price) / prev_price) * 100.0, 1) ELSE 0.0 END AS pct_gain,
-       acq_date
+SELECT name, rarity, color, finish, SUM(quantity) AS quantity,
+       MAX(curr_price) AS curr_price, MAX(prev_price) AS prev_price,
+       ROUND((MAX(curr_price) - MAX(prev_price)) * SUM(quantity), 2) AS dollar_gain,
+       CASE WHEN MAX(prev_price) > 0 THEN ROUND(((MAX(curr_price) - MAX(prev_price)) / MAX(prev_price)) * 100.0, 1) ELSE 0.0 END AS pct_gain,
+       MIN(acq_date) AS acq_date
 FROM evaluated
-WHERE curr_price > prev_price
-ORDER BY (curr_price - prev_price) DESC
+GROUP BY expansion, print_number, finish, name, rarity, color, card_type
+HAVING MAX(curr_price) > MAX(prev_price)
+ORDER BY (MAX(curr_price) - MAX(prev_price)) DESC, pct_gain DESC, name ASC
 LIMIT 5
 """
 
 _L7D_DECLINER_QUERY = """
 WITH evaluated AS (
-    SELECT m.name, m.rarity, m.color, m.finish, s.quantity,
+    SELECT m.name, m.expansion, m.print_number, m.rarity, m.color, m.finish,
+           COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS card_type, s.quantity,
            COALESCE(NULLIF(s.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS curr_price,
            COALESCE(NULLIF(prev.unit_market_price, 0.0), m.baseline_market_price, 0.0) AS prev_price,
            m.item_type,
@@ -83,13 +87,15 @@ WITH evaluated AS (
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
 )
-SELECT name, rarity, color, finish, quantity, curr_price, prev_price,
-       ROUND((curr_price - prev_price) * quantity, 2) AS dollar_gain,
-       CASE WHEN prev_price > 0 THEN ROUND(((curr_price - prev_price) / prev_price) * 100.0, 1) ELSE 0.0 END AS pct_gain,
-       acq_date
+SELECT name, rarity, color, finish, SUM(quantity) AS quantity,
+       MAX(curr_price) AS curr_price, MAX(prev_price) AS prev_price,
+       ROUND((MAX(curr_price) - MAX(prev_price)) * SUM(quantity), 2) AS dollar_gain,
+       CASE WHEN MAX(prev_price) > 0 THEN ROUND(((MAX(curr_price) - MAX(prev_price)) / MAX(prev_price)) * 100.0, 1) ELSE 0.0 END AS pct_gain,
+       MIN(acq_date) AS acq_date
 FROM evaluated
-WHERE curr_price < prev_price
-ORDER BY (curr_price - prev_price) ASC
+GROUP BY expansion, print_number, finish, name, rarity, color, card_type
+HAVING MAX(curr_price) < MAX(prev_price)
+ORDER BY (MAX(curr_price) - MAX(prev_price)) ASC, pct_gain ASC, name ASC
 LIMIT 5
 """
 
@@ -248,24 +254,36 @@ def fetch_l7d_movers(cur: sqlite3.Cursor, l7d_date: str, latest_date: str, is_ga
 def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str, Any]:
     """Queries top lifetime and L7D performance movers and high value cards."""
     cur.execute("""
-    SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
-           s.lifetime_gain_dollar, s.lifetime_gain_pct, COALESCE(m.first_seen_date, '') AS acq_date
+    SELECT m.name, m.rarity, m.color, m.finish, SUM(s.quantity) AS quantity,
+           MAX(s.unit_market_price) AS unit_market_price,
+           ROUND(SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0), 2) AS baseline_price,
+           ROUND(SUM(s.lifetime_gain_dollar), 2) AS lifetime_gain_dollar,
+           CASE WHEN SUM(s.baseline_price * s.quantity) > 0 THEN ROUND((SUM(s.lifetime_gain_dollar) / SUM(s.baseline_price * s.quantity)) * 100.0, 1) ELSE 0.0 END AS lifetime_gain_pct,
+           MIN(COALESCE(m.first_seen_date, '')) AS acq_date
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.lifetime_gain_dollar > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
-    ORDER BY (s.unit_market_price - s.baseline_price) DESC
-    LIMIT 5
+    WHERE s.date = ? AND s.unit_market_price > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
+    GROUP BY m.expansion, m.print_number, m.finish, m.name, m.rarity, m.color
+    HAVING SUM(s.lifetime_gain_dollar) > 0
+    ORDER BY (MAX(s.unit_market_price) - (SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0))) DESC, lifetime_gain_pct DESC, m.name ASC
+    LIMIT 10
     """, (latest_date,))
     top_gainers = cur.fetchall()
 
     cur.execute("""
-    SELECT m.name, m.rarity, m.color, m.finish, s.quantity, s.unit_market_price, s.baseline_price,
-           s.lifetime_gain_dollar, s.lifetime_gain_pct, COALESCE(m.first_seen_date, '') AS acq_date
+    SELECT m.name, m.rarity, m.color, m.finish, SUM(s.quantity) AS quantity,
+           MAX(s.unit_market_price) AS unit_market_price,
+           ROUND(SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0), 2) AS baseline_price,
+           ROUND(SUM(s.lifetime_gain_dollar), 2) AS lifetime_gain_dollar,
+           CASE WHEN SUM(s.baseline_price * s.quantity) > 0 THEN ROUND((SUM(s.lifetime_gain_dollar) / SUM(s.baseline_price * s.quantity)) * 100.0, 1) ELSE 0.0 END AS lifetime_gain_pct,
+           MIN(COALESCE(m.first_seen_date, '')) AS acq_date
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
-    WHERE s.date = ? AND s.lifetime_gain_dollar < 0 AND s.unit_market_price > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
-    ORDER BY (s.unit_market_price - s.baseline_price) ASC
-    LIMIT 5
+    WHERE s.date = ? AND s.unit_market_price > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
+    GROUP BY m.expansion, m.print_number, m.finish, m.name, m.rarity, m.color
+    HAVING SUM(s.lifetime_gain_dollar) < 0
+    ORDER BY (MAX(s.unit_market_price) - (SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0))) ASC, lifetime_gain_pct ASC, m.name ASC
+    LIMIT 10
     """, (latest_date,))
     top_decliners = cur.fetchall()
 
