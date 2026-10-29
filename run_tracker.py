@@ -29,10 +29,12 @@ from tracker.cardnexus import sync_cardnexus_collection
 from tracker.purchases import (
     sync_purchase_history,
     get_purchase_history_updated_at,
-    validate_cash_record,
+    validate_manual_record,
     validate_amount_string,
     validate_date_string,
-    build_cash_sentinel_payload,
+    build_manual_sentinel_payload,
+    get_default_merchant,
+    VALID_PAYMENT_METHODS,
 )
 from tracker.constants import CACHE_TTL_24H_SECONDS
 
@@ -110,22 +112,52 @@ def build_add_cash_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def handle_add_cash_subcommand(
-    cash_args: argparse.Namespace,
+def build_add_manual_parser() -> argparse.ArgumentParser:
+    """Builds and returns the CLI parser for the add-manual subcommand."""
+    parser = argparse.ArgumentParser(
+        prog="run_tracker.py add-manual",
+        description="Record a manual purchase without a receipt into purchase history and exit",
+    )
+    parser.add_argument("--date", dest="cash_date", help="Purchase date in YYYY-MM-DD format (defaults to current date)")
+    parser.add_argument("--amount", dest="cash_amount", help="Purchase amount in USD (positive number, e.g. 35.00)")
+    parser.add_argument("--merchant", dest="cash_merchant", help="Store or seller name")
+    parser.add_argument("--description", dest="cash_description", help="Description of items acquired")
+    parser.add_argument("--method", dest="method", choices=VALID_PAYMENT_METHODS, help=f"Payment method ({', '.join(VALID_PAYMENT_METHODS)})")
+    return parser
+
+
+def handle_add_manual_subcommand(
+    args: argparse.Namespace,
     root_config: argparse.Namespace,
+    forced_method: Optional[str] = None,
     interactive: Optional[bool] = None,
 ) -> int:
-    """Handles adding a cash purchase record without a receipt."""
+    """Handles adding a manual purchase record without a receipt."""
     if interactive is None:
         interactive = sys.stdin.isatty()
 
-    date_input = cash_args.cash_date
-    amount_input = cash_args.cash_amount
-    merchant_input = cash_args.cash_merchant
-    desc_input = cash_args.cash_description
+    if forced_method:
+        method_input = forced_method
+    elif getattr(args, "method", None):
+        method_input = args.method
+    elif interactive:
+        while True:
+            cand = input(f"Enter payment method ({', '.join(VALID_PAYMENT_METHODS)}) [press Enter for default: card]: ").strip().lower() or "card"
+            if cand in VALID_PAYMENT_METHODS:
+                method_input = cand
+                break
+            print(f"Invalid payment method '{cand}'. Must be one of: {', '.join(VALID_PAYMENT_METHODS)}")
+    else:
+        print(f"Error: --method is required for add-manual in non-interactive mode. Choices: {', '.join(VALID_PAYMENT_METHODS)}", file=sys.stderr)
+        return 1
+
+    date_input = args.cash_date
+    amount_input = args.cash_amount
+    merchant_input = args.cash_merchant
+    desc_input = args.cash_description
 
     if interactive:
-        print("\n--- Record Cash Purchase (No Receipt) ---")
+        print(f"\n--- Record {method_input.capitalize()} Purchase (No Receipt) ---")
         today_str = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
 
         if not date_input:
@@ -146,8 +178,9 @@ def handle_add_cash_subcommand(
                 print("Invalid amount. Must be positive number formatted as integer or 2 decimal places (e.g. 10 or 10.00).")
 
         if not merchant_input:
-            m_str = input("Enter merchant / seller name [press Enter for default: Cash Purchase]: ").strip()
-            merchant_input = m_str or "Cash Purchase"
+            default_m = get_default_merchant(method_input)
+            m_str = input(f"Enter merchant / seller name [press Enter for default: {default_m}]: ").strip()
+            merchant_input = m_str or default_m
 
         if not desc_input:
             d_str = input("Enter description (optional): ").strip()
@@ -157,11 +190,12 @@ def handle_add_cash_subcommand(
         date_input = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
 
     try:
-        val_date, val_merchant, val_amount, val_desc = validate_cash_record(
+        val_date, val_merchant, val_amount, val_desc = validate_manual_record(
             date_val=date_input,
             amount_val=amount_input,
             merchant_val=merchant_input,
             description_val=desc_input,
+            method_val=method_input,
         )
     except ValueError as err:
         print(f"Error: {err}", file=sys.stderr)
@@ -184,25 +218,26 @@ def handle_add_cash_subcommand(
 
     vendor_slug = re.sub(r"[^a-z0-9]+", "_", val_merchant.lower()).strip("_") or "cash_purchase"
     item_slug = re.sub(r"[^a-z0-9]+", "_", (desc_input or "").lower()).strip("_") or "item"
-    base_name = f"{val_date}_{vendor_slug}_{item_slug}_cash.json"
+    base_name = f"{val_date}_{vendor_slug}_{item_slug}_manual.json"
     target_file = os.path.join(purchase_dir, base_name)
 
     counter = 2
     while os.path.exists(target_file):
-        target_file = os.path.join(purchase_dir, f"{val_date}_{vendor_slug}_{item_slug}_cash_{counter}.json")
+        target_file = os.path.join(purchase_dir, f"{val_date}_{vendor_slug}_{item_slug}_manual_{counter}.json")
         counter += 1
 
-    payload = build_cash_sentinel_payload(
+    payload = build_manual_sentinel_payload(
         date=val_date,
         merchant=val_merchant,
         amount=val_amount,
         description=val_desc,
+        method=method_input,
     )
 
     try:
         with open(target_file, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2)
-        print(f"\nSuccessfully recorded cash purchase:")
+        print(f"\nSuccessfully recorded {method_input} purchase:")
         print(f"  Date:        {val_date}")
         print(f"  Merchant:    {val_merchant}")
         print(f"  Amount:      ${val_amount:,.2f}")
@@ -210,7 +245,7 @@ def handle_add_cash_subcommand(
         print(f"  Saved to:    {target_file}")
         return 0
     except OSError as err:
-        print(f"Error: Failed to write cash purchase record to '{target_file}': {err}", file=sys.stderr)
+        print(f"Error: Failed to write {method_input} purchase record to '{target_file}': {err}", file=sys.stderr)
         return 1
 
 
@@ -374,7 +409,11 @@ def main(argv: Optional[List[str]] = None):
     if remaining and remaining[0] in ("add-cash", "add-cash-purchase"):
         cash_parser = build_add_cash_parser()
         cash_args = cash_parser.parse_args(remaining[1:])
-        sys.exit(handle_add_cash_subcommand(cash_args=cash_args, root_config=known_root))
+        sys.exit(handle_add_manual_subcommand(args=cash_args, root_config=known_root, forced_method="cash"))
+    elif remaining and remaining[0] == "add-manual":
+        manual_parser = build_add_manual_parser()
+        manual_args = manual_parser.parse_args(remaining[1:])
+        sys.exit(handle_add_manual_subcommand(args=manual_args, root_config=known_root, forced_method=None))
 
     parser = build_tracker_argument_parser()
     args = parser.parse_args(argv)

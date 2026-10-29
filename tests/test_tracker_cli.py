@@ -592,7 +592,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
             run_tracker.main(argv)
         self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / "2026-09-15_local_game_store_3x_booster_packs_cash.json"
+        created_file = self.purchase_dir / "2026-09-15_local_game_store_3x_booster_packs_manual.json"
         self.assertTrue(created_file.is_file())
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -601,7 +601,8 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
         self.assertIsInstance(data["amount"], int)
         self.assertEqual(data["merchant"], "Local Game Store")
         self.assertEqual(data["description"], "3x booster packs")
-        self.assertTrue(data["cash"])
+        self.assertTrue(data["manual"])
+        self.assertEqual(data["method"], "cash")
 
     def test_add_cash_with_preceding_root_flags(self):
         argv = [
@@ -614,7 +615,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
             run_tracker.main(argv)
         self.assertEqual(cm.exception.code, 0)
 
-        created_files = list(self.purchase_dir.glob("*_downtown_cards_item_cash.json"))
+        created_files = list(self.purchase_dir.glob("*_downtown_cards_item_manual.json"))
         self.assertEqual(len(created_files), 1)
 
     def test_add_cash_interactive_prompts(self):
@@ -624,7 +625,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
                 run_tracker.main(argv)
             self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / "2026-09-16_corner_shop_draft_entry_cash.json"
+        created_file = self.purchase_dir / "2026-09-16_corner_shop_draft_entry_manual.json"
         self.assertTrue(created_file.is_file())
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -642,7 +643,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
                 run_tracker.main(argv)
             self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / "2026-09-16_corner_shop_draft_entry_cash.json"
+        created_file = self.purchase_dir / "2026-09-16_corner_shop_draft_entry_manual.json"
         self.assertTrue(created_file.is_file())
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -660,7 +661,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
                 run_tracker.main(argv)
             self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / f"{today_str}_cash_purchase_item_cash.json"
+        created_file = self.purchase_dir / f"{today_str}_cash_purchase_item_manual.json"
         self.assertTrue(created_file.is_file())
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -678,7 +679,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
 
     def test_add_cash_collision_resolution(self):
         self.purchase_dir.mkdir(parents=True, exist_ok=True)
-        file1 = self.purchase_dir / "2026-09-15_local_game_store_item_cash.json"
+        file1 = self.purchase_dir / "2026-09-15_local_game_store_item_manual.json"
         file1.write_text('{"existing": true}', encoding="utf-8")
 
         argv = [
@@ -692,8 +693,133 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
             run_tracker.main(argv)
         self.assertEqual(cm.exception.code, 0)
 
-        file2 = self.purchase_dir / "2026-09-15_local_game_store_item_cash_2.json"
+        file2 = self.purchase_dir / "2026-09-15_local_game_store_item_manual_2.json"
         self.assertTrue(file2.is_file())
+
+    def test_add_cash_rejects_method_flag(self):
+        argv = [
+            "--config", str(self.config_json),
+            "add-cash",
+            "--method", "card",
+            "--amount", "10.00",
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertNotEqual(cm.exception.code, 0)
+
+    def test_add_cash_purchase_alias_routes_to_cash(self):
+        argv = [
+            "--config", str(self.config_json),
+            "add-cash-purchase",
+            "--date", "2026-09-15",
+            "--amount", "19.99",
+            "--merchant", "Alias Store",
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertEqual(cm.exception.code, 0)
+        created_file = self.purchase_dir / "2026-09-15_alias_store_item_manual.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertTrue(data["manual"])
+        self.assertEqual(data["method"], "cash")
+
+    def test_add_manual_non_interactive_without_method_fails(self):
+        argv = [
+            "--config", str(self.config_json),
+            "add-manual",
+            "--date", "2026-09-15",
+            "--amount", "35.00",
+        ]
+        with patch("sys.stdin.isatty", return_value=False):
+            with self.assertRaises(SystemExit) as cm:
+                run_tracker.main(argv)
+            self.assertEqual(cm.exception.code, 1)
+
+    def test_add_manual_non_interactive_card_success(self):
+        argv = [
+            "--config", str(self.config_json),
+            "add-manual",
+            "--method", "card",
+            "--date", "2026-09-15",
+            "--amount", "45.00",
+            "--merchant", "Online Store",
+            "--description", "Singles order",
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertEqual(cm.exception.code, 0)
+
+        created_file = self.purchase_dir / "2026-09-15_online_store_singles_order_manual.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["date"], "2026-09-15")
+        self.assertEqual(data["amount"], 45)
+        self.assertIsInstance(data["amount"], int)
+        self.assertEqual(data["merchant"], "Online Store")
+        self.assertEqual(data["description"], "Singles order")
+        self.assertTrue(data["manual"])
+        self.assertEqual(data["method"], "card")
+
+    def test_add_manual_non_interactive_cash_method(self):
+        argv = [
+            "--config", str(self.config_json),
+            "add-manual",
+            "--method", "cash",
+            "--date", "2026-09-15",
+            "--amount", "12.00",
+            "--merchant", "Market Stand",
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertEqual(cm.exception.code, 0)
+
+        created_file = self.purchase_dir / "2026-09-15_market_stand_item_manual.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertTrue(data["manual"])
+        self.assertEqual(data["method"], "cash")
+
+    def test_add_manual_interactive_prompts_and_blank_merchant(self):
+        argv = ["--config", str(self.config_json), "add-manual"]
+        with patch("sys.stdin.isatty", return_value=True), patch(
+            "builtins.input",
+            side_effect=["card", "2026-09-16", "50.00", "", ""],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                run_tracker.main(argv)
+            self.assertEqual(cm.exception.code, 0)
+
+        created_file = self.purchase_dir / "2026-09-16_manual_purchase_item_manual.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["date"], "2026-09-16")
+        self.assertEqual(data["amount"], 50)
+        self.assertIsInstance(data["amount"], int)
+        self.assertEqual(data["merchant"], "Manual Purchase")
+        self.assertEqual(data["description"], "Manual Purchase Purchase (2026-09-16)")
+        self.assertTrue(data["manual"])
+        self.assertEqual(data["method"], "card")
+
+    def test_add_manual_interactive_with_method_flag_skips_method_prompt(self):
+        argv = ["--config", str(self.config_json), "add-manual", "--method", "transfer"]
+        with patch("sys.stdin.isatty", return_value=True), patch(
+            "builtins.input",
+            side_effect=["2026-09-16", "60.00", "Bank", "Wire transfer"],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                run_tracker.main(argv)
+            self.assertEqual(cm.exception.code, 0)
+
+        created_file = self.purchase_dir / "2026-09-16_bank_wire_transfer_manual.json"
+        self.assertTrue(created_file.is_file())
+        with open(created_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual(data["method"], "transfer")
 
     def test_drag_and_drop_csv_not_broken_by_subcommand(self):
         collection_file = self.test_dir / "drag_and_drop_collection.csv"

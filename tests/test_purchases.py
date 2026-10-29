@@ -29,9 +29,10 @@ from tracker.purchases import (
     load_purchase_cache,
     save_purchase_cache,
     sync_purchase_history,
-    validate_cash_record,
+    validate_manual_record,
     validate_date_string,
-    build_cash_sentinel_payload,
+    build_manual_sentinel_payload,
+    VALID_PAYMENT_METHODS,
 )
 from tracker.validation import CollectionValidationError
 from tracker.valuation import init_database, calculate_portfolio_valuation
@@ -382,20 +383,25 @@ class TestPurchaseHistory(unittest.TestCase):
         formatted_iso = get_purchase_history_updated_at(str(cache_file))
         self.assertEqual(formatted_iso, "2026-09-25 02:30 PM")
 
-    def test_validate_cash_record_valid_and_defaults(self):
+    def test_validate_manual_record_valid_and_defaults(self):
         # Explicit fields
-        d, m, a, desc = validate_cash_record("2026-09-15", "35.00", "Local Game Store", "3x packs")
+        d, m, a, desc = validate_manual_record("2026-09-15", "35.00", "Local Game Store", "3x packs", method_val="cash")
         self.assertEqual(d, "2026-09-15")
         self.assertEqual(m, "Local Game Store")
         self.assertEqual(a, 35.00)
         self.assertEqual(desc, "3x packs")
 
-        # Defaults for merchant and description
-        d2, m2, a2, desc2 = validate_cash_record("2026-09-15", 50, None, None)
+        # Defaults for cash merchant and description
+        d2, m2, a2, desc2 = validate_manual_record("2026-09-15", 50, None, None, method_val="cash")
         self.assertEqual(d2, "2026-09-15")
         self.assertEqual(m2, "Cash Purchase")
         self.assertEqual(a2, 50.00)
         self.assertEqual(desc2, "Cash Purchase Purchase (2026-09-15)")
+
+        # Defaults for non-cash merchant
+        d3, m3, a3, desc3 = validate_manual_record("2026-09-15", 50, None, None, method_val="card")
+        self.assertEqual(m3, "Manual Purchase")
+        self.assertEqual(desc3, "Manual Purchase Purchase (2026-09-15)")
 
     def test_validate_date_string(self):
         self.assertEqual(validate_date_string("2026-09-15"), "2026-09-15")
@@ -407,22 +413,28 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertIsNone(validate_date_string(None))
         self.assertIsNone(validate_date_string(12345))
 
-    def test_validate_cash_record_invalid(self):
+    def test_validate_manual_record_invalid(self):
         # Invalid dates
         with self.assertRaises(ValueError):
-            validate_cash_record("invalid-date", "35.00", "Store")
+            validate_manual_record("invalid-date", "35.00", "Store", method_val="cash")
         with self.assertRaises(ValueError):
-            validate_cash_record("2026-02-31", "35.00", "Store")
+            validate_manual_record("2026-02-31", "35.00", "Store", method_val="cash")
         with self.assertRaises(ValueError):
-            validate_cash_record("Sep 15, 2026", "35.00", "Store")
+            validate_manual_record("Sep 15, 2026", "35.00", "Store", method_val="cash")
 
         # Invalid amounts
         with self.assertRaises(ValueError):
-            validate_cash_record("2026-09-15", "0.00", "Store")
+            validate_manual_record("2026-09-15", "0.00", "Store", method_val="cash")
         with self.assertRaises(ValueError):
-            validate_cash_record("2026-09-15", "-10.00", "Store")
+            validate_manual_record("2026-09-15", "-10.00", "Store", method_val="cash")
         with self.assertRaises(ValueError):
-            validate_cash_record("2026-09-15", "not_a_number", "Store")
+            validate_manual_record("2026-09-15", "not_a_number", "Store", method_val="cash")
+
+        # Invalid methods
+        with self.assertRaises(ValueError):
+            validate_manual_record("2026-09-15", "35.00", "Store", method_val="invalid")
+        with self.assertRaises(ValueError):
+            validate_manual_record("2026-09-15", "35.00", "Store", method_val="")
 
     def test_parse_receipt_document_cash_sentinel_valid(self):
         cash_file = self.purchase_dir / "cash_2026-09-15_local_game_store.json"
@@ -523,20 +535,26 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertTrue(changed3)
         self.assertEqual(records3[0].amount, 35.00)
 
-    def test_build_cash_sentinel_payload_amount_formatting(self):
+    def test_build_manual_sentinel_payload_amount_formatting(self):
         # Whole-dollar amounts serialize as integers
-        p10 = build_cash_sentinel_payload("2026-10-04", "Store", 10.0, "Items")
+        p10 = build_manual_sentinel_payload("2026-10-04", "Store", 10.0, "Items", method="cash")
         self.assertEqual(p10["amount"], 10)
         self.assertIsInstance(p10["amount"], int)
+        self.assertTrue(p10["manual"])
+        self.assertEqual(p10["method"], "cash")
 
-        p35 = build_cash_sentinel_payload("2026-09-15", "Store", 35.0, "Items")
+        p35 = build_manual_sentinel_payload("2026-09-15", "Store", 35.0, "Items", method="card")
         self.assertEqual(p35["amount"], 35)
         self.assertIsInstance(p35["amount"], int)
+        self.assertTrue(p35["manual"])
+        self.assertEqual(p35["method"], "card")
 
         # Fractional-dollar amounts preserve float decimals
-        p12 = build_cash_sentinel_payload("2026-10-04", "Store", 12.55, "Items")
+        p12 = build_manual_sentinel_payload("2026-10-04", "Store", 12.55, "Items", method="transfer")
         self.assertEqual(p12["amount"], 12.55)
         self.assertIsInstance(p12["amount"], float)
+        self.assertTrue(p12["manual"])
+        self.assertEqual(p12["method"], "transfer")
 
         # JSON text formatting check
         s10 = json.dumps(p10)
@@ -546,9 +564,9 @@ class TestPurchaseHistory(unittest.TestCase):
         s12 = json.dumps(p12)
         self.assertIn('"amount": 12.55', s12)
 
-    def test_cash_sentinel_integer_round_trip(self):
-        payload = build_cash_sentinel_payload("2026-09-15", "Local Game Store", 35.0, "3x packs")
-        sentinel_file = self.purchase_dir / "2026-09-15_local_game_store_roundtrip_cash.json"
+    def test_manual_sentinel_integer_round_trip(self):
+        payload = build_manual_sentinel_payload("2026-09-15", "Local Game Store", 35.0, "3x packs", method="cash")
+        sentinel_file = self.purchase_dir / "2026-09-15_local_game_store_roundtrip_manual.json"
         with open(sentinel_file, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2)
 
@@ -561,6 +579,123 @@ class TestPurchaseHistory(unittest.TestCase):
         p_date, p_merchant, p_amount, p_desc = parsed
         self.assertEqual(p_amount, 35.0)
         self.assertIsInstance(p_amount, float)
+
+    def test_parse_receipt_document_manual_sentinel_card_valid(self):
+        card_file = self.purchase_dir / "2026-09-15_local_game_store_card_manual.json"
+        card_file.write_text(
+            json.dumps({
+                "date": "2026-09-15",
+                "amount": 42.50,
+                "merchant": "Local Game Store",
+                "description": "Card payment for singles",
+                "manual": True,
+                "method": "card",
+            }),
+            encoding="utf-8",
+        )
+        parsed = parse_receipt_document(str(card_file))
+        self.assertIsNotNone(parsed)
+        d, m, a, desc = parsed
+        self.assertEqual(d, "2026-09-15")
+        self.assertEqual(m, "Local Game Store")
+        self.assertEqual(a, 42.50)
+        self.assertEqual(desc, "Card payment for singles")
+
+    def test_parse_receipt_document_manual_sentinel_invalid_or_missing_method(self):
+        # Missing method
+        missing_method_file = self.purchase_dir / "missing_method_manual.json"
+        missing_method_file.write_text(
+            json.dumps({
+                "date": "2026-09-15",
+                "amount": 20.00,
+                "merchant": "Store",
+                "manual": True,
+            }),
+            encoding="utf-8",
+        )
+        with self.assertRaises(CollectionValidationError):
+            parse_receipt_document(str(missing_method_file))
+
+        # Invalid method
+        invalid_method_file = self.purchase_dir / "invalid_method_manual.json"
+        invalid_method_file.write_text(
+            json.dumps({
+                "date": "2026-09-15",
+                "amount": 20.00,
+                "merchant": "Store",
+                "manual": True,
+                "method": "venmo",
+            }),
+            encoding="utf-8",
+        )
+        with self.assertRaises(CollectionValidationError):
+            parse_receipt_document(str(invalid_method_file))
+
+    def test_parse_receipt_document_sentinel_precedence(self):
+        # Both manual: true and cash: true present -> manual takes precedence (requires valid method)
+        precedence_file = self.purchase_dir / "precedence_manual.json"
+        precedence_file.write_text(
+            json.dumps({
+                "date": "2026-09-15",
+                "amount": 55.00,
+                "merchant": "Store",
+                "manual": True,
+                "cash": True,
+                "method": "transfer",
+            }),
+            encoding="utf-8",
+        )
+        parsed = parse_receipt_document(str(precedence_file))
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed[2], 55.00)
+
+        # Both present but method is invalid -> fails under manual validation
+        invalid_prec_file = self.purchase_dir / "invalid_precedence_manual.json"
+        invalid_prec_file.write_text(
+            json.dumps({
+                "date": "2026-09-15",
+                "amount": 55.00,
+                "merchant": "Store",
+                "manual": True,
+                "cash": True,
+                "method": "invalid_method",
+            }),
+            encoding="utf-8",
+        )
+        with self.assertRaises(CollectionValidationError):
+            parse_receipt_document(str(invalid_prec_file))
+
+    def test_sync_purchase_history_manual_durability(self):
+        manual_file = self.purchase_dir / "2026-09-15_store_singles_manual.json"
+        manual_file.write_text(
+            json.dumps({
+                "date": "2026-09-15",
+                "amount": 75.00,
+                "merchant": "Game Shop",
+                "description": "Booster Box",
+                "manual": True,
+                "method": "card",
+            }),
+            encoding="utf-8",
+        )
+        total, records, changed = sync_purchase_history(
+            str(self.purchase_dir),
+            reparse=False,
+            interactive=False,
+        )
+        self.assertEqual(total, 75.00)
+        self.assertEqual(len(records), 1)
+        self.assertTrue(changed)
+        self.assertEqual(records[0].merchant, "Game Shop")
+
+        # Reparse retains sentinel
+        total2, records2, changed2 = sync_purchase_history(
+            str(self.purchase_dir),
+            reparse=True,
+            interactive=False,
+        )
+        self.assertEqual(total2, 75.00)
+        self.assertEqual(len(records2), 1)
 
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
