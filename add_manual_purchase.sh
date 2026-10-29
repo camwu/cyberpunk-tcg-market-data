@@ -3,6 +3,6 @@ set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
 echo "================================================================"
-echo "  CYBERPUNK TCG - RECORD CASH PURCHASE (NO RECEIPT)"
+echo "  CYBERPUNK TCG - RECORD MANUAL PURCHASE (NO RECEIPT)"
 echo "================================================================"
-python3 "$DIR/run_tracker.py" add-cash "$@"
+python3 "$DIR/run_tracker.py" add-manual "$@"

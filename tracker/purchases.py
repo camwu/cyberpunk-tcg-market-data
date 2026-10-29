@@ -25,12 +25,6 @@ except ImportError:
 
 SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".txt", ".json"}
 SHA256_CHUNK_SIZE = 65536
-VALID_PAYMENT_METHODS = ("cash", "card", "transfer", "other")
-
-
-def get_default_merchant(method: str) -> str:
-    """Returns the default merchant string for a given payment method."""
-    return "Cash Purchase" if method == "cash" else "Manual Purchase"
 
 
 @dataclass
@@ -158,18 +152,11 @@ def validate_manual_record(
     amount_val: Any,
     merchant_val: Any,
     description_val: Any = None,
-    *,
-    method_val: str,
 ) -> Tuple[str, str, float, str]:
     """
     Validates and normalizes fields for a manual purchase record.
     Returns (date, merchant, amount, description) or raises ValueError.
     """
-    if not method_val or method_val not in VALID_PAYMENT_METHODS:
-        raise ValueError(
-            f"Invalid payment method '{method_val}'. Must be one of: {', '.join(VALID_PAYMENT_METHODS)}."
-        )
-
     date_str = str(date_val or "").strip()
     parsed_date = validate_date_string(date_str)
     if not parsed_date:
@@ -187,7 +174,7 @@ def validate_manual_record(
                 f"Invalid purchase amount '{amount_val}'. Must be positive number formatted as integer or 2 decimal places (e.g. 10 or 10.00)."
             )
 
-    merchant = str(merchant_val or "").strip() or get_default_merchant(method_val)
+    merchant = str(merchant_val or "").strip() or "Manual Purchase"
     desc = str(description_val or "").strip() or f"{merchant} Purchase ({parsed_date})"
 
     return parsed_date, merchant, parsed_amount, desc
@@ -198,8 +185,6 @@ def build_manual_sentinel_payload(
     merchant: str,
     amount: float,
     description: str,
-    *,
-    method: str,
 ) -> Dict[str, Any]:
     """
     Constructs a JSON-serializable dictionary for a manual purchase sentinel file.
@@ -212,7 +197,6 @@ def build_manual_sentinel_payload(
         "amount": serializable_amount,
         "merchant": merchant,
         "description": description,
-        "method": method,
         "manual": True,
     }
 
@@ -299,7 +283,6 @@ def parse_receipt_document(
                         amount_val=data.get("amount"),
                         merchant_val=data.get("merchant"),
                         description_val=data.get("description"),
-                        method_val=data.get("method"),
                     )
                 except ValueError as err:
                     raise CollectionValidationError(
@@ -312,7 +295,6 @@ def parse_receipt_document(
                         amount_val=data.get("amount"),
                         merchant_val=data.get("merchant"),
                         description_val=data.get("description"),
-                        method_val="cash",
                     )
                 except ValueError as err:
                     raise CollectionValidationError(

@@ -602,7 +602,7 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
         self.assertEqual(data["merchant"], "Local Game Store")
         self.assertEqual(data["description"], "3x booster packs")
         self.assertTrue(data["manual"])
-        self.assertEqual(data["method"], "cash")
+        self.assertNotIn("method", data)
 
     def test_add_cash_with_preceding_root_flags(self):
         argv = [
@@ -723,25 +723,23 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
         with open(created_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         self.assertTrue(data["manual"])
-        self.assertEqual(data["method"], "cash")
+        self.assertNotIn("method", data)
 
-    def test_add_manual_non_interactive_without_method_fails(self):
+    def test_add_manual_non_interactive_without_amount_fails(self):
         argv = [
             "--config", str(self.config_json),
             "add-manual",
             "--date", "2026-09-15",
-            "--amount", "35.00",
         ]
         with patch("sys.stdin.isatty", return_value=False):
             with self.assertRaises(SystemExit) as cm:
                 run_tracker.main(argv)
             self.assertEqual(cm.exception.code, 1)
 
-    def test_add_manual_non_interactive_card_success(self):
+    def test_add_manual_non_interactive_success(self):
         argv = [
             "--config", str(self.config_json),
             "add-manual",
-            "--method", "card",
             "--date", "2026-09-15",
             "--amount", "45.00",
             "--merchant", "Online Store",
@@ -761,33 +759,35 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
         self.assertEqual(data["merchant"], "Online Store")
         self.assertEqual(data["description"], "Singles order")
         self.assertTrue(data["manual"])
-        self.assertEqual(data["method"], "card")
+        self.assertNotIn("method", data)
 
-    def test_add_manual_non_interactive_cash_method(self):
+    def test_add_manual_non_interactive_omitted_date_defaults_to_today(self):
+        today_str = datetime.datetime.now().astimezone().strftime("%Y-%m-%d")
         argv = [
             "--config", str(self.config_json),
             "add-manual",
-            "--method", "cash",
-            "--date", "2026-09-15",
-            "--amount", "12.00",
-            "--merchant", "Market Stand",
+            "--amount", "29.99",
+            "--merchant", "Downtown Hobby",
         ]
         with self.assertRaises(SystemExit) as cm:
             run_tracker.main(argv)
         self.assertEqual(cm.exception.code, 0)
 
-        created_file = self.purchase_dir / "2026-09-15_market_stand_item_manual.json"
-        self.assertTrue(created_file.is_file())
-        with open(created_file, "r", encoding="utf-8") as f:
+        created_files = list(self.purchase_dir.glob(f"{today_str}_downtown_hobby_item_manual.json"))
+        self.assertEqual(len(created_files), 1)
+        with open(created_files[0], "r", encoding="utf-8") as f:
             data = json.load(f)
+        self.assertEqual(data["date"], today_str)
+        self.assertEqual(data["amount"], 29.99)
+        self.assertEqual(data["merchant"], "Downtown Hobby")
         self.assertTrue(data["manual"])
-        self.assertEqual(data["method"], "cash")
+        self.assertNotIn("method", data)
 
     def test_add_manual_interactive_prompts_and_blank_merchant(self):
         argv = ["--config", str(self.config_json), "add-manual"]
         with patch("sys.stdin.isatty", return_value=True), patch(
             "builtins.input",
-            side_effect=["card", "2026-09-16", "50.00", "", ""],
+            side_effect=["2026-09-16", "50.00", "", ""],
         ):
             with self.assertRaises(SystemExit) as cm:
                 run_tracker.main(argv)
@@ -803,23 +803,18 @@ class TestTrackerCLICashPurchase(unittest.TestCase):
         self.assertEqual(data["merchant"], "Manual Purchase")
         self.assertEqual(data["description"], "Manual Purchase Purchase (2026-09-16)")
         self.assertTrue(data["manual"])
-        self.assertEqual(data["method"], "card")
+        self.assertNotIn("method", data)
 
-    def test_add_manual_interactive_with_method_flag_skips_method_prompt(self):
-        argv = ["--config", str(self.config_json), "add-manual", "--method", "transfer"]
-        with patch("sys.stdin.isatty", return_value=True), patch(
-            "builtins.input",
-            side_effect=["2026-09-16", "60.00", "Bank", "Wire transfer"],
-        ):
-            with self.assertRaises(SystemExit) as cm:
-                run_tracker.main(argv)
-            self.assertEqual(cm.exception.code, 0)
-
-        created_file = self.purchase_dir / "2026-09-16_bank_wire_transfer_manual.json"
-        self.assertTrue(created_file.is_file())
-        with open(created_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        self.assertEqual(data["method"], "transfer")
+    def test_add_manual_rejects_method_flag(self):
+        argv = [
+            "--config", str(self.config_json),
+            "add-manual",
+            "--method", "transfer",
+            "--amount", "10.00",
+        ]
+        with self.assertRaises(SystemExit) as cm:
+            run_tracker.main(argv)
+        self.assertNotEqual(cm.exception.code, 0)
 
     def test_drag_and_drop_csv_not_broken_by_subcommand(self):
         collection_file = self.test_dir / "drag_and_drop_collection.csv"

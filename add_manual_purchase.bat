@@ -1,9 +1,9 @@
 @echo off
-title Cyberpunk TCG - Add Cash Purchase
+title Cyberpunk TCG - Add Manual Purchase
 echo ================================================================
-echo   CYBERPUNK TCG - RECORD CASH PURCHASE (NO RECEIPT)
+echo   CYBERPUNK TCG - RECORD MANUAL PURCHASE (NO RECEIPT)
 echo ================================================================
-python "%~dp0run_tracker.py" add-cash %*
+python "%~dp0run_tracker.py" add-manual %*
 if %ERRORLEVEL% neq 0 (
     echo.
     pause
