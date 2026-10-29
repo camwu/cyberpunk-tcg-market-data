@@ -119,8 +119,7 @@ When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes y
 3. **(Optional) Purchase History & Cost Basis**:
    Place purchase receipts (`.pdf`, `.csv`, `.txt`, `.json`) directly into the scaffolded `data/purchase_history/` directory (or a sibling `purchase_history/` folder next to your collection CSV). Plain text, CSV, and JSON receipts are parsed natively with 0 external dependencies, while `.pdf` receipts use `pypdf`. The intake engine parses totals to calculate invested capital and net unrealized returns, caching checksums in `data/purchase_history_cache.json` and recording entries to `data/purchase_history.csv`.
 
-   > [!NOTE]
-   > `data/purchase_history.csv` and `data/purchase_history_cache.json` remain local and untracked by Git to protect private financial transactions. If you customize merchant names or descriptions in `purchase_history.csv`, back up the file locally before migrating repository environments.
+   > **Note**: `data/purchase_history.csv` and `data/purchase_history_cache.json` remain local and untracked by Git to protect private financial transactions. If you customize merchant names or descriptions in `purchase_history.csv`, back up the file locally before migrating repository environments.
 
 4. **(Optional) Custom Paths via `config.json`**:
    To customize locations outside the repository, copy `config.example.json` to `config.json` (gitignored):
