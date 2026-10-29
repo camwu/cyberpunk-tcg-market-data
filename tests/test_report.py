@@ -807,5 +807,268 @@ class TestReportGeneration(unittest.TestCase):
         self.assertAlmostEqual(sealed_pct_sum + singles_portfolio_pct, 100.0, delta=0.2)
 
 
+
+    def test_multi_lot_consolidation_l7d_and_lifetime(self):
+        """Verifies multi-lot holdings collapse into single rows with recomputed weighted baselines and basis percentages."""
+        conn = sqlite3.connect(self.db_path)
+        seed_metadata(conn, [
+            {
+                "card_key": "Exp::C001::Foil::2026-09-02",
+                "product_id": 901,
+                "name": "Consolidated Hero",
+                "print_number": "C001",
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Foil",
+                "rarity": "Epic",
+                "color": "Red",
+                "first_seen_date": "2026-09-02",
+                "baseline_market_price": 10.00,
+                "item_type": "Card",
+            },
+            {
+                "card_key": "Exp::C001::Foil::2026-09-10",
+                "product_id": 901,
+                "name": "Consolidated Hero",
+                "print_number": "C001",
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Foil",
+                "rarity": "Epic",
+                "color": "Red",
+                "first_seen_date": "2026-09-10",
+                "baseline_market_price": 14.00,
+                "item_type": "Card",
+            },
+        ])
+        # 7-day prior snapshot (2026-09-12)
+        seed_snapshots(conn, "2026-09-12", [
+            {
+                "card_key": "Exp::C001::Foil::2026-09-02",
+                "quantity": 1,
+                "unit_market_price": 12.00,
+                "unit_low_price": 12.00,
+                "unit_mid_price": 12.00,
+                "unit_high_price": 12.00,
+                "line_total": 12.00,
+                "baseline_price": 10.00,
+                "lifetime_gain_dollar": 2.00,
+                "lifetime_gain_pct": 20.0,
+            },
+            {
+                "card_key": "Exp::C001::Foil::2026-09-10",
+                "quantity": 2,
+                "unit_market_price": 12.00,
+                "unit_low_price": 12.00,
+                "unit_mid_price": 12.00,
+                "unit_high_price": 12.00,
+                "line_total": 24.00,
+                "baseline_price": 14.00,
+                "lifetime_gain_dollar": -4.00,
+                "lifetime_gain_pct": -14.3,
+            },
+        ])
+        seed_summary(
+            conn,
+            "2026-09-12",
+            total_value=36.00,
+            total_cards=3,
+            unique_items=2,
+            lifetime_gain=-2.00,
+            lifetime_pct=-5.3,
+        )
+
+        # Target snapshot (2026-09-19)
+        seed_snapshots(conn, "2026-09-19", [
+            {
+                "card_key": "Exp::C001::Foil::2026-09-02",
+                "quantity": 1,
+                "unit_market_price": 20.00,
+                "unit_low_price": 20.00,
+                "unit_mid_price": 20.00,
+                "unit_high_price": 20.00,
+                "line_total": 20.00,
+                "baseline_price": 10.00,
+                "lifetime_gain_dollar": 10.00,
+                "lifetime_gain_pct": 100.0,
+            },
+            {
+                "card_key": "Exp::C001::Foil::2026-09-10",
+                "quantity": 2,
+                "unit_market_price": 20.00,
+                "unit_low_price": 20.00,
+                "unit_mid_price": 20.00,
+                "unit_high_price": 20.00,
+                "line_total": 40.00,
+                "baseline_price": 14.00,
+                "lifetime_gain_dollar": 12.00,
+                "lifetime_gain_pct": 42.9,
+            },
+        ])
+        seed_summary(
+            conn,
+            "2026-09-19",
+            total_value=60.00,
+            total_cards=3,
+            unique_items=2,
+            lifetime_gain=22.00,
+            lifetime_pct=57.9,
+        )
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-19")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        # 1. Lifetime Gainers check: consolidated into 1 row
+        gainers_section = content.split("## 📈 Top Gainers")[1].split("## 📉 Top Decliners")[0]
+        lifetime_gainers_part = gainers_section.split("### L7D")[0]
+        self.assertEqual(lifetime_gainers_part.count("Consolidated Hero"), 1, "Card should appear exactly once in Lifetime Gainers")
+        # Total Qty = 3, Unit Price = $20.00, Weighted Baseline = (10*1 + 14*2)/3 = $12.67, Lifetime Gain = +$22.00, Pct = +57.9%, Acq = 2026-09-02
+        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | Foil | 3 | `$20.00` | `$12.67` | **+$22.00** | +57.9% |", lifetime_gainers_part)
+
+        # 2. L7D Gainers check: consolidated into 1 row
+        l7d_gainers_part = gainers_section.split("### L7D")[1]
+        self.assertEqual(l7d_gainers_part.count("Consolidated Hero"), 1, "Card should appear exactly once in L7D Gainers")
+        # Qty = 3, Unit Price = $20.00, 7D Prior = $12.00, Dollar Gain = +$24.00 (3 * $8.00), Pct = +66.7%, Acq = 2026-09-02
+        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | Foil | 3 | `$20.00` | `$12.00` | **+$24.00** | +66.7% |", l7d_gainers_part)
+
+    def test_lifetime_having_clause_nets_mixed_lots(self):
+        """Verifies that a card with mixed winning and losing lots nets correctly via post-grouping HAVING."""
+        conn = sqlite3.connect(self.db_path)
+        seed_metadata(conn, [
+            {
+                "card_key": "Exp::MIX::Standard::2026-09-01",
+                "product_id": 902,
+                "name": "Mixed Result",
+                "print_number": "M001",
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Standard",
+                "rarity": "Rare",
+                "color": "Blue",
+                "first_seen_date": "2026-09-01",
+                "baseline_market_price": 10.00,
+                "item_type": "Card",
+            },
+            {
+                "card_key": "Exp::MIX::Standard::2026-09-10",
+                "product_id": 902,
+                "name": "Mixed Result",
+                "print_number": "M001",
+                "expansion": "Welcome to Night City - Beta",
+                "finish": "Standard",
+                "rarity": "Rare",
+                "color": "Blue",
+                "first_seen_date": "2026-09-10",
+                "baseline_market_price": 25.00,
+                "item_type": "Card",
+            },
+        ])
+        # Market price is 15.00.
+        # Lot 1: baseline 10.00 -> gain +5.00
+        # Lot 2: baseline 25.00 -> loss -10.00
+        # Net gain: -5.00 (overall decliner)
+        seed_snapshots(conn, "2026-09-19", [
+            {
+                "card_key": "Exp::MIX::Standard::2026-09-01",
+                "quantity": 1,
+                "unit_market_price": 15.00,
+                "unit_low_price": 15.00,
+                "unit_mid_price": 15.00,
+                "unit_high_price": 15.00,
+                "line_total": 15.00,
+                "baseline_price": 10.00,
+                "lifetime_gain_dollar": 5.00,
+                "lifetime_gain_pct": 50.0,
+            },
+            {
+                "card_key": "Exp::MIX::Standard::2026-09-10",
+                "quantity": 1,
+                "unit_market_price": 15.00,
+                "unit_low_price": 15.00,
+                "unit_mid_price": 15.00,
+                "unit_high_price": 15.00,
+                "line_total": 15.00,
+                "baseline_price": 25.00,
+                "lifetime_gain_dollar": -10.00,
+                "lifetime_gain_pct": -40.0,
+            },
+        ])
+        seed_summary(
+            conn,
+            "2026-09-19",
+            total_value=30.00,
+            total_cards=2,
+            unique_items=2,
+            lifetime_gain=-5.00,
+            lifetime_pct=-14.3,
+        )
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-19")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        gainers_section = content.split("## 📈 Top Gainers")[1].split("## 📉 Top Decliners")[0]
+        decliners_section = content.split("## 📉 Top Decliners")[1]
+
+        # Must NOT appear in Gainers despite lot 1 having +5.00 gain
+        self.assertNotIn("Mixed Result", gainers_section)
+
+        # Must appear in Decliners with net -$5.00
+        self.assertIn("Mixed Result", decliners_section)
+        # Weighted baseline = (10 + 25)/2 = $17.50, Total Loss = -$5.00, Pct = -14.3%
+        self.assertIn("| 🔵 **Mixed Result** | `2026-09-01` | **◇ Rare** | Standard | 2 | `$15.00` | `$17.50` | **$-5.00** | -14.3% |", decliners_section)
+
+    def test_lifetime_tables_expand_to_10_rows(self):
+        """Verifies that Lifetime Gainers and Decliners tables output up to 10 rows."""
+        conn = sqlite3.connect(self.db_path)
+        meta_items = []
+        snap_items = []
+        # Seed 12 distinct cards with positive gains and 12 distinct cards with losses
+        for i in range(1, 13):
+            card_key_g = f"Exp::G{i:02d}::Standard::2026-09-01"
+            meta_items.append({
+                "card_key": card_key_g, "product_id": 1000 + i, "name": f"Gainer Card {i:02d}",
+                "print_number": f"G{i:02d}", "expansion": "Expansion G", "finish": "Standard",
+                "rarity": "Common", "color": "Green", "first_seen_date": "2026-09-01",
+                "baseline_market_price": 5.00, "item_type": "Card",
+            })
+            snap_items.append({
+                "card_key": card_key_g, "quantity": 1, "unit_market_price": 5.00 + i,
+                "unit_low_price": 5.00 + i, "unit_mid_price": 5.00 + i, "unit_high_price": 5.00 + i,
+                "line_total": 5.00 + i, "baseline_price": 5.00, "lifetime_gain_dollar": float(i),
+                "lifetime_gain_pct": round((float(i) / 5.0) * 100.0, 1),
+            })
+
+            card_key_d = f"Exp::D{i:02d}::Standard::2026-09-01"
+            meta_items.append({
+                "card_key": card_key_d, "product_id": 2000 + i, "name": f"Decliner Card {i:02d}",
+                "print_number": f"D{i:02d}", "expansion": "Expansion D", "finish": "Standard",
+                "rarity": "Common", "color": "Yellow", "first_seen_date": "2026-09-01",
+                "baseline_market_price": 20.00, "item_type": "Card",
+            })
+            snap_items.append({
+                "card_key": card_key_d, "quantity": 1, "unit_market_price": 20.00 - i,
+                "unit_low_price": 20.00 - i, "unit_mid_price": 20.00 - i, "unit_high_price": 20.00 - i,
+                "line_total": 20.00 - i, "baseline_price": 20.00, "lifetime_gain_dollar": -float(i),
+                "lifetime_gain_pct": round((-float(i) / 20.0) * 100.0, 1),
+            })
+
+        seed_metadata(conn, meta_items)
+        seed_snapshots(conn, "2026-09-19", snap_items)
+        seed_summary(conn, "2026-09-19", total_value=500.00, total_cards=24, unique_items=24, lifetime_gain=0.0)
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-19")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        gainers_section = content.split("## 📈 Top Gainers")[1].split("## 📉 Top Decliners")[0]
+        decliners_section = content.split("## 📉 Top Decliners")[1]
+
+        # Extract rows from markdown tables
+        g_rows = [l for l in gainers_section.splitlines() if l.startswith("| 🟢 **Gainer Card")]
+        d_rows = [l for l in decliners_section.splitlines() if l.startswith("| 🟡 **Decliner Card")]
+
+        self.assertEqual(len(g_rows), 10, "Lifetime Gainers must output exactly 10 rows when >=10 eligible cards exist")
+        self.assertEqual(len(d_rows), 10, "Lifetime Decliners must output exactly 10 rows when >=10 eligible cards exist")
+
+
 if __name__ == "__main__":
     unittest.main()
