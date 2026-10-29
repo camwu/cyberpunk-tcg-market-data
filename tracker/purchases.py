@@ -25,6 +25,12 @@ except ImportError:
 
 SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".txt", ".json"}
 SHA256_CHUNK_SIZE = 65536
+VALID_PAYMENT_METHODS = ("cash", "card", "transfer", "other")
+
+
+def get_default_merchant(method: str) -> str:
+    """Returns the default merchant string for a given payment method."""
+    return "Cash Purchase" if method == "cash" else "Manual Purchase"
 
 
 @dataclass
@@ -147,47 +153,56 @@ def validate_date_string(val_str: Any) -> Optional[str]:
         return None
 
 
-def validate_cash_record(
+def validate_manual_record(
     date_val: Any,
     amount_val: Any,
     merchant_val: Any,
     description_val: Any = None,
+    *,
+    method_val: str,
 ) -> Tuple[str, str, float, str]:
     """
-    Validates and normalizes fields for a cash purchase record.
+    Validates and normalizes fields for a manual purchase record.
     Returns (date, merchant, amount, description) or raises ValueError.
     """
+    if not method_val or method_val not in VALID_PAYMENT_METHODS:
+        raise ValueError(
+            f"Invalid payment method '{method_val}'. Must be one of: {', '.join(VALID_PAYMENT_METHODS)}."
+        )
+
     date_str = str(date_val or "").strip()
     parsed_date = validate_date_string(date_str)
     if not parsed_date:
-        raise ValueError(f"Invalid cash purchase date '{date_val}'. Expected valid YYYY-MM-DD format.")
+        raise ValueError(f"Invalid purchase date '{date_val}'. Expected valid YYYY-MM-DD format.")
 
     if isinstance(amount_val, (int, float)):
         if amount_val <= 0:
-            raise ValueError(f"Invalid cash purchase amount '{amount_val}'. Must be positive number.")
+            raise ValueError(f"Invalid purchase amount '{amount_val}'. Must be positive number.")
         parsed_amount = round(float(amount_val), 2)
     else:
         amt_str = str(amount_val or "").strip()
         parsed_amount = validate_amount_string(amt_str)
         if parsed_amount is None:
             raise ValueError(
-                f"Invalid cash purchase amount '{amount_val}'. Must be positive number formatted as integer or 2 decimal places (e.g. 10 or 10.00)."
+                f"Invalid purchase amount '{amount_val}'. Must be positive number formatted as integer or 2 decimal places (e.g. 10 or 10.00)."
             )
 
-    merchant = str(merchant_val or "").strip() or "Cash Purchase"
+    merchant = str(merchant_val or "").strip() or get_default_merchant(method_val)
     desc = str(description_val or "").strip() or f"{merchant} Purchase ({parsed_date})"
 
     return parsed_date, merchant, parsed_amount, desc
 
 
-def build_cash_sentinel_payload(
+def build_manual_sentinel_payload(
     date: str,
     merchant: str,
     amount: float,
     description: str,
+    *,
+    method: str,
 ) -> Dict[str, Any]:
     """
-    Constructs a JSON-serializable dictionary for a cash purchase sentinel file.
+    Constructs a JSON-serializable dictionary for a manual purchase sentinel file.
     Normalizes whole-dollar amounts to integer for clean JSON representation (e.g. 10 instead of 10.0),
     while preserving fractional floats (e.g. 12.55).
     """
@@ -197,7 +212,8 @@ def build_cash_sentinel_payload(
         "amount": serializable_amount,
         "merchant": merchant,
         "description": description,
-        "cash": True,
+        "method": method,
+        "manual": True,
     }
 
 
@@ -275,18 +291,33 @@ def parse_receipt_document(
             data = json.loads(text)
         except json.JSONDecodeError:
             data = None
-        if isinstance(data, dict) and data.get("cash") is True:
-            try:
-                return validate_cash_record(
-                    date_val=data.get("date"),
-                    amount_val=data.get("amount"),
-                    merchant_val=data.get("merchant"),
-                    description_val=data.get("description"),
-                )
-            except ValueError as err:
-                raise CollectionValidationError(
-                    f"Corrupted cash purchase sentinel '{filename}': {err}. Halting to prevent cost basis omission."
-                )
+        if isinstance(data, dict):
+            if data.get("manual") is True:
+                try:
+                    return validate_manual_record(
+                        date_val=data.get("date"),
+                        amount_val=data.get("amount"),
+                        merchant_val=data.get("merchant"),
+                        description_val=data.get("description"),
+                        method_val=data.get("method"),
+                    )
+                except ValueError as err:
+                    raise CollectionValidationError(
+                        f"Corrupted manual purchase sentinel '{filename}': {err}. Halting to prevent cost basis omission."
+                    )
+            elif data.get("cash") is True:
+                try:
+                    return validate_manual_record(
+                        date_val=data.get("date"),
+                        amount_val=data.get("amount"),
+                        merchant_val=data.get("merchant"),
+                        description_val=data.get("description"),
+                        method_val="cash",
+                    )
+                except ValueError as err:
+                    raise CollectionValidationError(
+                        f"Corrupted cash purchase sentinel '{filename}': {err}. Halting to prevent cost basis omission."
+                    )
 
     # 1. Date extraction strictly from text
     date_cand = parse_date_candidate(text)
