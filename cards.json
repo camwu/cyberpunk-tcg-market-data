@@ -2,7 +2,7 @@
   "_groups": {
     "24845": {
       "name": "Welcome to Night City - Beta",
-      "modifiedOn": "2026-10-23T14:23:10.627"
+      "modifiedOn": "2026-10-30T16:38:05.527"
     },
     "24846": {
       "name": "Embracing Power - Beta Starter Deck",
@@ -10,7 +10,7 @@
     },
     "24847": {
       "name": "The Heist - Beta Starter Deck",
-      "modifiedOn": "2026-10-15T18:56:14.833"
+      "modifiedOn": "2026-10-30T16:38:26.013"
     },
     "24848": {
       "name": "Box Toppers - Beta",
@@ -18,7 +18,7 @@
     },
     "24855": {
       "name": "Welcome to Night City - Retail",
-      "modifiedOn": "2026-10-23T14:22:58.503"
+      "modifiedOn": "2026-10-30T16:38:01.137"
     },
     "24857": {
       "name": "Box Toppers - Retail",
@@ -30,11 +30,11 @@
     },
     "24859": {
       "name": "The Heist - Retail Starter Deck",
-      "modifiedOn": "2026-10-22T18:52:46.43"
+      "modifiedOn": "2026-10-30T16:38:18.78"
     },
     "24860": {
       "name": "Set 1 Promos",
-      "modifiedOn": "2026-10-23T16:01:08.827"
+      "modifiedOn": "2026-10-30T16:38:34.743"
     },
     "24880": {
       "name": "Pre-Release Beta",
@@ -2535,7 +2535,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B001",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Yellow",
     "cardType": "Legend"
   },
@@ -2557,7 +2557,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B003",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -2568,7 +2568,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B004",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -2579,7 +2579,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B005",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -2590,7 +2590,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B006",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -2601,7 +2601,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B007",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -2612,7 +2612,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B008",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -2623,7 +2623,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B009",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -2634,7 +2634,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B010",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -2645,7 +2645,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B011",
-    "rarity": "Epic",
+    "rarity": "E",
     "color": "Blue",
     "cardType": "Legend"
   },
@@ -2667,7 +2667,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B013",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -2678,7 +2678,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B014",
-    "rarity": "Uncommon",
+    "rarity": "UC",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -2700,7 +2700,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B016",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -2711,7 +2711,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B017",
-    "rarity": "Rare",
+    "rarity": "R",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -2722,7 +2722,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B018",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -2733,7 +2733,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B019",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -2744,7 +2744,7 @@
     "groupId": 24847,
     "groupName": "The Heist - Beta Starter Deck",
     "printNumber": "B020",
-    "rarity": "Common",
+    "rarity": "C",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -5299,5 +5299,16 @@
     "rarity": "NR",
     "color": "Yellow",
     "cardType": "Gear"
+  },
+  "727957": {
+    "productId": 727957,
+    "name": "Welcome to Night City - Pre-Release Kit",
+    "cleanName": "Welcome to Night City Pre Release Kit",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
   }
 }
