@@ -70,7 +70,7 @@ SELECT name, rarity, color, finish, SUM(quantity) AS quantity,
 FROM evaluated
 GROUP BY expansion, print_number, finish, name, rarity, color, card_type
 HAVING MAX(curr_price) > MAX(prev_price)
-ORDER BY (MAX(curr_price) - MAX(prev_price)) DESC, pct_gain DESC, name ASC
+ORDER BY dollar_gain DESC, pct_gain DESC, name ASC
 LIMIT 5
 """
 
@@ -95,7 +95,7 @@ SELECT name, rarity, color, finish, SUM(quantity) AS quantity,
 FROM evaluated
 GROUP BY expansion, print_number, finish, name, rarity, color, card_type
 HAVING MAX(curr_price) < MAX(prev_price)
-ORDER BY (MAX(curr_price) - MAX(prev_price)) ASC, pct_gain ASC, name ASC
+ORDER BY dollar_gain ASC, pct_gain ASC, name ASC
 LIMIT 5
 """
 
@@ -265,7 +265,7 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
     WHERE s.date = ? AND s.unit_market_price > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
     GROUP BY m.expansion, m.print_number, m.finish, m.name, m.rarity, m.color
     HAVING SUM(s.lifetime_gain_dollar) > 0
-    ORDER BY (MAX(s.unit_market_price) - (SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0))) DESC, lifetime_gain_pct DESC, m.name ASC
+    ORDER BY SUM(s.lifetime_gain_dollar) DESC, lifetime_gain_pct DESC, m.name ASC
     LIMIT 10
     """, (latest_date,))
     top_gainers = cur.fetchall()
@@ -282,7 +282,7 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
     WHERE s.date = ? AND s.unit_market_price > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
     GROUP BY m.expansion, m.print_number, m.finish, m.name, m.rarity, m.color
     HAVING SUM(s.lifetime_gain_dollar) < 0
-    ORDER BY (MAX(s.unit_market_price) - (SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0))) ASC, lifetime_gain_pct ASC, m.name ASC
+    ORDER BY SUM(s.lifetime_gain_dollar) ASC, lifetime_gain_pct ASC, m.name ASC
     LIMIT 10
     """, (latest_date,))
     top_decliners = cur.fetchall()
