@@ -348,5 +348,132 @@ class TestValuationHelpers(unittest.TestCase):
         self.assertEqual(row[0], "Iconic")
 
 
+
+    def test_single_card_cross_expansion_rejection(self):
+        indexes = {
+            "by_group_pnum": {
+                ("edgerunner open season 1", "005"): {
+                    "productId": 999,
+                    "name": "Muamar Reyes - El Capitan",
+                    "groupName": "Edgerunner Open Season 1",
+                    "printNumber": "005",
+                }
+            },
+            "by_group_name": {},
+            "by_group_clean_name": {},
+            "by_name": {
+                "muamar reyes - el capitan": {
+                    "productId": 999,
+                    "name": "Muamar Reyes - El Capitan",
+                    "groupName": "Edgerunner Open Season 1",
+                }
+            },
+            "by_pid": {},
+        }
+        row = {
+            "name": "Muamar Reyes - El Capitan",
+            "expansion": "Pre-Release Retail",
+            "printNumber": "005",
+            "finish": "Foil",
+            "totalQtyOwned": 1,
+            "acquisitionDate": "2026-10-31",
+        }
+        prod, ctx, distinct_key, is_matched, label = match_collection_item(
+            row, indexes, "2026-10-31"
+        )
+        self.assertFalse(is_matched)
+        self.assertIsNone(prod)
+        self.assertEqual(ctx.expansion, "Pre-Release Retail")
+        self.assertEqual(ctx.card_key, "Pre-Release Retail::005::Foil::2026-10-31")
+
+    def test_single_card_ignores_product_id(self):
+        indexes = {
+            "by_group_pnum": {},
+            "by_group_name": {},
+            "by_group_clean_name": {},
+            "by_name": {},
+            "by_pid": {
+                12345: {
+                    "productId": 12345,
+                    "name": "Unrelated Card",
+                    "groupName": "Other Set",
+                }
+            },
+        }
+        row = {
+            "name": "Local Card",
+            "expansion": "My Set",
+            "printNumber": "001",
+            "finish": "Standard",
+            "productId": 12345,
+            "totalQtyOwned": 1,
+        }
+        prod, ctx, _, is_matched, _ = match_collection_item(row, indexes, "2026-10-31")
+        self.assertFalse(is_matched)
+        self.assertIsNone(prod)
+        self.assertIsNone(ctx.prod_id)
+        self.assertEqual(ctx.expansion, "My Set")
+
+    def test_sealed_item_uses_by_name_fallback(self):
+        indexes = {
+            "by_group_pnum": {},
+            "by_group_name": {},
+            "by_group_clean_name": {},
+            "by_name": {
+                "booster box": {
+                    "productId": 500,
+                    "name": "Booster Box",
+                    "groupName": "Night City",
+                }
+            },
+            "by_pid": {},
+        }
+        row = {
+            "name": "Booster Box",
+            "expansion": "Unknown Set",
+            "item_type": "Sealed",
+            "totalQtyOwned": 1,
+        }
+        prod, ctx, _, is_matched, _ = match_collection_item(row, indexes, "2026-10-31")
+        self.assertTrue(is_matched)
+        self.assertIsNotNone(prod)
+        self.assertEqual(ctx.prod_id, 500)
+
+    def test_end_to_end_retail_streetkid_resolution(self):
+        catalog = {
+            "715134": {
+                "productId": 715134,
+                "name": "V - Streetkid (b)",
+                "cleanName": "V Streetkid b",
+                "groupId": 24855,
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "005b",
+                "rarity": "R",
+                "color": "Red",
+                "cardType": "Legend",
+            }
+        }
+        catalog_file = str(self.test_dir / "cards.json")
+        with open(catalog_file, "w", encoding="utf-8") as f:
+            json.dump(catalog, f)
+        price_file = str(Path(self.cache_dir) / "2026-10-31.json")
+        with open(price_file, "w", encoding="utf-8") as f:
+            json.dump({"prices": {"715134": {"Foil": {"lowPrice": 5.0}}}}, f)
+
+        _, indexes = load_price_catalog(self.cache_dir, "2026-10-31", price_file)
+        row = {
+            "name": "V - Streetkid",
+            "expansion": "Welcome to Night City - Retail",
+            "printNumber": "005B",
+            "finish": "Foil",
+            "totalQtyOwned": 1,
+        }
+        prod, ctx, _, is_matched, _ = match_collection_item(row, indexes, "2026-10-31")
+        self.assertTrue(is_matched)
+        self.assertEqual(ctx.prod_id, 715134)
+        self.assertEqual(ctx.expansion, "Welcome to Night City - Retail")
+        self.assertEqual(ctx.card_key, "Welcome to Night City - Retail::005B::Foil::2026-10-31")
+
+
 if __name__ == "__main__":
     unittest.main()

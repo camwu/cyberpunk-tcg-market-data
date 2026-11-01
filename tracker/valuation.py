@@ -492,7 +492,6 @@ def match_collection_item(
     finish = (row.get("finish") or "Standard").strip()
     qty = int(row.get("totalQtyOwned", 1))
     fallback_price = float(row.get("price") or 0.0)
-    row_pid = row.get("productId")
 
     prod = None
     if print_number:
@@ -501,12 +500,10 @@ def match_collection_item(
         prod = indexes["by_group_name"].get((expansion.lower(), name.lower()))
     if not prod:
         prod = indexes["by_group_clean_name"].get((expansion.lower(), name.lower()))
-    if not prod:
+    if not prod and item_type == "Sealed":
         prod = indexes["by_name"].get(name.lower())
-    if not prod and row_pid:
-        prod = indexes["by_pid"].get(int(row_pid)) or indexes["by_pid"].get(str(row_pid))
 
-    prod_id = prod["productId"] if prod else (int(row_pid) if row_pid else None)
+    prod_id = prod["productId"] if prod else None
     distinct_key = (item_type, expansion.lower(), (print_number or name).lower(), finish.lower())
 
     if prod:
