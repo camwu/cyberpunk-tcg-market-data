@@ -111,23 +111,31 @@ class TestReportHelpers(unittest.TestCase):
     def test_fetch_l7d_movers(self):
         seed_metadata(self.conn, [
             {"card_key": "card_a", "name": "Card A", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Red", "item_type": "Card"},
-            {"card_key": "card_b", "name": "Card B", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Red", "item_type": "Card"},
+            {"card_key": "card_b", "name": "Card B", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Blue", "item_type": "Card"},
+            {"card_key": "card_c", "name": "Card C", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Green", "item_type": "Card"},
+            {"card_key": "card_d", "name": "Card D", "expansion": "Night City", "finish": "Standard", "rarity": "Rare", "color": "Yellow", "item_type": "Card"},
         ])
         seed_snapshots(self.conn, "2026-09-24", [
             {"card_key": "card_a", "quantity": 1, "unit_market_price": 10.0, "baseline_price": 10.0},
-            {"card_key": "card_b", "quantity": 1, "unit_market_price": 20.0, "baseline_price": 20.0},
+            {"card_key": "card_b", "quantity": 3, "unit_market_price": 10.0, "baseline_price": 10.0},
+            {"card_key": "card_c", "quantity": 1, "unit_market_price": 20.0, "baseline_price": 20.0},
+            {"card_key": "card_d", "quantity": 3, "unit_market_price": 20.0, "baseline_price": 20.0},
         ])
         seed_snapshots(self.conn, "2026-10-01", [
             {"card_key": "card_a", "quantity": 1, "unit_market_price": 15.0, "baseline_price": 10.0},
-            {"card_key": "card_b", "quantity": 1, "unit_market_price": 12.0, "baseline_price": 20.0},
+            {"card_key": "card_b", "quantity": 3, "unit_market_price": 14.0, "baseline_price": 10.0},
+            {"card_key": "card_c", "quantity": 1, "unit_market_price": 15.0, "baseline_price": 20.0},
+            {"card_key": "card_d", "quantity": 3, "unit_market_price": 16.0, "baseline_price": 20.0},
         ])
 
         gainers = fetch_l7d_movers(self.cur, "2026-09-24", "2026-10-01", is_gainer=True)
         decliners = fetch_l7d_movers(self.cur, "2026-09-24", "2026-10-01", is_gainer=False)
-        self.assertEqual(len(gainers), 1)
-        self.assertEqual(gainers[0][0], "Card A")
-        self.assertEqual(len(decliners), 1)
-        self.assertEqual(decliners[0][0], "Card B")
+        self.assertEqual(len(gainers), 2)
+        self.assertEqual(gainers[0][0], "Card B")
+        self.assertEqual(gainers[1][0], "Card A")
+        self.assertEqual(len(decliners), 2)
+        self.assertEqual(decliners[0][0], "Card D")
+        self.assertEqual(decliners[1][0], "Card C")
 
     def test_render_markdown_report_structure(self):
         summary = (135.0, 1, 2, 0.0, 0.0, 25.0, 22.7, 1, "2026-10-01 10:00 AM", "CSV", 100.0, 35.0, 35.0, None)

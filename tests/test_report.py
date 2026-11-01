@@ -429,7 +429,7 @@ class TestReportGeneration(unittest.TestCase):
         rarity_section = content.split("### Rarity")[1].split("### Color")[0]
         self.assertIn("| **◇ Rare** | 1 | 3 | 100.0% | `$45.00` |", rarity_section)
 
-    def test_top_gainers_ranks_by_per_unit_delta_and_includes_acquired_date(self):
+    def test_top_gainers_ranks_by_total_dollar_gain_and_includes_acquired_date(self):
         conn = sqlite3.connect(self.db_path)
         # Card A: 1 copy, unit price 20.00, baseline 10.00 -> +10.00/unit, total gain $10.00
         # Card B: 2 copies, unit price 20.00, baseline 12.00 -> +8.00/unit, total gain $16.00
@@ -460,16 +460,51 @@ class TestReportGeneration(unittest.TestCase):
         # Table header must include Acquired
         self.assertIn("| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Gain | Percent Gain |", gainers_section)
 
-        # Card Alpha (+$10.00/unit) must rank BEFORE Card Beta (+$8.00/unit, despite higher $16 position gain)
+        # Card Beta (+$16.00 total position gain) must rank BEFORE Card Alpha (+$10.00 total position gain, despite higher +$10.00/unit gain)
         idx_alpha = gainers_section.find("Card Alpha")
         idx_beta = gainers_section.find("Card Beta")
         self.assertNotEqual(idx_alpha, -1)
         self.assertNotEqual(idx_beta, -1)
-        self.assertLess(idx_alpha, idx_beta)
+        self.assertLess(idx_beta, idx_alpha)
 
         # Acquisition dates must appear in the rows
         self.assertIn("| 🔴 **Card Alpha** | `2026-09-02` |", gainers_section)
         self.assertIn("| 🔵 **Card Beta** | `2026-09-10` |", gainers_section)
+
+    def test_top_decliners_ranks_by_total_dollar_loss(self):
+        conn = sqlite3.connect(self.db_path)
+        # Card Gamma: 1 copy, unit price 10.00, baseline 20.00 -> -$10.00/unit, total loss -$10.00
+        # Card Delta: 2 copies, unit price 12.00, baseline 20.00 -> -$8.00/unit, total loss -$16.00
+        seed_metadata(conn, [
+            {"card_key": "Exp::G::Standard::2026-09-02", "product_id": 603, "name": "Card Gamma", "print_number": "G", "expansion": "Expansion A", "finish": "Standard", "rarity": "Rare", "color": "Red", "first_seen_date": "2026-09-02", "baseline_market_price": 20.00, "item_type": "Card"},
+            {"card_key": "Exp::D::Standard::2026-09-10", "product_id": 604, "name": "Card Delta", "print_number": "D", "expansion": "Expansion A", "finish": "Standard", "rarity": "Rare", "color": "Blue", "first_seen_date": "2026-09-10", "baseline_market_price": 20.00, "item_type": "Card"},
+        ])
+        seed_snapshots(conn, "2026-09-19", [
+            {"card_key": "Exp::G::Standard::2026-09-02", "quantity": 1, "unit_market_price": 10.00, "unit_low_price": 10.00, "unit_mid_price": 10.00, "unit_high_price": 10.00, "line_total": 10.00, "baseline_price": 20.00, "lifetime_gain_dollar": -10.00, "lifetime_gain_pct": -50.0},
+            {"card_key": "Exp::D::Standard::2026-09-10", "quantity": 2, "unit_market_price": 12.00, "unit_low_price": 12.00, "unit_mid_price": 12.00, "unit_high_price": 12.00, "line_total": 24.00, "baseline_price": 20.00, "lifetime_gain_dollar": -16.00, "lifetime_gain_pct": -40.0},
+        ])
+        seed_summary(
+            conn,
+            "2026-09-19",
+            total_value=34.00,
+            total_cards=3,
+            unique_items=2,
+            lifetime_gain=-26.00,
+            lifetime_pct=-43.3,
+        )
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-19")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        decliners_section = content.split("## 📉 Top Decliners")[1]
+
+        # Card Delta (-$16.00 total position loss) must rank BEFORE Card Gamma (-$10.00 total loss, despite higher -$10.00/unit drop)
+        idx_gamma = decliners_section.find("Card Gamma")
+        idx_delta = decliners_section.find("Card Delta")
+        self.assertNotEqual(idx_gamma, -1)
+        self.assertNotEqual(idx_delta, -1)
+        self.assertLess(idx_delta, idx_gamma)
 
     def test_high_value_singles_subsections_and_card_types(self):
         conn = sqlite3.connect(self.db_path)
