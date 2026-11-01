@@ -69,7 +69,6 @@ class TestValuationHelpers(unittest.TestCase):
         prods, indexes = load_price_catalog(self.cache_dir, "2026-10-01")
         self.assertEqual(len(prods), 2)
         self.assertIn(("night city", "001"), indexes["by_group_pnum"])
-        self.assertIn(101, indexes["by_pid"])
         self.assertIn(("night city", "arasaka tower booster box"), indexes["by_group_name"])
 
     def test_load_price_catalog_fallback_and_missing(self):
@@ -95,7 +94,6 @@ class TestValuationHelpers(unittest.TestCase):
         with patch("tracker.valuation.REPO_PRICES_DIR", repo_fixture_dir):
             prods, indexes = load_price_catalog(empty_cache_dir, "2026-05-20")
             self.assertEqual(len(prods), 1)
-            self.assertIn(201, indexes["by_pid"])
 
             # 2. FileNotFoundError raised when date file exists in neither candidate path
             with self.assertRaises(FileNotFoundError):
@@ -131,7 +129,6 @@ class TestValuationHelpers(unittest.TestCase):
             "by_group_name": {},
             "by_group_clean_name": {},
             "by_name": {},
-            "by_pid": {},
         }
         row = {
             "name": "Johnny Silverhand",
@@ -277,7 +274,6 @@ class TestValuationHelpers(unittest.TestCase):
                 ("nc", "b007"): {"productId": 101, "name": "Royce", "groupName": "nc", "rarity": "IL", "color": "Red", "cardType": "Legend"},
                 ("nc", "b015"): {"productId": 102, "name": "Flathead", "groupName": "nc", "rarity": "UC", "color": "Blue", "cardType": "Unit"},
             },
-            "by_pid": {},
             "by_group_name": {},
             "by_group_clean_name": {},
             "by_name": {},
@@ -346,6 +342,152 @@ class TestValuationHelpers(unittest.TestCase):
         self.cur.execute("SELECT rarity FROM card_metadata WHERE card_key = ?", (ctx.card_key,))
         row = self.cur.fetchone()
         self.assertEqual(row[0], "Iconic")
+
+
+
+    def test_single_card_cross_expansion_rejection(self):
+        indexes = {
+            "by_group_pnum": {
+                ("edgerunner open season 1", "005"): {
+                    "productId": 999,
+                    "name": "Muamar Reyes - El Capitan",
+                    "groupName": "Edgerunner Open Season 1",
+                    "printNumber": "005",
+                }
+            },
+            "by_group_name": {},
+            "by_group_clean_name": {},
+            "by_name": {
+                "muamar reyes - el capitan": {
+                    "productId": 999,
+                    "name": "Muamar Reyes - El Capitan",
+                    "groupName": "Edgerunner Open Season 1",
+                }
+            },
+        }
+        row = {
+            "name": "Muamar Reyes - El Capitan",
+            "expansion": "Pre-Release Retail",
+            "printNumber": "005",
+            "finish": "Foil",
+            "totalQtyOwned": 1,
+            "acquisitionDate": "2026-10-31",
+        }
+        prod, ctx, distinct_key, is_matched, label = match_collection_item(
+            row, indexes, "2026-10-31"
+        )
+        self.assertFalse(is_matched)
+        self.assertIsNone(prod)
+        self.assertEqual(ctx.expansion, "Pre-Release Retail")
+        self.assertEqual(ctx.card_key, "Pre-Release Retail::005::Foil::2026-10-31")
+
+    def test_matching_ignores_product_id_for_all_item_types(self):
+        indexes = {
+            "by_group_pnum": {},
+            "by_group_name": {},
+            "by_group_clean_name": {},
+            "by_name": {},
+        }
+        # Card row with intake productId
+        card_row = {
+            "name": "Local Card",
+            "expansion": "My Set",
+            "printNumber": "001",
+            "finish": "Standard",
+            "productId": 12345,
+            "totalQtyOwned": 1,
+        }
+        prod_card, ctx_card, _, is_matched_card, _ = match_collection_item(card_row, indexes, "2026-10-31")
+        self.assertFalse(is_matched_card)
+        self.assertIsNone(prod_card)
+        self.assertIsNone(ctx_card.prod_id)
+        self.assertEqual(ctx_card.expansion, "My Set")
+
+        # Sealed row with intake productId
+        sealed_row = {
+            "name": "Local Box",
+            "expansion": "My Set",
+            "item_type": "Sealed",
+            "productId": 12345,
+            "totalQtyOwned": 1,
+        }
+        prod_sealed, ctx_sealed, _, is_matched_sealed, _ = match_collection_item(sealed_row, indexes, "2026-10-31")
+        self.assertFalse(is_matched_sealed)
+        self.assertIsNone(prod_sealed)
+        self.assertIsNone(ctx_sealed.prod_id)
+        self.assertEqual(ctx_sealed.expansion, "My Set")
+
+    def test_by_name_fallback_gated_strictly_to_sealed(self):
+        indexes = {
+            "by_group_pnum": {},
+            "by_group_name": {},
+            "by_group_clean_name": {},
+            "by_name": {
+                "booster box": {
+                    "productId": 500,
+                    "name": "Booster Box",
+                    "groupName": "Night City",
+                }
+            },
+        }
+        # 1. Single card row with identical name must be rejected by the gate
+        card_row = {
+            "name": "Booster Box",
+            "expansion": "Other Set",
+            "item_type": "Card",
+            "totalQtyOwned": 1,
+        }
+        prod_card, ctx_card, _, is_matched_card, _ = match_collection_item(card_row, indexes, "2026-10-31")
+        self.assertFalse(is_matched_card)
+        self.assertIsNone(prod_card)
+        self.assertEqual(ctx_card.expansion, "Other Set")
+
+        # 2. Sealed row with identical name passes through the gate
+        sealed_row = {
+            "name": "Booster Box",
+            "expansion": "Other Set",
+            "item_type": "Sealed",
+            "totalQtyOwned": 1,
+        }
+        prod_sealed, ctx_sealed, _, is_matched_sealed, _ = match_collection_item(sealed_row, indexes, "2026-10-31")
+        self.assertTrue(is_matched_sealed)
+        self.assertIsNotNone(prod_sealed)
+        self.assertEqual(ctx_sealed.prod_id, 500)
+
+    def test_end_to_end_retail_streetkid_resolution(self):
+        catalog = {
+            "715134": {
+                "productId": 715134,
+                "name": "V - Streetkid (b)",
+                "cleanName": "V Streetkid b",
+                "groupId": 24855,
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "005b",
+                "rarity": "R",
+                "color": "Red",
+                "cardType": "Legend",
+            }
+        }
+        catalog_file = str(self.test_dir / "cards.json")
+        with open(catalog_file, "w", encoding="utf-8") as f:
+            json.dump(catalog, f)
+        price_file = str(Path(self.cache_dir) / "2026-10-31.json")
+        with open(price_file, "w", encoding="utf-8") as f:
+            json.dump({"prices": {"715134": {"Foil": {"lowPrice": 5.0}}}}, f)
+
+        _, indexes = load_price_catalog(self.cache_dir, "2026-10-31", price_file)
+        row = {
+            "name": "V - Streetkid",
+            "expansion": "Welcome to Night City - Retail",
+            "printNumber": "005B",
+            "finish": "Foil",
+            "totalQtyOwned": 1,
+        }
+        prod, ctx, _, is_matched, _ = match_collection_item(row, indexes, "2026-10-31")
+        self.assertTrue(is_matched)
+        self.assertEqual(ctx.prod_id, 715134)
+        self.assertEqual(ctx.expansion, "Welcome to Night City - Retail")
+        self.assertEqual(ctx.card_key, "Welcome to Night City - Retail::005B::Foil::2026-10-31")
 
 
 if __name__ == "__main__":

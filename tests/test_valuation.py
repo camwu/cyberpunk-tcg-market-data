@@ -1487,7 +1487,6 @@ class TestPortfolioValuation(unittest.TestCase):
                 ("nc", "b003"): {"productId": 102, "name": "Jackie", "groupName": "nc", "rarity": "NR", "color": "Blue", "cardType": "Legend"},
                 ("nc", "b015"): {"productId": 103, "name": "Flathead", "groupName": "nc", "rarity": "UC", "color": "Blue", "cardType": "Unit"},
             },
-            "by_pid": {},
             "by_group_name": {},
             "by_group_clean_name": {},
             "by_name": {},
