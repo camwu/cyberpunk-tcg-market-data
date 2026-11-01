@@ -129,7 +129,6 @@ class TestValuationHelpers(unittest.TestCase):
             "by_group_name": {},
             "by_group_clean_name": {},
             "by_name": {},
-            "by_pid": {},
         }
         row = {
             "name": "Johnny Silverhand",
@@ -275,7 +274,6 @@ class TestValuationHelpers(unittest.TestCase):
                 ("nc", "b007"): {"productId": 101, "name": "Royce", "groupName": "nc", "rarity": "IL", "color": "Red", "cardType": "Legend"},
                 ("nc", "b015"): {"productId": 102, "name": "Flathead", "groupName": "nc", "rarity": "UC", "color": "Blue", "cardType": "Unit"},
             },
-            "by_pid": {},
             "by_group_name": {},
             "by_group_clean_name": {},
             "by_name": {},
@@ -366,7 +364,6 @@ class TestValuationHelpers(unittest.TestCase):
                     "groupName": "Edgerunner Open Season 1",
                 }
             },
-            "by_pid": {},
         }
         row = {
             "name": "Muamar Reyes - El Capitan",
