@@ -399,7 +399,7 @@ class TestReportGeneration(unittest.TestCase):
             singles_section = singles_section.split("## 📈 Top Gainers")[0]
         self.assertEqual(singles_section.count("Towerfall"), 1)
         self.assertIn("#### Non-Iconic/Nova Rare Singles", singles_section)
-        self.assertIn("| 🔵 **Towerfall** | Unknown | Welcome to Night City - Beta | **◇ Rare** | Standard | 3 | `$15.00` | `$45.00` |", singles_section)
+        self.assertIn("| 🔵 **Towerfall** | Unknown | Welcome to Night City - Beta | **◇ Rare** | 3 | `$15.00` | `$45.00` |", singles_section)
 
     def test_multi_lot_rarity_breakdown_distinct_card_count(self):
         conn = sqlite3.connect(self.db_path)
@@ -541,13 +541,13 @@ class TestReportGeneration(unittest.TestCase):
         # High-Value Singles partitioned subsections assertion
         singles_section = content.split("### High-Value Singles")[1].split("## 📈 Top Gainers")[0]
         self.assertIn("#### Iconic Singles", singles_section)
-        self.assertIn("| 🟢 **Hanako Iconic** | Legend | Welcome to Night City - Beta | **★ Iconic** | Foil | 1 | `$50.00` | `$50.00` |", singles_section)
+        self.assertIn("| 🟢 **Hanako Iconic** | Legend | Welcome to Night City - Beta | **★ Iconic** | 1 | `$50.00` | `$50.00` |", singles_section)
 
         self.assertIn("#### Nova Rare Singles", singles_section)
-        self.assertIn("| 🔴 **Mantis Nova** | Gear | Welcome to Night City - Beta | **▣ Nova** | Foil | 1 | `$30.00` | `$30.00` |", singles_section)
+        self.assertIn("| 🔴 **Mantis Nova** | Gear | Welcome to Night City - Beta | **▣ Nova** | 1 | `$30.00` | `$30.00` |", singles_section)
 
         self.assertIn("#### Non-Iconic/Nova Rare Singles", singles_section)
-        self.assertIn("| 🔵 **Jackie Epic** | Unit | Welcome to Night City - Beta | **◈ Epic** | Foil | 1 | `$15.00` | `$15.00` |", singles_section)
+        self.assertIn("| 🔵 **Jackie Epic** | Unit | Welcome to Night City - Beta | **◈ Epic** | 1 | `$15.00` | `$15.00` |", singles_section)
 
     def test_high_value_singles_shorthand_rarity_partitioning(self):
         conn = sqlite3.connect(self.db_path)
