@@ -458,7 +458,7 @@ class TestReportGeneration(unittest.TestCase):
         gainers_section = content.split("## 📈 Top Gainers")[1].split("## 📉 Top Decliners")[0]
 
         # Table header must include Acquired
-        self.assertIn("| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Gain | Percent Gain |", gainers_section)
+        self.assertIn("| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | Baseline Price | Position Gain | Percent Gain |", gainers_section)
 
         # Card Beta (+$16.00 total position gain) must rank BEFORE Card Alpha (+$10.00 total position gain, despite higher +$10.00/unit gain)
         idx_alpha = gainers_section.find("Card Alpha")
@@ -957,13 +957,13 @@ class TestReportGeneration(unittest.TestCase):
         lifetime_gainers_part = gainers_section.split("### L7D")[0]
         self.assertEqual(lifetime_gainers_part.count("Consolidated Hero"), 1, "Card should appear exactly once in Lifetime Gainers")
         # Total Qty = 3, Unit Price = $20.00, Weighted Baseline = (10*1 + 14*2)/3 = $12.67, Lifetime Gain = +$22.00, Pct = +57.9%, Acq = 2026-09-02
-        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | Foil | 3 | `$20.00` | `$12.67` | **+$22.00** | +57.9% |", lifetime_gainers_part)
+        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | 3 | `$20.00` | `$60.00` | `$12.67` | **+$22.00** | +57.9% |", lifetime_gainers_part)
 
         # 2. L7D Gainers check: consolidated into 1 row
         l7d_gainers_part = gainers_section.split("### L7D")[1]
         self.assertEqual(l7d_gainers_part.count("Consolidated Hero"), 1, "Card should appear exactly once in L7D Gainers")
         # Qty = 3, Unit Price = $20.00, 7D Prior = $12.00, Dollar Gain = +$24.00 (3 * $8.00), Pct = +66.7%, Acq = 2026-09-02
-        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | Foil | 3 | `$20.00` | `$12.00` | **+$24.00** | +66.7% |", l7d_gainers_part)
+        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | 3 | `$20.00` | `$60.00` | `$12.00` | **+$24.00** | +66.7% |", l7d_gainers_part)
 
     def test_lifetime_having_clause_nets_mixed_lots(self):
         """Verifies that a card with mixed winning and losing lots nets correctly via post-grouping HAVING."""
@@ -1049,7 +1049,7 @@ class TestReportGeneration(unittest.TestCase):
         # Must appear in Decliners with net -$5.00
         self.assertIn("Mixed Result", decliners_section)
         # Weighted baseline = (10 + 25)/2 = $17.50, Total Loss = -$5.00, Pct = -14.3%
-        self.assertIn("| 🔵 **Mixed Result** | `2026-09-01` | **◇ Rare** | Standard | 2 | `$15.00` | `$17.50` | **$-5.00** | -14.3% |", decliners_section)
+        self.assertIn("| 🔵 **Mixed Result** | `2026-09-01` | **◇ Rare** | 2 | `$15.00` | `$30.00` | `$17.50` | **$-5.00** | -14.3% |", decliners_section)
 
     def test_lifetime_tables_expand_to_10_rows(self):
         """Verifies that Lifetime Gainers and Decliners tables output up to 10 rows."""

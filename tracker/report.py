@@ -62,7 +62,7 @@ WITH evaluated AS (
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
 )
-SELECT name, rarity, color, finish, SUM(quantity) AS quantity,
+SELECT name, rarity, color, ROUND(MAX(curr_price) * SUM(quantity), 2) AS total_val, SUM(quantity) AS quantity,
        MAX(curr_price) AS curr_price, MAX(prev_price) AS prev_price,
        ROUND((MAX(curr_price) - MAX(prev_price)) * SUM(quantity), 2) AS dollar_gain,
        CASE WHEN MAX(prev_price) > 0 THEN ROUND(((MAX(curr_price) - MAX(prev_price)) / MAX(prev_price)) * 100.0, 1) ELSE 0.0 END AS pct_gain,
@@ -87,7 +87,7 @@ WITH evaluated AS (
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND COALESCE(m.item_type, 'Card') = 'Card'
 )
-SELECT name, rarity, color, finish, SUM(quantity) AS quantity,
+SELECT name, rarity, color, ROUND(MAX(curr_price) * SUM(quantity), 2) AS total_val, SUM(quantity) AS quantity,
        MAX(curr_price) AS curr_price, MAX(prev_price) AS prev_price,
        ROUND((MAX(curr_price) - MAX(prev_price)) * SUM(quantity), 2) AS dollar_gain,
        CASE WHEN MAX(prev_price) > 0 THEN ROUND(((MAX(curr_price) - MAX(prev_price)) / MAX(prev_price)) * 100.0, 1) ELSE 0.0 END AS pct_gain,
@@ -254,7 +254,9 @@ def fetch_l7d_movers(cur: sqlite3.Cursor, l7d_date: str, latest_date: str, is_ga
 def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str, Any]:
     """Queries top lifetime and L7D performance movers and high value cards."""
     cur.execute("""
-    SELECT m.name, m.rarity, m.color, m.finish, SUM(s.quantity) AS quantity,
+    SELECT m.name, m.rarity, m.color,
+           ROUND(MAX(s.unit_market_price) * SUM(s.quantity), 2) AS total_val,
+           SUM(s.quantity) AS quantity,
            MAX(s.unit_market_price) AS unit_market_price,
            ROUND(SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0), 2) AS baseline_price,
            ROUND(SUM(s.lifetime_gain_dollar), 2) AS lifetime_gain_dollar,
@@ -271,7 +273,9 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
     top_gainers = cur.fetchall()
 
     cur.execute("""
-    SELECT m.name, m.rarity, m.color, m.finish, SUM(s.quantity) AS quantity,
+    SELECT m.name, m.rarity, m.color,
+           ROUND(MAX(s.unit_market_price) * SUM(s.quantity), 2) AS total_val,
+           SUM(s.quantity) AS quantity,
            MAX(s.unit_market_price) AS unit_market_price,
            ROUND(SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0), 2) AS baseline_price,
            ROUND(SUM(s.lifetime_gain_dollar), 2) AS lifetime_gain_dollar,
@@ -491,30 +495,30 @@ def render_markdown_report(
 
 ### Lifetime
 
-| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Gain | Percent Gain |
-| :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | Baseline Price | Position Gain | Percent Gain |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-    for name, rarity, color, finish, qty, price, base, gain, pct, acq_date in movers.get("top_gainers", []):
+    for name, rarity, color, total_val, qty, price, base, gain, pct, acq_date in movers.get("top_gainers", []):
         r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         acq_display = f"`{acq_date}`" if acq_date else "—"
-        md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+        md_content += f"| {card_display} | {acq_display} | {r_str} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     l7d_date = movers.get("l7d_date")
     if l7d_date:
         md_content += f"""
 ### L7D (Since `{l7d_date}`)
 
-| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Gain | Percent Gain |
-| :--- | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
+| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | 7D Prior Price | Position Gain | Percent Gain |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-        for name, rarity, color, finish, qty, price, prev_price, gain, pct, acq_date in movers.get("top_l7d_gainers", []):
+        for name, rarity, color, total_val, qty, price, prev_price, gain, pct, acq_date in movers.get("top_l7d_gainers", []):
             r_str = format_rarity(rarity, bold=True)
             dot = COLOR_DOTS.get(color, "")
             card_display = f"{dot} **{name}**" if dot else f"**{name}**"
             acq_display = f"`{acq_date}`" if acq_date else "—"
-            md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+            md_content += f"| {card_display} | {acq_display} | {r_str} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     md_content += """
 ---
@@ -523,29 +527,29 @@ def render_markdown_report(
 
 ### Lifetime
 
-| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Baseline Price | Dollar Loss | Percent Loss |
-| :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | Baseline Price | Position Loss | Percent Loss |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-    for name, rarity, color, finish, qty, price, base, gain, pct, acq_date in movers.get("top_decliners", []):
+    for name, rarity, color, total_val, qty, price, base, gain, pct, acq_date in movers.get("top_decliners", []):
         r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         acq_display = f"`{acq_date}`" if acq_date else "—"
-        md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+        md_content += f"| {card_display} | {acq_display} | {r_str} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     if l7d_date:
         md_content += f"""
 ### L7D (Since `{l7d_date}`)
 
-| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | 7D Prior Price | Dollar Loss | Percent Loss |
-| :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | 7D Prior Price | Position Loss | Percent Loss |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-        for name, rarity, color, finish, qty, price, prev_price, gain, pct, acq_date in movers.get("top_l7d_decliners", []):
+        for name, rarity, color, total_val, qty, price, prev_price, gain, pct, acq_date in movers.get("top_l7d_decliners", []):
             r_str = format_rarity(rarity, bold=True)
             dot = COLOR_DOTS.get(color, "")
             card_display = f"{dot} **{name}**" if dot else f"**{name}**"
             acq_display = f"`{acq_date}`" if acq_date else "—"
-            md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+            md_content += f"| {card_display} | {acq_display} | {r_str} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     return md_content
 
