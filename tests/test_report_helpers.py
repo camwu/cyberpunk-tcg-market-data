@@ -147,7 +147,7 @@ class TestReportHelpers(unittest.TestCase):
             "sealed": [("Booster Box", 1, 120.0, 120.0, 100.0, 20.0, 20.0, "2026-09-15")],
         }
         movers = {
-            "top_gainers": [("Judy Alvarez", "Iconic", "Green", "Standard", 1, 15.0, 10.0, 5.0, 50.0, "2026-09-01")],
+            "top_gainers": [("Judy Alvarez", "Iconic", "Green", 15.0, 1, 15.0, 10.0, 5.0, 50.0, "2026-09-01")],
             "top_decliners": [],
             "high_value_cards": [("Judy Alvarez", "Night City", "Iconic", "Green", "Standard", 1, 15.0, 15.0, "Character")],
             "l7d_date": None,
