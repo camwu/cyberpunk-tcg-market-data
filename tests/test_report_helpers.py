@@ -106,7 +106,7 @@ class TestReportHelpers(unittest.TestCase):
         movers = fetch_performance_movers(self.cur, "2026-10-01")
         self.assertEqual(len(movers["top_gainers"]), 1)
         self.assertEqual(len(movers["high_value_cards"]), 1)
-        self.assertGreaterEqual(movers["high_value_cards"][0][6], HIGH_VALUE_THRESHOLD)
+        self.assertGreaterEqual(movers["high_value_cards"][0][5], HIGH_VALUE_THRESHOLD)
 
     def test_fetch_l7d_movers(self):
         seed_metadata(self.conn, [
@@ -149,7 +149,7 @@ class TestReportHelpers(unittest.TestCase):
         movers = {
             "top_gainers": [("Judy Alvarez", "Iconic", "Green", 15.0, 1, 15.0, 10.0, 5.0, 50.0, "2026-09-01")],
             "top_decliners": [],
-            "high_value_cards": [("Judy Alvarez", "Night City", "Iconic", "Green", "Standard", 1, 15.0, 15.0, "Character")],
+            "high_value_cards": [("Judy Alvarez", "Night City", "Iconic", "Green", 1, 15.0, 15.0, "Character")],
             "l7d_date": None,
             "top_l7d_gainers": [],
             "top_l7d_decliners": [],

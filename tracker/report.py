@@ -292,7 +292,7 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
     top_decliners = cur.fetchall()
 
     cur.execute("""
-    SELECT m.name, m.expansion, m.rarity, m.color, m.finish, SUM(s.quantity), s.unit_market_price, SUM(s.line_total),
+    SELECT m.name, m.expansion, m.rarity, m.color, SUM(s.quantity), s.unit_market_price, SUM(s.line_total),
            COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS card_type
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
@@ -330,14 +330,14 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
 
 def render_high_value_table(cards: List[tuple]) -> str:
     """Renders high value singles table rows."""
-    table = """| Card Name | Type | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
-| :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: |
+    table = """| Card Name | Type | Expansion | Rarity | Qty | Unit Price | Total Value |
+| :--- | :--- | :--- | :--- | :---: | :---: | :---: |
 """
-    for name, exp, rarity, color, finish, qty, price, total, ctype in cards:
+    for name, exp, rarity, color, qty, price, total, ctype in cards:
         r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
-        table += f"| {card_display} | {ctype} | {exp} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
+        table += f"| {card_display} | {ctype} | {exp} | {r_str} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
     return table
 
 
