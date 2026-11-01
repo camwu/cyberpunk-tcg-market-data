@@ -366,15 +366,10 @@ def load_price_catalog(
         prods = {}
 
     catalog_by_group_pnum = {}
-    catalog_by_pid = {}
     catalog_by_group_name = {}
     catalog_by_group_clean_name = {}
     catalog_by_name = {}
     for p in prods.values():
-        pid = p.get("productId")
-        if pid:
-            catalog_by_pid[int(pid)] = p
-            catalog_by_pid[str(pid)] = p
         g = p.get("groupName", "").strip().lower()
         p_name = p.get("name", "").strip().lower()
         p_clean = p.get("cleanName", "").strip().lower()
@@ -409,7 +404,6 @@ def load_price_catalog(
 
     indexes = {
         "by_group_pnum": catalog_by_group_pnum,
-        "by_pid": catalog_by_pid,
         "by_group_name": catalog_by_group_name,
         "by_group_clean_name": catalog_by_group_clean_name,
         "by_name": catalog_by_name,

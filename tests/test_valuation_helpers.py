@@ -69,7 +69,6 @@ class TestValuationHelpers(unittest.TestCase):
         prods, indexes = load_price_catalog(self.cache_dir, "2026-10-01")
         self.assertEqual(len(prods), 2)
         self.assertIn(("night city", "001"), indexes["by_group_pnum"])
-        self.assertIn(101, indexes["by_pid"])
         self.assertIn(("night city", "arasaka tower booster box"), indexes["by_group_name"])
 
     def test_load_price_catalog_fallback_and_missing(self):
@@ -95,7 +94,6 @@ class TestValuationHelpers(unittest.TestCase):
         with patch("tracker.valuation.REPO_PRICES_DIR", repo_fixture_dir):
             prods, indexes = load_price_catalog(empty_cache_dir, "2026-05-20")
             self.assertEqual(len(prods), 1)
-            self.assertIn(201, indexes["by_pid"])
 
             # 2. FileNotFoundError raised when date file exists in neither candidate path
             with self.assertRaises(FileNotFoundError):
@@ -386,21 +384,15 @@ class TestValuationHelpers(unittest.TestCase):
         self.assertEqual(ctx.expansion, "Pre-Release Retail")
         self.assertEqual(ctx.card_key, "Pre-Release Retail::005::Foil::2026-10-31")
 
-    def test_single_card_ignores_product_id(self):
+    def test_matching_ignores_product_id_for_all_item_types(self):
         indexes = {
             "by_group_pnum": {},
             "by_group_name": {},
             "by_group_clean_name": {},
             "by_name": {},
-            "by_pid": {
-                12345: {
-                    "productId": 12345,
-                    "name": "Unrelated Card",
-                    "groupName": "Other Set",
-                }
-            },
         }
-        row = {
+        # Card row with intake productId
+        card_row = {
             "name": "Local Card",
             "expansion": "My Set",
             "printNumber": "001",
@@ -408,13 +400,27 @@ class TestValuationHelpers(unittest.TestCase):
             "productId": 12345,
             "totalQtyOwned": 1,
         }
-        prod, ctx, _, is_matched, _ = match_collection_item(row, indexes, "2026-10-31")
-        self.assertFalse(is_matched)
-        self.assertIsNone(prod)
-        self.assertIsNone(ctx.prod_id)
-        self.assertEqual(ctx.expansion, "My Set")
+        prod_card, ctx_card, _, is_matched_card, _ = match_collection_item(card_row, indexes, "2026-10-31")
+        self.assertFalse(is_matched_card)
+        self.assertIsNone(prod_card)
+        self.assertIsNone(ctx_card.prod_id)
+        self.assertEqual(ctx_card.expansion, "My Set")
 
-    def test_sealed_item_uses_by_name_fallback(self):
+        # Sealed row with intake productId
+        sealed_row = {
+            "name": "Local Box",
+            "expansion": "My Set",
+            "item_type": "Sealed",
+            "productId": 12345,
+            "totalQtyOwned": 1,
+        }
+        prod_sealed, ctx_sealed, _, is_matched_sealed, _ = match_collection_item(sealed_row, indexes, "2026-10-31")
+        self.assertFalse(is_matched_sealed)
+        self.assertIsNone(prod_sealed)
+        self.assertIsNone(ctx_sealed.prod_id)
+        self.assertEqual(ctx_sealed.expansion, "My Set")
+
+    def test_by_name_fallback_gated_strictly_to_sealed(self):
         indexes = {
             "by_group_pnum": {},
             "by_group_name": {},
@@ -426,18 +432,30 @@ class TestValuationHelpers(unittest.TestCase):
                     "groupName": "Night City",
                 }
             },
-            "by_pid": {},
         }
-        row = {
+        # 1. Single card row with identical name must be rejected by the gate
+        card_row = {
             "name": "Booster Box",
-            "expansion": "Unknown Set",
+            "expansion": "Other Set",
+            "item_type": "Card",
+            "totalQtyOwned": 1,
+        }
+        prod_card, ctx_card, _, is_matched_card, _ = match_collection_item(card_row, indexes, "2026-10-31")
+        self.assertFalse(is_matched_card)
+        self.assertIsNone(prod_card)
+        self.assertEqual(ctx_card.expansion, "Other Set")
+
+        # 2. Sealed row with identical name passes through the gate
+        sealed_row = {
+            "name": "Booster Box",
+            "expansion": "Other Set",
             "item_type": "Sealed",
             "totalQtyOwned": 1,
         }
-        prod, ctx, _, is_matched, _ = match_collection_item(row, indexes, "2026-10-31")
-        self.assertTrue(is_matched)
-        self.assertIsNotNone(prod)
-        self.assertEqual(ctx.prod_id, 500)
+        prod_sealed, ctx_sealed, _, is_matched_sealed, _ = match_collection_item(sealed_row, indexes, "2026-10-31")
+        self.assertTrue(is_matched_sealed)
+        self.assertIsNotNone(prod_sealed)
+        self.assertEqual(ctx_sealed.prod_id, 500)
 
     def test_end_to_end_retail_streetkid_resolution(self):
         catalog = {
