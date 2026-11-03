@@ -18,7 +18,7 @@
     },
     "24855": {
       "name": "Welcome to Night City - Retail",
-      "modifiedOn": "2026-10-30T16:38:01.137"
+      "modifiedOn": "2026-11-02T15:52:06.86"
     },
     "24857": {
       "name": "Box Toppers - Retail",
@@ -51,6 +51,10 @@
     "24883": {
       "name": "Edgerunner Open Season 1",
       "modifiedOn": "2026-10-15T18:46:00.06"
+    },
+    "24927": {
+      "name": "Judge Promos",
+      "modifiedOn": "2026-11-02T19:36:37.207"
     }
   },
   "715194": {
@@ -2083,7 +2087,7 @@
     "cleanName": "V Streetkid b",
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
-    "printNumber": "005b",
+    "printNumber": "005",
     "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
@@ -5306,6 +5310,369 @@
     "cleanName": "Welcome to Night City Pre Release Kit",
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "729822": {
+    "productId": 729822,
+    "name": "Adam Smasher - Ender of Legends (ILegend)",
+    "cleanName": "Adam Smasher Ender of Legends ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "141",
+    "rarity": "IL",
+    "color": "Red",
+    "cardType": "Legend"
+  },
+  "729823": {
+    "productId": 729823,
+    "name": "Dexter DeShawn - Off the Grid (ILegend)",
+    "cleanName": "Dexter DeShawn Off the Grid ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "142",
+    "rarity": "IL",
+    "color": "Red",
+    "cardType": "Legend"
+  },
+  "729824": {
+    "productId": 729824,
+    "name": "Royce - Psycho on the Edge (ILegend)",
+    "cleanName": "Royce Psycho on the Edge ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "143",
+    "rarity": "IL",
+    "color": "Red",
+    "cardType": "Legend"
+  },
+  "729825": {
+    "productId": 729825,
+    "name": "V - Streetkid (ILegend)",
+    "cleanName": "V Streetkid ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "144",
+    "rarity": "IL",
+    "color": "Red",
+    "cardType": "Legend"
+  },
+  "729826": {
+    "productId": 729826,
+    "name": "Dum Dum - Maelstrom Triggerman (ILegend)",
+    "cleanName": "Dum Dum Maelstrom Triggerman ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "145",
+    "rarity": "IL",
+    "color": "Yellow",
+    "cardType": "Legend"
+  },
+  "729827": {
+    "productId": 729827,
+    "name": "Kerry Eurodyne - Axe, Attitude, Audience (ILegend)",
+    "cleanName": "Kerry Eurodyne Axe Attitude Audience ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "146",
+    "rarity": "IL",
+    "color": "Yellow",
+    "cardType": "Legend"
+  },
+  "729828": {
+    "productId": 729828,
+    "name": "Muamar Reyes - El Capitan (ILegend)",
+    "cleanName": "Muamar Reyes El Capitan ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "147",
+    "rarity": "IL",
+    "color": "Yellow",
+    "cardType": "Legend"
+  },
+  "729829": {
+    "productId": 729829,
+    "name": "River Ward - Detective on the Hunt (ILegend)",
+    "cleanName": "River Ward Detective on the Hunt ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "148",
+    "rarity": "IL",
+    "color": "Yellow",
+    "cardType": "Legend"
+  },
+  "729830": {
+    "productId": 729830,
+    "name": "Rogue Amendiares - Preem Solo (ILegend)",
+    "cleanName": "Rogue Amendiares Preem Solo ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "149",
+    "rarity": "IL",
+    "color": "Yellow",
+    "cardType": "Legend"
+  },
+  "729831": {
+    "productId": 729831,
+    "name": "Goro Takemura - Vengeful Bodyguard (ILegend)",
+    "cleanName": "Goro Takemura Vengeful Bodyguard ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "150",
+    "rarity": "IL",
+    "color": "Green",
+    "cardType": "Legend"
+  },
+  "729832": {
+    "productId": 729832,
+    "name": "Hanako Arasaka - Daughter of the Emperor (ILegend)",
+    "cleanName": "Hanako Arasaka Daughter of the Emperor ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "151",
+    "rarity": "IL",
+    "color": "Green",
+    "cardType": "Legend"
+  },
+  "729833": {
+    "productId": 729833,
+    "name": "Jackie Welles - Mama's Favorite (ILegend)",
+    "cleanName": "Jackie Welles Mamas Favorite ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "152",
+    "rarity": "IL",
+    "color": "Green",
+    "cardType": "Legend"
+  },
+  "729834": {
+    "productId": 729834,
+    "name": "Padre - Man of the Cross (ILegend)",
+    "cleanName": "Padre Man of the Cross ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "153",
+    "rarity": "IL",
+    "color": "Green",
+    "cardType": "Legend"
+  },
+  "729835": {
+    "productId": 729835,
+    "name": "Panam Palmer - Nomad Cavalry (ILegend)",
+    "cleanName": "Panam Palmer Nomad Cavalry ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "154",
+    "rarity": "IL",
+    "color": "Green",
+    "cardType": "Legend"
+  },
+  "729836": {
+    "productId": 729836,
+    "name": "Alt Cunningham - Soulkiller Architect (ILegend)",
+    "cleanName": "Alt Cunningham Soulkiller Architect ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "155",
+    "rarity": "IL",
+    "color": "Blue",
+    "cardType": "Legend"
+  },
+  "729837": {
+    "productId": 729837,
+    "name": "Evelyn Parker - Beautiful Enigma (ILegend)",
+    "cleanName": "Evelyn Parker Beautiful Enigma ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "156",
+    "rarity": "IL",
+    "color": "Blue",
+    "cardType": "Legend"
+  },
+  "729838": {
+    "productId": 729838,
+    "name": "Judy Alvarez - Braindance Maestro (ILegend)",
+    "cleanName": "Judy Alvarez Braindance Maestro ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "157",
+    "rarity": "IL",
+    "color": "Blue",
+    "cardType": "Legend"
+  },
+  "729839": {
+    "productId": 729839,
+    "name": "Wakako Okada - Peace and Harmony (ILegend)",
+    "cleanName": "Wakako Okada Peace and Harmony ILegend",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "158",
+    "rarity": "IL",
+    "color": "Blue",
+    "cardType": "Legend"
+  },
+  "729840": {
+    "productId": 729840,
+    "name": "Johnny Silverhand - Never Stop Fighting (IO)",
+    "cleanName": "Johnny Silverhand Never Stop Fighting IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "159",
+    "rarity": "IO",
+    "color": "Red",
+    "cardType": "Unit"
+  },
+  "729841": {
+    "productId": 729841,
+    "name": "Adam Smasher - Metal Over Meat (IO)",
+    "cleanName": "Adam Smasher Metal Over Meat IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "160",
+    "rarity": "IO",
+    "color": "Yellow",
+    "cardType": "Unit"
+  },
+  "729842": {
+    "productId": 729842,
+    "name": "Alt Cunningham - Mother of Daemons (IO)",
+    "cleanName": "Alt Cunningham Mother of Daemons IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "161",
+    "rarity": "IO",
+    "color": "Yellow",
+    "cardType": "Unit"
+  },
+  "729843": {
+    "productId": 729843,
+    "name": "Hanako Arasaka - In a Gilded Cage (IO)",
+    "cleanName": "Hanako Arasaka In a Gilded Cage IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "162",
+    "rarity": "IO",
+    "color": "Yellow",
+    "cardType": "Unit"
+  },
+  "729844": {
+    "productId": 729844,
+    "name": "The Relic - Experimental Biochip (IO)",
+    "cleanName": "The Relic Experimental Biochip IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "163",
+    "rarity": "IO",
+    "color": "Yellow",
+    "cardType": "Gear"
+  },
+  "729845": {
+    "productId": 729845,
+    "name": "Sandayu Oda - Hanako's Guardian (IO)",
+    "cleanName": "Sandayu Oda Hanakos Guardian IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "164",
+    "rarity": "IO",
+    "color": "Green",
+    "cardType": "Unit"
+  },
+  "729846": {
+    "productId": 729846,
+    "name": "Overwatch - Panam's Gift (IO)",
+    "cleanName": "Overwatch Panams Gift IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "165",
+    "rarity": "IO",
+    "color": "Green",
+    "cardType": "Gear"
+  },
+  "729847": {
+    "productId": 729847,
+    "name": "Rogue Amendiares - Queen of the Afterlife (IO)",
+    "cleanName": "Rogue Amendiares Queen of the Afterlife IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "166",
+    "rarity": "IO",
+    "color": "Blue",
+    "cardType": "Unit"
+  },
+  "729848": {
+    "productId": 729848,
+    "name": "Towerfall (IO)",
+    "cleanName": "Towerfall IO",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "167",
+    "rarity": "IO",
+    "color": "Blue",
+    "cardType": "Program"
+  },
+  "729849": {
+    "productId": 729849,
+    "name": "Johnny Silverhand - Rocking Renegade (ISecret)",
+    "cleanName": "Johnny Silverhand Rocking Renegade ISecret",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "168",
+    "rarity": "IS",
+    "color": "Red",
+    "cardType": "Legend"
+  },
+  "729850": {
+    "productId": 729850,
+    "name": "Sasha Yakovleva - Won't Let You Down (ISecret)",
+    "cleanName": "Sasha Yakovleva Wont Let You Down ISecret",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "169",
+    "rarity": "IS",
+    "color": "Blue",
+    "cardType": "Legend"
+  },
+  "729851": {
+    "productId": 729851,
+    "name": "Panam Palmer - Strength Through Family (ISecret)",
+    "cleanName": "Panam Palmer Strength Through Family ISecret",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "170",
+    "rarity": "IS",
+    "color": "Green",
+    "cardType": "Unit"
+  },
+  "729852": {
+    "productId": 729852,
+    "name": "Judy Alvarez - Nothing to Doubt (ISecret)",
+    "cleanName": "Judy Alvarez Nothing to Doubt ISecret",
+    "groupId": 24855,
+    "groupName": "Welcome to Night City - Retail",
+    "printNumber": "171",
+    "rarity": "IS",
+    "color": "Blue",
+    "cardType": "Unit"
+  },
+  "729980": {
+    "productId": 729980,
+    "name": "Secondhand Bombus",
+    "cleanName": "Secondhand Bombus",
+    "groupId": 24927,
+    "groupName": "Judge Promos",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "729981": {
+    "productId": 729981,
+    "name": "MaxTac Squadron",
+    "cleanName": "MaxTac Squadron",
+    "groupId": 24927,
+    "groupName": "Judge Promos",
     "printNumber": null,
     "rarity": null,
     "color": null,
