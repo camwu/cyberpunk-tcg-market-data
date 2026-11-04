@@ -18,7 +18,7 @@
     },
     "24855": {
       "name": "Welcome to Night City - Retail",
-      "modifiedOn": "2026-11-02T15:52:06.86"
+      "modifiedOn": "2026-11-02T21:13:29.973"
     },
     "24857": {
       "name": "Box Toppers - Retail",
@@ -54,7 +54,11 @@
     },
     "24927": {
       "name": "Judge Promos",
-      "modifiedOn": "2026-11-02T19:36:37.207"
+      "modifiedOn": "2026-11-02T20:15:10.083"
+    },
+    "24928": {
+      "name": "Pre-Release Retail",
+      "modifiedOn": "2026-11-02T23:39:17.52"
     }
   },
   "715194": {
@@ -2087,7 +2091,7 @@
     "cleanName": "V Streetkid b",
     "groupId": 24855,
     "groupName": "Welcome to Night City - Retail",
-    "printNumber": "005",
+    "printNumber": "005b",
     "rarity": "R",
     "color": "Red",
     "cardType": "Legend"
@@ -5295,10 +5299,10 @@
   },
   "725838": {
     "productId": 725838,
-    "name": "Gorilla Arms (Pre-release)",
-    "cleanName": "Gorilla Arms Pre release",
-    "groupId": 24860,
-    "groupName": "Set 1 Promos",
+    "name": "Gorilla Arms",
+    "cleanName": "Gorilla Arms",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
     "printNumber": "011",
     "rarity": "NR",
     "color": "Yellow",
@@ -5662,10 +5666,10 @@
     "cleanName": "Secondhand Bombus",
     "groupId": 24927,
     "groupName": "Judge Promos",
-    "printNumber": null,
-    "rarity": null,
-    "color": null,
-    "cardType": null
+    "printNumber": "001",
+    "rarity": "NR",
+    "color": "Yellow",
+    "cardType": "Unit"
   },
   "729981": {
     "productId": 729981,
@@ -5673,9 +5677,130 @@
     "cleanName": "MaxTac Squadron",
     "groupId": 24927,
     "groupName": "Judge Promos",
-    "printNumber": null,
-    "rarity": null,
-    "color": null,
-    "cardType": null
+    "printNumber": "002",
+    "rarity": "NR",
+    "color": "Green",
+    "cardType": "Unit"
+  },
+  "729982": {
+    "productId": 729982,
+    "name": "Delamain - Rideshare AI",
+    "cleanName": "Delamain Rideshare AI",
+    "groupId": 24927,
+    "groupName": "Judge Promos",
+    "printNumber": "003",
+    "rarity": "NR",
+    "color": "Blue",
+    "cardType": "Unit"
+  },
+  "729984": {
+    "productId": 729984,
+    "name": "Adam Smasher - Ender of Legends",
+    "cleanName": "Adam Smasher Ender of Legends",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "001",
+    "rarity": "E",
+    "color": "Red",
+    "cardType": "Legend"
+  },
+  "729985": {
+    "productId": 729985,
+    "name": "Dexter DeShawn - Off the Grid",
+    "cleanName": "Dexter DeShawn Off the Grid",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "002",
+    "rarity": "R",
+    "color": "Red",
+    "cardType": "Legend"
+  },
+  "729986": {
+    "productId": 729986,
+    "name": "Royce - Psycho on the Edge",
+    "cleanName": "Royce Psycho on the Edge",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "003",
+    "rarity": "R",
+    "color": "Red",
+    "cardType": "Legend"
+  },
+  "729987": {
+    "productId": 729987,
+    "name": "Dum Dum - Maelstrom Triggerman",
+    "cleanName": "Dum Dum Maelstrom Triggerman",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "004",
+    "rarity": "R",
+    "color": "Yellow",
+    "cardType": "Legend"
+  },
+  "729988": {
+    "productId": 729988,
+    "name": "Muamar Reyes - El Capitan",
+    "cleanName": "Muamar Reyes El Capitan",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "005",
+    "rarity": "R",
+    "color": "Yellow",
+    "cardType": "Legend"
+  },
+  "729989": {
+    "productId": 729989,
+    "name": "Rogue Amendiares - Preem Solo",
+    "cleanName": "Rogue Amendiares Preem Solo",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "006",
+    "rarity": "R",
+    "color": "Yellow",
+    "cardType": "Legend"
+  },
+  "729990": {
+    "productId": 729990,
+    "name": "Goro Takemura - Vengeful Bodyguard",
+    "cleanName": "Goro Takemura Vengeful Bodyguard",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "007",
+    "rarity": "R",
+    "color": "Green",
+    "cardType": "Legend"
+  },
+  "729991": {
+    "productId": 729991,
+    "name": "Padre - Man of the Cross",
+    "cleanName": "Padre Man of the Cross",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "008",
+    "rarity": "R",
+    "color": "Green",
+    "cardType": "Legend"
+  },
+  "729992": {
+    "productId": 729992,
+    "name": "Alt Cunningham - Soulkiller Architect",
+    "cleanName": "Alt Cunningham Soulkiller Architect",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "009",
+    "rarity": "R",
+    "color": "Blue",
+    "cardType": "Legend"
+  },
+  "729993": {
+    "productId": 729993,
+    "name": "Wakako Okada - Peace and Harmony",
+    "cleanName": "Wakako Okada Peace and Harmony",
+    "groupId": 24928,
+    "groupName": "Pre-Release Retail",
+    "printNumber": "010",
+    "rarity": "R",
+    "color": "Blue",
+    "cardType": "Legend"
   }
 }
