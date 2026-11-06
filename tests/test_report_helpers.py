@@ -107,6 +107,8 @@ class TestReportHelpers(unittest.TestCase):
         self.assertEqual(len(movers["top_gainers"]), 1)
         self.assertEqual(len(movers["high_value_cards"]), 1)
         self.assertGreaterEqual(movers["high_value_cards"][0][5], HIGH_VALUE_THRESHOLD)
+        self.assertEqual(movers["top_gainers"][0][10], "Standard")
+        self.assertEqual(movers["high_value_cards"][0][8], "Standard")
 
     def test_fetch_l7d_movers(self):
         seed_metadata(self.conn, [
@@ -132,10 +134,14 @@ class TestReportHelpers(unittest.TestCase):
         decliners = fetch_l7d_movers(self.cur, "2026-09-24", "2026-10-01", is_gainer=False)
         self.assertEqual(len(gainers), 2)
         self.assertEqual(gainers[0][0], "Card B")
+        self.assertEqual(gainers[0][10], "Standard")
         self.assertEqual(gainers[1][0], "Card A")
+        self.assertEqual(gainers[1][10], "Standard")
         self.assertEqual(len(decliners), 2)
         self.assertEqual(decliners[0][0], "Card D")
+        self.assertEqual(decliners[0][10], "Standard")
         self.assertEqual(decliners[1][0], "Card C")
+        self.assertEqual(decliners[1][10], "Standard")
 
     def test_render_markdown_report_structure(self):
         summary = (135.0, 1, 2, 0.0, 0.0, 25.0, 22.7, 1, "2026-10-01 10:00 AM", "CSV", 100.0, 35.0, 35.0, None)
@@ -147,9 +153,9 @@ class TestReportHelpers(unittest.TestCase):
             "sealed": [("Booster Box", 1, 120.0, 120.0, 100.0, 20.0, 20.0, "2026-09-15")],
         }
         movers = {
-            "top_gainers": [("Judy Alvarez", "Iconic", "Green", 15.0, 1, 15.0, 10.0, 5.0, 50.0, "2026-09-01")],
+            "top_gainers": [("Judy Alvarez", "Iconic", "Green", 15.0, 1, 15.0, 10.0, 5.0, 50.0, "2026-09-01", "Standard")],
             "top_decliners": [],
-            "high_value_cards": [("Judy Alvarez", "Night City", "Iconic", "Green", 1, 15.0, 15.0, "Character")],
+            "high_value_cards": [("Judy Alvarez", "Night City", "Iconic", "Green", 1, 15.0, 15.0, "Character", "Standard")],
             "l7d_date": None,
             "top_l7d_gainers": [],
             "top_l7d_decliners": [],

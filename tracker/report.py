@@ -66,7 +66,8 @@ SELECT name, rarity, color, ROUND(MAX(curr_price) * SUM(quantity), 2) AS total_v
        MAX(curr_price) AS curr_price, MAX(prev_price) AS prev_price,
        ROUND((MAX(curr_price) - MAX(prev_price)) * SUM(quantity), 2) AS dollar_gain,
        CASE WHEN MAX(prev_price) > 0 THEN ROUND(((MAX(curr_price) - MAX(prev_price)) / MAX(prev_price)) * 100.0, 1) ELSE 0.0 END AS pct_gain,
-       MIN(acq_date) AS acq_date
+       MIN(acq_date) AS acq_date,
+       finish
 FROM evaluated
 GROUP BY expansion, print_number, finish, name, rarity, color, card_type
 HAVING MAX(curr_price) > MAX(prev_price)
@@ -91,7 +92,8 @@ SELECT name, rarity, color, ROUND(MAX(curr_price) * SUM(quantity), 2) AS total_v
        MAX(curr_price) AS curr_price, MAX(prev_price) AS prev_price,
        ROUND((MAX(curr_price) - MAX(prev_price)) * SUM(quantity), 2) AS dollar_gain,
        CASE WHEN MAX(prev_price) > 0 THEN ROUND(((MAX(curr_price) - MAX(prev_price)) / MAX(prev_price)) * 100.0, 1) ELSE 0.0 END AS pct_gain,
-       MIN(acq_date) AS acq_date
+       MIN(acq_date) AS acq_date,
+       finish
 FROM evaluated
 GROUP BY expansion, print_number, finish, name, rarity, color, card_type
 HAVING MAX(curr_price) < MAX(prev_price)
@@ -261,7 +263,8 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
            ROUND(SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0), 2) AS baseline_price,
            ROUND(SUM(s.lifetime_gain_dollar), 2) AS lifetime_gain_dollar,
            CASE WHEN SUM(s.baseline_price * s.quantity) > 0 THEN ROUND((SUM(s.lifetime_gain_dollar) / SUM(s.baseline_price * s.quantity)) * 100.0, 1) ELSE 0.0 END AS lifetime_gain_pct,
-           MIN(COALESCE(m.first_seen_date, '')) AS acq_date
+           MIN(COALESCE(m.first_seen_date, '')) AS acq_date,
+           m.finish
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND s.unit_market_price > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
@@ -280,7 +283,8 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
            ROUND(SUM(s.baseline_price * s.quantity) / NULLIF(SUM(s.quantity), 0), 2) AS baseline_price,
            ROUND(SUM(s.lifetime_gain_dollar), 2) AS lifetime_gain_dollar,
            CASE WHEN SUM(s.baseline_price * s.quantity) > 0 THEN ROUND((SUM(s.lifetime_gain_dollar) / SUM(s.baseline_price * s.quantity)) * 100.0, 1) ELSE 0.0 END AS lifetime_gain_pct,
-           MIN(COALESCE(m.first_seen_date, '')) AS acq_date
+           MIN(COALESCE(m.first_seen_date, '')) AS acq_date,
+           m.finish
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND s.unit_market_price > 0 AND COALESCE(m.item_type, 'Card') = 'Card'
@@ -293,7 +297,8 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
 
     cur.execute("""
     SELECT m.name, m.expansion, m.rarity, m.color, SUM(s.quantity), s.unit_market_price, SUM(s.line_total),
-           COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS card_type
+           COALESCE(NULLIF(m.card_type, ''), 'Unknown') AS card_type,
+           m.finish
     FROM daily_snapshots s
     JOIN card_metadata m ON s.card_key = m.card_key
     WHERE s.date = ? AND s.unit_market_price >= ? AND COALESCE(m.item_type, 'Card') = 'Card'
@@ -330,14 +335,14 @@ def fetch_performance_movers(cur: sqlite3.Cursor, latest_date: str) -> Dict[str,
 
 def render_high_value_table(cards: List[tuple]) -> str:
     """Renders high value singles table rows."""
-    table = """| Card Name | Type | Expansion | Rarity | Qty | Unit Price | Total Value |
-| :--- | :--- | :--- | :--- | :---: | :---: | :---: |
+    table = """| Card Name | Type | Expansion | Rarity | Finish | Qty | Unit Price | Total Value |
+| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
 """
-    for name, exp, rarity, color, qty, price, total, ctype in cards:
+    for name, exp, rarity, color, qty, price, total, ctype, finish in cards:
         r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
-        table += f"| {card_display} | {ctype} | {exp} | {r_str} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
+        table += f"| {card_display} | {ctype} | {exp} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total:,.2f}` |\n"
     return table
 
 
@@ -495,30 +500,30 @@ def render_markdown_report(
 
 ### Lifetime
 
-| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | Baseline Price | Position Gain | Percent Gain |
-| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Total Value | Baseline Price | Position Gain | Percent Gain |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-    for name, rarity, color, total_val, qty, price, base, gain, pct, acq_date in movers.get("top_gainers", []):
+    for name, rarity, color, total_val, qty, price, base, gain, pct, acq_date, finish in movers.get("top_gainers", []):
         r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         acq_display = f"`{acq_date}`" if acq_date else "—"
-        md_content += f"| {card_display} | {acq_display} | {r_str} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+        md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     l7d_date = movers.get("l7d_date")
     if l7d_date:
         md_content += f"""
 ### L7D (Since `{l7d_date}`)
 
-| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | 7D Prior Price | Position Gain | Percent Gain |
-| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Total Value | 7D Prior Price | Position Gain | Percent Gain |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-        for name, rarity, color, total_val, qty, price, prev_price, gain, pct, acq_date in movers.get("top_l7d_gainers", []):
+        for name, rarity, color, total_val, qty, price, prev_price, gain, pct, acq_date, finish in movers.get("top_l7d_gainers", []):
             r_str = format_rarity(rarity, bold=True)
             dot = COLOR_DOTS.get(color, "")
             card_display = f"{dot} **{name}**" if dot else f"**{name}**"
             acq_display = f"`{acq_date}`" if acq_date else "—"
-            md_content += f"| {card_display} | {acq_display} | {r_str} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+            md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     md_content += """
 ---
@@ -527,29 +532,29 @@ def render_markdown_report(
 
 ### Lifetime
 
-| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | Baseline Price | Position Loss | Percent Loss |
-| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Total Value | Baseline Price | Position Loss | Percent Loss |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-    for name, rarity, color, total_val, qty, price, base, gain, pct, acq_date in movers.get("top_decliners", []):
+    for name, rarity, color, total_val, qty, price, base, gain, pct, acq_date, finish in movers.get("top_decliners", []):
         r_str = format_rarity(rarity, bold=True)
         dot = COLOR_DOTS.get(color, "")
         card_display = f"{dot} **{name}**" if dot else f"**{name}**"
         acq_display = f"`{acq_date}`" if acq_date else "—"
-        md_content += f"| {card_display} | {acq_display} | {r_str} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+        md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${base:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     if l7d_date:
         md_content += f"""
 ### L7D (Since `{l7d_date}`)
 
-| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | 7D Prior Price | Position Loss | Percent Loss |
-| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Total Value | 7D Prior Price | Position Loss | Percent Loss |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 """
-        for name, rarity, color, total_val, qty, price, prev_price, gain, pct, acq_date in movers.get("top_l7d_decliners", []):
+        for name, rarity, color, total_val, qty, price, prev_price, gain, pct, acq_date, finish in movers.get("top_l7d_decliners", []):
             r_str = format_rarity(rarity, bold=True)
             dot = COLOR_DOTS.get(color, "")
             card_display = f"{dot} **{name}**" if dot else f"**{name}**"
             acq_display = f"`{acq_date}`" if acq_date else "—"
-            md_content += f"| {card_display} | {acq_display} | {r_str} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
+            md_content += f"| {card_display} | {acq_display} | {r_str} | {finish} | {qty} | `${price:,.2f}` | `${total_val:,.2f}` | `${prev_price:,.2f}` | **{'+' if gain >= 0 else ''}${gain:,.2f}** | {'+' if pct >= 0 else ''}{pct:.1f}% |\n"
 
     return md_content
 
