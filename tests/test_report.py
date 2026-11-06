@@ -399,7 +399,7 @@ class TestReportGeneration(unittest.TestCase):
             singles_section = singles_section.split("## 📈 Top Gainers")[0]
         self.assertEqual(singles_section.count("Towerfall"), 1)
         self.assertIn("#### Non-Iconic/Nova Rare Singles", singles_section)
-        self.assertIn("| 🔵 **Towerfall** | Unknown | Welcome to Night City - Beta | **◇ Rare** | 3 | `$15.00` | `$45.00` |", singles_section)
+        self.assertIn("| 🔵 **Towerfall** | Unknown | Welcome to Night City - Beta | **◇ Rare** | Standard | 3 | `$15.00` | `$45.00` |", singles_section)
 
     def test_multi_lot_rarity_breakdown_distinct_card_count(self):
         conn = sqlite3.connect(self.db_path)
@@ -458,7 +458,7 @@ class TestReportGeneration(unittest.TestCase):
         gainers_section = content.split("## 📈 Top Gainers")[1].split("## 📉 Top Decliners")[0]
 
         # Table header must include Acquired
-        self.assertIn("| Card Name | Acquired | Rarity | Qty | Unit Price | Total Value | Baseline Price | Position Gain | Percent Gain |", gainers_section)
+        self.assertIn("| Card Name | Acquired | Rarity | Finish | Qty | Unit Price | Total Value | Baseline Price | Position Gain | Percent Gain |", gainers_section)
 
         # Card Beta (+$16.00 total position gain) must rank BEFORE Card Alpha (+$10.00 total position gain, despite higher +$10.00/unit gain)
         idx_alpha = gainers_section.find("Card Alpha")
@@ -541,13 +541,13 @@ class TestReportGeneration(unittest.TestCase):
         # High-Value Singles partitioned subsections assertion
         singles_section = content.split("### High-Value Singles")[1].split("## 📈 Top Gainers")[0]
         self.assertIn("#### Iconic Singles", singles_section)
-        self.assertIn("| 🟢 **Hanako Iconic** | Legend | Welcome to Night City - Beta | **★ Iconic** | 1 | `$50.00` | `$50.00` |", singles_section)
+        self.assertIn("| 🟢 **Hanako Iconic** | Legend | Welcome to Night City - Beta | **★ Iconic** | Foil | 1 | `$50.00` | `$50.00` |", singles_section)
 
         self.assertIn("#### Nova Rare Singles", singles_section)
-        self.assertIn("| 🔴 **Mantis Nova** | Gear | Welcome to Night City - Beta | **▣ Nova** | 1 | `$30.00` | `$30.00` |", singles_section)
+        self.assertIn("| 🔴 **Mantis Nova** | Gear | Welcome to Night City - Beta | **▣ Nova** | Foil | 1 | `$30.00` | `$30.00` |", singles_section)
 
         self.assertIn("#### Non-Iconic/Nova Rare Singles", singles_section)
-        self.assertIn("| 🔵 **Jackie Epic** | Unit | Welcome to Night City - Beta | **◈ Epic** | 1 | `$15.00` | `$15.00` |", singles_section)
+        self.assertIn("| 🔵 **Jackie Epic** | Unit | Welcome to Night City - Beta | **◈ Epic** | Foil | 1 | `$15.00` | `$15.00` |", singles_section)
 
     def test_high_value_singles_shorthand_rarity_partitioning(self):
         conn = sqlite3.connect(self.db_path)
@@ -957,13 +957,13 @@ class TestReportGeneration(unittest.TestCase):
         lifetime_gainers_part = gainers_section.split("### L7D")[0]
         self.assertEqual(lifetime_gainers_part.count("Consolidated Hero"), 1, "Card should appear exactly once in Lifetime Gainers")
         # Total Qty = 3, Unit Price = $20.00, Weighted Baseline = (10*1 + 14*2)/3 = $12.67, Lifetime Gain = +$22.00, Pct = +57.9%, Acq = 2026-09-02
-        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | 3 | `$20.00` | `$60.00` | `$12.67` | **+$22.00** | +57.9% |", lifetime_gainers_part)
+        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | Foil | 3 | `$20.00` | `$60.00` | `$12.67` | **+$22.00** | +57.9% |", lifetime_gainers_part)
 
         # 2. L7D Gainers check: consolidated into 1 row
         l7d_gainers_part = gainers_section.split("### L7D")[1]
         self.assertEqual(l7d_gainers_part.count("Consolidated Hero"), 1, "Card should appear exactly once in L7D Gainers")
         # Qty = 3, Unit Price = $20.00, 7D Prior = $12.00, Dollar Gain = +$24.00 (3 * $8.00), Pct = +66.7%, Acq = 2026-09-02
-        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | 3 | `$20.00` | `$60.00` | `$12.00` | **+$24.00** | +66.7% |", l7d_gainers_part)
+        self.assertIn("| 🔴 **Consolidated Hero** | `2026-09-02` | **◈ Epic** | Foil | 3 | `$20.00` | `$60.00` | `$12.00` | **+$24.00** | +66.7% |", l7d_gainers_part)
 
     def test_lifetime_having_clause_nets_mixed_lots(self):
         """Verifies that a card with mixed winning and losing lots nets correctly via post-grouping HAVING."""
@@ -1049,7 +1049,7 @@ class TestReportGeneration(unittest.TestCase):
         # Must appear in Decliners with net -$5.00
         self.assertIn("Mixed Result", decliners_section)
         # Weighted baseline = (10 + 25)/2 = $17.50, Total Loss = -$5.00, Pct = -14.3%
-        self.assertIn("| 🔵 **Mixed Result** | `2026-09-01` | **◇ Rare** | 2 | `$15.00` | `$30.00` | `$17.50` | **$-5.00** | -14.3% |", decliners_section)
+        self.assertIn("| 🔵 **Mixed Result** | `2026-09-01` | **◇ Rare** | Standard | 2 | `$15.00` | `$30.00` | `$17.50` | **$-5.00** | -14.3% |", decliners_section)
 
     def test_lifetime_tables_expand_to_10_rows(self):
         """Verifies that Lifetime Gainers and Decliners tables output up to 10 rows."""
@@ -1103,6 +1103,101 @@ class TestReportGeneration(unittest.TestCase):
 
         self.assertEqual(len(g_rows), 10, "Lifetime Gainers must output exactly 10 rows when >=10 eligible cards exist")
         self.assertEqual(len(d_rows), 10, "Lifetime Decliners must output exactly 10 rows when >=10 eligible cards exist")
+
+    def test_standard_and_foil_variants_and_table_column_invariants(self):
+        """Verifies distinct Standard/Foil rows for identical card prints and 8/10 column invariants across all 7 card-level tables."""
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("DELETE FROM daily_snapshots")
+        cur.execute("DELETE FROM card_metadata")
+        cur.execute("DELETE FROM portfolio_daily_summary")
+        conn.commit()
+
+        # Seed synthetic cards in isolated temp fixture:
+        # 1) Promo Card Alpha - Standard (Nova, Green, Legend) -> gainer
+        # 2) Promo Card Alpha - Foil (Nova, Green, Legend) -> decliner
+        # 3) Iconic Card Gamma - Foil (Iconic, Red, Unit) -> gainer
+        # 4) Epic Card Delta - Standard (Epic, Blue, Program) -> decliner
+        meta = [
+            {"card_key": "Exp::P001::Standard::2026-09-01", "product_id": 2001, "name": "Promo Card Alpha", "print_number": "P001", "expansion": "Expansion P", "finish": "Standard", "rarity": "Nova", "color": "Green", "card_type": "Legend", "first_seen_date": "2026-09-01", "baseline_market_price": 10.0, "item_type": "Card"},
+            {"card_key": "Exp::P001::Foil::2026-09-01", "product_id": 2001, "name": "Promo Card Alpha", "print_number": "P001", "expansion": "Expansion P", "finish": "Foil", "rarity": "Nova", "color": "Green", "card_type": "Legend", "first_seen_date": "2026-09-01", "baseline_market_price": 50.0, "item_type": "Card"},
+            {"card_key": "Exp::I001::Foil::2026-09-01", "product_id": 2002, "name": "Iconic Card Gamma", "print_number": "I001", "expansion": "Expansion I", "finish": "Foil", "rarity": "Iconic", "color": "Red", "card_type": "Unit", "first_seen_date": "2026-09-01", "baseline_market_price": 30.0, "item_type": "Card"},
+            {"card_key": "Exp::E001::Standard::2026-09-01", "product_id": 2003, "name": "Epic Card Delta", "print_number": "E001", "expansion": "Expansion E", "finish": "Standard", "rarity": "Epic", "color": "Blue", "card_type": "Program", "first_seen_date": "2026-09-01", "baseline_market_price": 20.0, "item_type": "Card"},
+        ]
+        seed_metadata(conn, meta)
+
+        # Prior date (2026-09-12) for L7D
+        snaps_d1 = [
+            {"card_key": "Exp::P001::Standard::2026-09-01", "quantity": 1, "unit_market_price": 12.0, "line_total": 12.0, "baseline_price": 10.0, "lifetime_gain_dollar": 2.0, "lifetime_gain_pct": 20.0},
+            {"card_key": "Exp::P001::Foil::2026-09-01", "quantity": 1, "unit_market_price": 45.0, "line_total": 45.0, "baseline_price": 50.0, "lifetime_gain_dollar": -5.0, "lifetime_gain_pct": -10.0},
+            {"card_key": "Exp::I001::Foil::2026-09-01", "quantity": 1, "unit_market_price": 35.0, "line_total": 35.0, "baseline_price": 30.0, "lifetime_gain_dollar": 5.0, "lifetime_gain_pct": 16.7},
+            {"card_key": "Exp::E001::Standard::2026-09-01", "quantity": 1, "unit_market_price": 18.0, "line_total": 18.0, "baseline_price": 20.0, "lifetime_gain_dollar": -2.0, "lifetime_gain_pct": -10.0},
+        ]
+        seed_snapshots(conn, "2026-09-12", snaps_d1)
+        seed_summary(conn, "2026-09-12", total_value=110.0, total_cards=4, unique_items=4, lifetime_gain=0.0)
+
+        # Current date (2026-09-19)
+        snaps_d2 = [
+            {"card_key": "Exp::P001::Standard::2026-09-01", "quantity": 1, "unit_market_price": 15.0, "line_total": 15.0, "baseline_price": 10.0, "lifetime_gain_dollar": 5.0, "lifetime_gain_pct": 50.0},
+            {"card_key": "Exp::P001::Foil::2026-09-01", "quantity": 1, "unit_market_price": 40.0, "line_total": 40.0, "baseline_price": 50.0, "lifetime_gain_dollar": -10.0, "lifetime_gain_pct": -20.0},
+            {"card_key": "Exp::I001::Foil::2026-09-01", "quantity": 1, "unit_market_price": 45.0, "line_total": 45.0, "baseline_price": 30.0, "lifetime_gain_dollar": 15.0, "lifetime_gain_pct": 50.0},
+            {"card_key": "Exp::E001::Standard::2026-09-01", "quantity": 1, "unit_market_price": 12.0, "line_total": 12.0, "baseline_price": 20.0, "lifetime_gain_dollar": -8.0, "lifetime_gain_pct": -40.0},
+        ]
+        seed_snapshots(conn, "2026-09-19", snaps_d2)
+        seed_summary(conn, "2026-09-19", total_value=112.0, total_cards=4, unique_items=4, lifetime_gain=2.0)
+        conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-19")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        # 1. Rarity breakdown: Nova has 2 unique items, 2 physical copies
+        rarity_sec = content.split("### Rarity")[1].split("### Color")[0]
+        self.assertIn("| **▣ Nova** | 2 | 2 |", rarity_sec)
+
+        # 2. Nova Rare Singles table: both Standard and Foil appear
+        singles_sec = content.split("### High-Value Singles")[1].split("## 📈 Top Gainers")[0]
+        self.assertIn("#### Nova Rare Singles", singles_sec)
+        nova_sub = singles_sec.split("#### Nova Rare Singles")[1].split("#### Non-Iconic/Nova Rare Singles")[0]
+        self.assertIn("| 🟢 **Promo Card Alpha** | Legend | Expansion P | **▣ Nova** | Standard | 1 | `$15.00` | `$15.00` |", nova_sub)
+        self.assertIn("| 🟢 **Promo Card Alpha** | Legend | Expansion P | **▣ Nova** | Foil | 1 | `$40.00` | `$40.00` |", nova_sub)
+
+        # 3. Top Gainers & Top Decliners:
+        gainers_sec = content.split("## 📈 Top Gainers")[1].split("## 📉 Top Decliners")[0]
+        decliners_sec = content.split("## 📉 Top Decliners")[1]
+
+        # Promo Card Alpha Standard appears in Lifetime & L7D Gainers
+        self.assertIn("| 🟢 **Promo Card Alpha** | `2026-09-01` | **▣ Nova** | Standard | 1 | `$15.00` | `$15.00` | `$10.00` | **+$5.00** | +50.0% |", gainers_sec.split("### L7D")[0])
+        self.assertIn("| 🟢 **Promo Card Alpha** | `2026-09-01` | **▣ Nova** | Standard | 1 | `$15.00` | `$15.00` | `$12.00` | **+$3.00** | +25.0% |", gainers_sec.split("### L7D")[1])
+
+        # Promo Card Alpha Foil appears in Lifetime & L7D Decliners
+        self.assertIn("| 🟢 **Promo Card Alpha** | `2026-09-01` | **▣ Nova** | Foil | 1 | `$40.00` | `$40.00` | `$50.00` | **$-10.00** | -20.0% |", decliners_sec.split("### L7D")[0])
+        self.assertIn("| 🟢 **Promo Card Alpha** | `2026-09-01` | **▣ Nova** | Foil | 1 | `$40.00` | `$40.00` | `$45.00` | **$-5.00** | -11.1% |", decliners_sec.split("### L7D")[1])
+
+        # 4. Dynamic column-count invariant checks across all 7 card-level tables:
+        high_value_subsections = [
+            singles_sec.split("#### Iconic Singles")[1].split("#### Nova Rare Singles")[0],
+            singles_sec.split("#### Nova Rare Singles")[1].split("#### Non-Iconic/Nova Rare Singles")[0],
+            singles_sec.split("#### Non-Iconic/Nova Rare Singles")[1],
+        ]
+        for sub in high_value_subsections:
+            lines = [l.strip() for l in sub.strip().splitlines() if l.strip().startswith("|")]
+            self.assertGreaterEqual(len(lines), 3)
+            for line in lines:
+                cells = [c.strip() for c in line.split("|")[1:-1]]
+                self.assertEqual(len(cells), 8, f"High-Value Singles row '{line}' must have 8 columns")
+
+        mover_subsections = [
+            gainers_sec.split("### Lifetime")[1].split("### L7D")[0],
+            gainers_sec.split("### L7D")[1],
+            decliners_sec.split("### Lifetime")[1].split("### L7D")[0],
+            decliners_sec.split("### L7D")[1],
+        ]
+        for sub in mover_subsections:
+            lines = [l.strip() for l in sub.strip().splitlines() if l.strip().startswith("|")]
+            self.assertGreaterEqual(len(lines), 3)
+            for line in lines:
+                cells = [c.strip() for c in line.split("|")[1:-1]]
+                self.assertEqual(len(cells), 10, f"Mover table row '{line}' must have 10 columns")
 
 
 if __name__ == "__main__":
