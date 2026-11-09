@@ -26,6 +26,7 @@ from tracker.validation import (
     CollectionValidationError,
 )
 from tracker.cardnexus import sync_cardnexus_collection
+from tracker.iconics import run_iconics_comparison
 from tracker.purchases import (
     sync_purchase_history,
     get_purchase_history_updated_at,
@@ -111,6 +112,92 @@ def build_add_manual_parser(
     parser.add_argument("--merchant", dest="cash_merchant", help=f"Store or seller name (defaults to '{default_merchant}')")
     parser.add_argument("--description", dest="cash_description", help="Description of items acquired")
     return parser
+
+
+def build_compare_iconics_parser() -> argparse.ArgumentParser:
+    """Builds and returns the CLI parser for the compare-iconics subcommand."""
+    parser = argparse.ArgumentParser(
+        prog="run_tracker.py compare-iconics",
+        description="Compare market prices and collection ownership across Welcome to Night City Iconic card pairs.",
+    )
+    parser.add_argument("--output", "-o", dest="output_path", help="Override destination path for the Markdown comparison report.")
+    parser.add_argument("--collection", dest="collection_csv", help="Override active collection CSV path.")
+    parser.add_argument(
+        "--sync-collection",
+        dest="sync_collection",
+        action="store_true",
+        default=False,
+        help="Synchronize fresh collection snapshot from CardNexus API before comparing.",
+    )
+    return parser
+
+
+def handle_compare_iconics_subcommand(
+    args: argparse.Namespace,
+    root_config: Optional[argparse.Namespace] = None,
+) -> int:
+    """Handles executing the WNC Iconic cards comparison subcommand."""
+    explicit_col = args.collection_csv or (getattr(root_config, "collection_csv", None) if root_config else None)
+    if args.sync_collection and explicit_col:
+        print("Error: Cannot specify --sync-collection together with an explicit --collection path.", file=sys.stderr)
+        return 1
+
+    cfg_path = getattr(root_config, "config_path", None) if root_config else None
+    cfg = load_config(config_path=cfg_path, collection_csv=explicit_col)
+
+    if explicit_col:
+        target_path = cfg.collection_csv
+    elif cfg.cardnexus_api_key:
+        if os.path.isdir(cfg.collection_csv):
+            target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
+        else:
+            collection_dir = os.path.dirname(cfg.collection_csv) or "data"
+            target_path = os.path.join(collection_dir, "active_collection.csv")
+    else:
+        target_path = cfg.collection_csv
+
+    if args.sync_collection:
+        if not cfg.cardnexus_api_key:
+            print("Error: CARDNEXUS_API_KEY is not configured. Cannot synchronize collection.", file=sys.stderr)
+            return 1
+        print("\n--- Synchronizing Collection from CardNexus API ---")
+        try:
+            success, _, _ = sync_cardnexus_collection(
+                target_csv=target_path,
+                api_key=cfg.cardnexus_api_key,
+            )
+        except CollectionValidationError as e:
+            print(f"Error: CardNexus collection validation failed: {e}", file=sys.stderr)
+            return 1
+        if not success:
+            print("Error: CardNexus collection synchronization failed.", file=sys.stderr)
+            return 1
+    else:
+        if not os.path.isfile(target_path):
+            print(
+                f"Error: Collection file not found at '{target_path}'. "
+                "Run with --sync-collection to download active collection, or provide --collection.",
+                file=sys.stderr,
+            )
+            return 1
+
+    target_output = args.output_path
+    if not target_output:
+        if cfg and getattr(cfg, "output_report", None):
+            parent = Path(cfg.output_report).parent
+            target_output = str(parent / "WNC_ICONICS_COMPARISON.md")
+
+    try:
+        exit_code, summary_text = run_iconics_comparison(
+            output_path=target_output,
+            collection_path=target_path,
+        )
+    except (ValueError, FileNotFoundError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    print(summary_text)
+    return exit_code
 
 
 def build_add_cash_parser() -> argparse.ArgumentParser:
@@ -392,6 +479,10 @@ def main(argv: Optional[List[str]] = None):
         manual_parser = build_add_manual_parser()
         manual_args = manual_parser.parse_args(remaining[1:])
         sys.exit(handle_add_manual_subcommand(args=manual_args, root_config=known_root, default_merchant="Manual Purchase"))
+    elif remaining and remaining[0] in ("compare-iconics", "compare-beta-retail"):
+        iconics_parser = build_compare_iconics_parser()
+        iconics_args = iconics_parser.parse_args(remaining[1:])
+        sys.exit(handle_compare_iconics_subcommand(args=iconics_args, root_config=known_root))
 
     parser = build_tracker_argument_parser()
     args = parser.parse_args(argv)
