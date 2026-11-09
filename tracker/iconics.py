@@ -539,8 +539,8 @@ def format_console_summary(
     for ts in tier_summaries:
         b_ratio = f"{ts.beta_owned_count:>2}/{ts.total_cards}"
         r_ratio = f"{ts.retail_owned_count:>2}/{ts.total_cards}"
-        b_med_str = f"${ts.beta_median:>6.2f}" if ts.beta_median is not None else "     N/A"
-        r_med_str = f"${ts.retail_median:>6.2f}" if ts.retail_median is not None else "     N/A"
+        b_med_str = f"${ts.beta_median:>6.2f}" if ts.beta_median is not None else f"{'N/A':>7}"
+        r_med_str = f"${ts.retail_median:>6.2f}" if ts.retail_median is not None else f"{'N/A':>7}"
         spread_str = format_currency_diff(ts.spread)
         cat_label = f"{ts.name} ({ts.total_cards})"
 
@@ -554,13 +554,15 @@ def format_console_summary(
     lines.append(f"Total ({total_pairs_count})         {tot_b_str}         {tot_r_str}")
     lines.append("")
     lines.append("Owned Collection Value:")
-    lines.append(f"  Beta ({total_beta_cards} cards):    ${beta_owned_val:>10,.2f}")
-    lines.append(f"  Retail ({total_retail_cards} cards):  ${retail_owned_val:>10,.2f}")
-
+    b_val_str = f"${beta_owned_val:,.2f}"
+    r_val_str = f"${retail_owned_val:,.2f}"
+    tot_val_str = f"${total_owned_val:,.2f}"
+    lines.append(f"{f'  Beta ({total_beta_cards} cards):':<22}{b_val_str:>11}")
+    lines.append(f"{f'  Retail ({total_retail_cards} cards):':<22}{r_val_str:>11}")
+    tot_line = f"{'  Total:':<22}{tot_val_str:>11}"
     if unpriced_owned_count > 0:
-        lines.append(f"  Total:              ${total_owned_val:>10,.2f} (excludes {unpriced_owned_count} unpriced card(s))")
-    else:
-        lines.append(f"  Total:              ${total_owned_val:>10,.2f}")
+        tot_line += f" (excludes {unpriced_owned_count} unpriced card(s))"
+    lines.append(tot_line)
 
     lines.append("")
     if collection_name and collection_mtime_date:
@@ -585,15 +587,29 @@ def generate_markdown_report(
     all_spreads = [p.spread for p in priced_pairs if p.spread is not None]
     overall_min, overall_p25, overall_med, overall_p75, overall_max = compute_quantiles(all_spreads)
 
-    beta_set_val = sum(p.beta_price for p in pairs if p.beta_price is not None)
-    retail_set_val = sum(p.retail_price for p in pairs if p.retail_price is not None)
-    set_spread = beta_set_val - retail_set_val
+    total_pairs = len(pairs)
+    priced_count = len(priced_pairs)
+    if priced_count > 0:
+        beta_set_val = sum(p.beta_price for p in priced_pairs if p.beta_price is not None)
+        retail_set_val = sum(p.retail_price for p in priced_pairs if p.retail_price is not None)
+        set_spread = beta_set_val - retail_set_val
+        b_set_str = f"${beta_set_val:,.2f}"
+        r_set_str = f"${retail_set_val:,.2f}"
+        spread_set_str = format_currency_diff(set_spread)
+    else:
+        b_set_str = "N/A"
+        r_set_str = "N/A"
+        spread_set_str = "N/A"
+
+    if priced_count == total_pairs:
+        set_label = f"**Complete {total_pairs}-Card Set Value**"
+    else:
+        set_label = f"**Priced Set Value ({priced_count}/{total_pairs} pairs)**"
 
     beta_owned_val = sum((p.beta_price or 0.0) * p.beta_owned for p in pairs)
     retail_owned_val = sum((p.retail_price or 0.0) * p.retail_owned for p in pairs)
     total_owned_val = beta_owned_val + retail_owned_val
 
-    total_pairs = len(pairs)
     total_beta_owned = sum(1 for p in pairs if p.beta_owned > 0)
     total_retail_owned = sum(1 for p in pairs if p.retail_owned > 0)
     completed_pairs = sum(1 for p in pairs if p.pair_complete)
@@ -613,7 +629,7 @@ def generate_markdown_report(
         "",
         "| Metric | Beta Printing | Retail Printing | Spread (Beta - Retail) |",
         "| :--- | :---: | :---: | :---: |",
-        f"| **Complete {total_pairs}-Card Set Value** | ${beta_set_val:,.2f} | ${retail_set_val:,.2f} | {format_currency_diff(set_spread)} |",
+        f"| {set_label} | {b_set_str} | {r_set_str} | {spread_set_str} |",
         f"| **Owned Unique Cards** | {total_beta_owned}/{total_pairs} | {total_retail_owned}/{total_pairs} | {completed_pairs}/{total_pairs} Matched Pairs |",
         f"| **Owned Market Value** | ${beta_owned_val:,.2f} | ${retail_owned_val:,.2f} | Total: ${total_owned_val:,.2f} |",
         "",

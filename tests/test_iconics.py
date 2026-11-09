@@ -359,6 +359,74 @@ class TestIconicsEngine(unittest.TestCase):
         self.assertIn("| **Iconic Legends** | 0/1 | N/A | N/A | N/A | N/A | N/A |", content)
         self.assertIn("| **All Iconics** | 0/1 | N/A | N/A | N/A | N/A | N/A |", content)
 
+    def test_markdown_report_paired_subset_set_values_and_label(self):
+        # Pair 1: priced on both sides
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 100.0, 80.0, 20.0, 1.25, 1, 0)
+        # Pair 2: Retail price is missing (like Royce #143)
+        p2 = IconicCardPair("143", "Card 2", "Legends", "Foil", 103, 104, 58.41, None, None, None, 0, 0)
+
+        out_incomplete = self.test_dir / "incomplete_set.md"
+        t_sums = [build_tier_summary("Legends", [p1, p2])]
+        generate_markdown_report(
+            pairs=[p1, p2],
+            tier_summaries=t_sums,
+            output_path=str(out_incomplete),
+        )
+        content = out_incomplete.read_text(encoding="utf-8")
+        # Set values must sum over the paired subset only ($100.00 and $80.00), excluding p2's Beta $58.41
+        self.assertIn("| **Priced Set Value (1/2 pairs)** | $100.00 | $80.00 | +$20.00 |", content)
+
+        # When all pairs are priced, label is Complete N-Card Set Value
+        out_complete = self.test_dir / "complete_set.md"
+        generate_markdown_report(
+            pairs=[p1],
+            tier_summaries=[build_tier_summary("Legends", [p1])],
+            output_path=str(out_complete),
+        )
+        complete_content = out_complete.read_text(encoding="utf-8")
+        self.assertIn("| **Complete 1-Card Set Value** | $100.00 | $80.00 | +$20.00 |", complete_content)
+
+    def test_console_summary_owned_value_alignment_and_na_width(self):
+        # Mixed 1-digit and 2-digit counts (27 Beta cards, 0 Retail cards)
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 10.0, 8.0, 2.0, 1.25, 27, 0)
+        # Tier with no prices (N/A medians)
+        p_unpriced = IconicCardPair("142", "Card 2", "Others", "Foil", 201, 202, None, None, None, None, 0, 0)
+
+        legends_sum = build_tier_summary("Legends", [p1])
+        others_sum = build_tier_summary("Others", [p_unpriced])
+
+        summary = format_console_summary(
+            tier_summaries=[legends_sum, others_sum],
+            pairs=[p1, p_unpriced],
+            output_path="test_report.md",
+        )
+
+        lines = summary.split("\n")
+        # Check median column alignment: line for Legends (priced) and Others (N/A) must align
+        legends_line = next(l for l in lines if l.startswith("Legends (1)"))
+        others_line = next(l for l in lines if l.startswith("Others (1)"))
+        # Medians start at column 42, retail medians at 54, spread at 66
+        self.assertIn("    N/A", others_line)
+        self.assertEqual(len(legends_line), len(others_line))
+
+        # Check Owned Collection Value block
+        beta_line = next(l for l in lines if l.startswith("  Beta (27 cards):"))
+        retail_line = next(l for l in lines if l.startswith("  Retail (0 cards):"))
+        total_line = next(l for l in lines if l.startswith("  Total:"))
+
+        # Assert no spaces between $ and digits
+        self.assertIn("$270.00", beta_line)
+        self.assertNotIn("$ ", beta_line)
+        self.assertIn("$0.00", retail_line)
+        self.assertNotIn("$ ", retail_line)
+        self.assertIn("$270.00", total_line)
+        self.assertNotIn("$ ", total_line)
+
+        # Assert all 3 lines terminate at column 33
+        self.assertEqual(len(beta_line), 33)
+        self.assertEqual(len(retail_line), 33)
+        self.assertEqual(len(total_line), 33)
+
 
 class TestIconicsCLI(unittest.TestCase):
 
