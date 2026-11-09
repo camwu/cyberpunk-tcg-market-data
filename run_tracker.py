@@ -187,10 +187,15 @@ def handle_compare_iconics_subcommand(
             parent = Path(cfg.output_report).parent
             target_output = str(parent / "WNC_ICONICS_COMPARISON.md")
 
-    exit_code, summary_text = run_iconics_comparison(
-        output_path=target_output,
-        collection_path=target_path,
-    )
+    try:
+        exit_code, summary_text = run_iconics_comparison(
+            output_path=target_output,
+            collection_path=target_path,
+        )
+    except (ValueError, FileNotFoundError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
     print(summary_text)
     return exit_code
 

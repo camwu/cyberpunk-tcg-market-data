@@ -57,20 +57,26 @@ class TierSummary:
     priced_pairs_count: int
     beta_owned_count: int
     retail_owned_count: int
-    beta_median: float
-    retail_median: float
-    spread: float
-    spread_min: float
-    spread_p25: float
-    spread_median: float
-    spread_p75: float
-    spread_max: float
+    beta_median: Optional[float]
+    retail_median: Optional[float]
+    spread: Optional[float]
+    spread_min: Optional[float]
+    spread_p25: Optional[float]
+    spread_median: Optional[float]
+    spread_p75: Optional[float]
+    spread_max: Optional[float]
 
 
-def compute_quantiles(values: List[float]) -> Tuple[float, float, float, float, float]:
-    """Computes (min, p25, median, p75, max) for a numeric sequence."""
+def compute_quantiles(
+    values: List[float],
+) -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float], Optional[float]]:
+    """
+    Computes (min, p25, median, p75, max) for a numeric sequence.
+    Returns (None, None, None, None, None) when empty.
+    Returns (min, None, median, None, max) when 1 <= len < 4 so uninvented quartiles render N/A.
+    """
     if not values:
-        return 0.0, 0.0, 0.0, 0.0, 0.0
+        return None, None, None, None, None
     sorted_vals = sorted(values)
     v_min = sorted_vals[0]
     v_max = sorted_vals[-1]
@@ -78,7 +84,7 @@ def compute_quantiles(values: List[float]) -> Tuple[float, float, float, float, 
     if len(sorted_vals) >= 4:
         q1, _, q3 = statistics.quantiles(sorted_vals, n=4, method="inclusive")
         return v_min, q1, v_med, q3, v_max
-    return v_min, v_min, v_med, v_max, v_max
+    return v_min, None, v_med, None, v_max
 
 
 def resolve_latest_price_file(prices_dir: Path = REPO_PRICES_DIR) -> Optional[Path]:
@@ -102,8 +108,11 @@ def get_historical_price_files(prices_dir: Path = REPO_PRICES_DIR) -> List[Path]
     return files
 
 
-def extract_finish_price(p_data: Any, preferred_finish: str = "Foil") -> Optional[float]:
-    """Extracts market price for a given finish, accepting Normal as Standard alias."""
+def extract_finish_price(p_data: Any, preferred_finish: str) -> Optional[float]:
+    """
+    Extracts market price strictly for the specified finish, accepting Normal as Standard alias.
+    Never falls back to a different finish.
+    """
     if not isinstance(p_data, dict):
         return None
     finish_variants = [preferred_finish]
@@ -119,13 +128,68 @@ def extract_finish_price(p_data: Any, preferred_finish: str = "Foil") -> Optiona
             if mp is not None and isinstance(mp, (int, float)) and float(mp) > 0.0:
                 return float(mp)
 
-    # Fallback to any non-zero market price in dict
-    for _, sub in p_data.items():
-        if isinstance(sub, dict):
-            mp = sub.get("marketPrice")
-            if mp is not None and isinstance(mp, (int, float)) and float(mp) > 0.0:
-                return float(mp)
     return None
+
+
+def resolve_product_finish(
+    product_id: Optional[int],
+    card_label: str,
+    latest_prices: Dict[str, Any],
+    historical_files: List[Path],
+    snapshot_cache: Dict[Path, Dict[str, Any]],
+) -> str:
+    """
+    Derives the valid normalized finish for a product from price records.
+    Normalizes 'Normal' -> 'Standard'.
+    Raises ValueError if product has zero records across all history, or multiple distinct finishes.
+    """
+    if not product_id:
+        raise ValueError(f"Missing productId for {card_label}")
+
+    pid_str = str(product_id)
+
+    # Check latest prices
+    p_data = latest_prices.get(pid_str)
+    if isinstance(p_data, dict) and p_data:
+        raw_keys = list(p_data.keys())
+    else:
+        raw_keys = []
+
+    # If absent in latest, scan historical snapshots until found
+    if not raw_keys:
+        for fpath in historical_files:
+            if fpath not in snapshot_cache:
+                try:
+                    with open(fpath, "r", encoding="utf-8") as f:
+                        snapshot_cache[fpath] = json.load(f).get("prices", {})
+                except Exception:
+                    snapshot_cache[fpath] = {}
+            hist_pdata = snapshot_cache[fpath].get(pid_str)
+            if isinstance(hist_pdata, dict) and hist_pdata:
+                raw_keys = list(hist_pdata.keys())
+                break
+
+    if not raw_keys:
+        raise ValueError(
+            f"No price records or finish keys found across catalog history for {card_label} (productId={product_id})"
+        )
+
+    normalized_finishes: Set[str] = set()
+    for k in raw_keys:
+        k_upper = str(k).strip().upper()
+        if k_upper in ("NORMAL", "STANDARD"):
+            normalized_finishes.add("Standard")
+        elif k_upper == "FOIL":
+            normalized_finishes.add("Foil")
+        else:
+            normalized_finishes.add(str(k).strip())
+
+    if len(normalized_finishes) > 1:
+        raise ValueError(
+            f"Ambiguous multiple finishes for {card_label} (productId={product_id}): {sorted(normalized_finishes)}"
+        )
+
+    return next(iter(normalized_finishes))
 
 
 def resolve_card_price_unbounded(
@@ -136,7 +200,7 @@ def resolve_card_price_unbounded(
     snapshot_cache: Dict[Path, Dict[str, Any]],
 ) -> Optional[float]:
     """
-    Resolves card market price from latest prices or carries forward from historical snapshots.
+    Resolves card market price for preferred_finish from latest prices or carries forward from historical snapshots.
     Lazily loads historical price files into snapshot_cache.
     Returns None (N/A) if unpriced across all history.
     """
@@ -173,6 +237,7 @@ def load_iconic_pairs(
 ) -> Tuple[List[IconicCardPair], Optional[str], Optional[str]]:
     """
     Loads, dynamically validates, and pairs Welcome to Night City Iconic cards.
+    Derives card finishes strictly from price records and enforces Beta/Retail consistency.
     Returns (pairs, collection_file_name, collection_mtime_date).
     """
     if not cards_path.is_file():
@@ -230,6 +295,40 @@ def load_iconic_pairs(
     historical_files = get_historical_price_files(prices_dir)
     snapshot_cache: Dict[Path, Dict[str, Any]] = {}
 
+    # Strict Beta/Retail Rarity & Finish Agreement
+    valid_finish_by_key: Dict[str, str] = {}
+    for k in matched_keys:
+        b_card = beta_cards[k]
+        r_card = retail_cards[k]
+
+        b_rarity = b_card.get("rarity")
+        r_rarity = r_card.get("rarity")
+        card_name = sanitize_card_name(b_card.get("name") or r_card.get("name") or "")
+
+        if b_rarity != r_rarity:
+            raise ValueError(
+                f"Rarity mismatch between Beta ({b_rarity}) and Retail ({r_rarity}) for #{k} '{card_name}'"
+            )
+        if b_rarity not in TIER_MAP:
+            raise ValueError(f"Unrecognized Iconic rarity code '{b_rarity}' for #{k} '{card_name}'")
+
+        b_pid = b_card.get("productId")
+        r_pid = r_card.get("productId")
+
+        b_finish = resolve_product_finish(
+            b_pid, f"Beta #{b_card.get('printNumber')} '{card_name}'", latest_prices, historical_files, snapshot_cache
+        )
+        r_finish = resolve_product_finish(
+            r_pid, f"Retail #{r_card.get('printNumber')} '{card_name}'", latest_prices, historical_files, snapshot_cache
+        )
+
+        if b_finish != r_finish:
+            raise ValueError(
+                f"Finish mismatch between Beta ({b_finish}) and Retail ({r_finish}) for #{k} '{card_name}'"
+            )
+
+        valid_finish_by_key[k] = b_finish
+
     # Collection ingestion & auditing
     owned_counts: Dict[Tuple[str, str, str], int] = {}
     col_name: Optional[str] = None
@@ -273,11 +372,10 @@ def load_iconic_pairs(
                 except ValueError:
                     qty = 0
 
-                # Audit finish mismatch for WNC iconics
+                # Audit finish mismatch against derived card finish
                 clean_num = pnum.removeprefix("B")
-                if exp in ("Welcome to Night City - Beta", "Welcome to Night City - Retail") and clean_num in beta_cards:
-                    # In WNC, all Iconic cards are Foil
-                    card_valid_finish = "Foil"
+                if exp in ("Welcome to Night City - Beta", "Welcome to Night City - Retail") and clean_num in valid_finish_by_key:
+                    card_valid_finish = valid_finish_by_key[clean_num]
                     if norm_finish != card_valid_finish:
                         print(
                             f"Warning: Collection row for {exp} #{pnum} has finish '{finish}' but card is {card_valid_finish}-only. Excluding.",
@@ -302,9 +400,8 @@ def load_iconic_pairs(
 
         raw_name = b_card.get("name") or r_card.get("name") or ""
         card_name = sanitize_card_name(raw_name)
-        tier_code = b_card.get("rarity") or r_card.get("rarity") or "IL"
-        tier = TIER_MAP.get(tier_code, "Legends")
-        valid_finish = "Foil"
+        tier = TIER_MAP[b_card.get("rarity")]
+        valid_finish = valid_finish_by_key[k]
 
         b_pid = b_card.get("productId")
         r_pid = r_card.get("productId")
@@ -348,7 +445,7 @@ def load_iconic_pairs(
 def build_tier_summary(name: str, pairs_subset: List[IconicCardPair]) -> TierSummary:
     """
     Builds paired-subset summary metrics for a tier.
-    Medians are strictly computed over pairs where both Beta and Retail prices exist.
+    Medians and spreads are strictly computed over pairs where both Beta and Retail prices exist.
     """
     total_cards = len(pairs_subset)
     b_owned_count = sum(1 for p in pairs_subset if p.beta_owned > 0)
@@ -362,9 +459,14 @@ def build_tier_summary(name: str, pairs_subset: List[IconicCardPair]) -> TierSum
     r_prices = [p.retail_price for p in priced_pairs if p.retail_price is not None]
     spreads = [p.spread for p in priced_pairs if p.spread is not None]
 
-    b_med = statistics.median(b_prices) if b_prices else 0.0
-    r_med = statistics.median(r_prices) if r_prices else 0.0
-    reconciled_spread = b_med - r_med
+    if priced_count > 0:
+        b_med = statistics.median(b_prices)
+        r_med = statistics.median(r_prices)
+        reconciled_spread = b_med - r_med
+    else:
+        b_med = None
+        r_med = None
+        reconciled_spread = None
 
     s_min, s_p25, s_med, s_p75, s_max = compute_quantiles(spreads)
 
@@ -386,7 +488,7 @@ def build_tier_summary(name: str, pairs_subset: List[IconicCardPair]) -> TierSum
 
 
 def format_currency_diff(val: Optional[float]) -> str:
-    """Formats signed currency difference string."""
+    """Formats signed currency difference string. Returns N/A when None."""
     if val is None:
         return "N/A"
     sign = "+" if val >= 0 else "-"
@@ -437,9 +539,9 @@ def format_console_summary(
     for ts in tier_summaries:
         b_ratio = f"{ts.beta_owned_count:>2}/{ts.total_cards}"
         r_ratio = f"{ts.retail_owned_count:>2}/{ts.total_cards}"
-        b_med_str = f"${ts.beta_median:>6.2f}" if ts.priced_pairs_count > 0 else "   N/A"
-        r_med_str = f"${ts.retail_median:>6.2f}" if ts.priced_pairs_count > 0 else "   N/A"
-        spread_str = format_currency_diff(ts.spread) if ts.priced_pairs_count > 0 else "     N/A"
+        b_med_str = f"${ts.beta_median:>6.2f}" if ts.beta_median is not None else "     N/A"
+        r_med_str = f"${ts.retail_median:>6.2f}" if ts.retail_median is not None else "     N/A"
+        spread_str = format_currency_diff(ts.spread)
         cat_label = f"{ts.name} ({ts.total_cards})"
 
         lines.append(
@@ -534,8 +636,8 @@ def generate_markdown_report(
     lines.append("")
     lines.append("## Card-by-Card Comparison")
     lines.append("")
-    lines.append("| # | Card Name | Tier | Beta Price | Retail Price | Spread | Ratio | Beta Owned | Retail Owned | Pair |")
-    lines.append("| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    lines.append("| # | Card Name | Tier | Beta Price | Retail Price | Spread ($) | Ratio | Beta Owned | Retail Owned |")
+    lines.append("| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
 
     # Order by collector print number (141-171)
     sorted_pairs = sorted(pairs, key=lambda p: int(p.print_number) if p.print_number.isdigit() else p.print_number)
@@ -545,10 +647,9 @@ def generate_markdown_report(
         r_p_str = f"${p.retail_price:,.2f}" if p.retail_price is not None else "N/A"
         s_str = format_currency_diff(p.spread)
         rat_str = f"{p.ratio:.2f}x" if p.ratio is not None else "N/A"
-        pair_str = "Yes" if p.pair_complete else "-"
 
         lines.append(
-            f"| {p.print_number} | {p.card_name} | {p.tier} | {b_p_str} | {r_p_str} | {s_str} | {rat_str} | {p.beta_owned} | {p.retail_owned} | {pair_str} |"
+            f"| {p.print_number} | {p.card_name} | {p.tier} | {b_p_str} | {r_p_str} | {s_str} | {rat_str} | {p.beta_owned} | {p.retail_owned} |"
         )
 
     out_file = Path(output_path)
@@ -564,7 +665,9 @@ def run_iconics_comparison(
     prices_dir: Path = REPO_PRICES_DIR,
 ) -> Tuple[int, str]:
     """Executes the WNC Iconic cards comparison pipeline end-to-end."""
-    cfg = load_config()
+    cfg = None
+    if not collection_path or not output_path:
+        cfg = load_config()
 
     if not collection_path:
         collection_path = cfg.collection_csv
