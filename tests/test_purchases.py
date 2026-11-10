@@ -765,6 +765,37 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertIsNotNone(res)
         self.assertEqual(res[0], "2026-10-31")
 
+    def test_extract_print_timestamp_date_requires_context(self):
+        """Verifies print timestamp matching requires time or label context, ignoring arbitrary slash dates."""
+        import datetime
+        from tracker.purchases import extract_print_timestamp_date
+
+        # Arbitrary slash date in line item text without context should return None
+        self.assertIsNone(extract_print_timestamp_date("Item: Special Edition 05/15/2023 release"))
+
+        # Valid date-and-time formats in 2-digit and 4-digit forms
+        d2 = extract_print_timestamp_date("Order Details\n11/9/26, 3:31 PM\nOrder #1234")
+        self.assertEqual(d2, datetime.date(2026, 11, 9))
+
+        d4 = extract_print_timestamp_date("Page 1 of 1\n11/9/2026 15:30:00")
+        self.assertEqual(d4, datetime.date(2026, 11, 9))
+
+        # Time preceding date
+        d_pre = extract_print_timestamp_date("Footer: 10:00 AM, 1/3/27")
+        self.assertEqual(d_pre, datetime.date(2027, 1, 3))
+
+        # Print label context without time
+        d_lbl = extract_print_timestamp_date("Printed: 11/9/2026")
+        self.assertEqual(d_lbl, datetime.date(2026, 11, 9))
+
+        # When arbitrary slash date precedes a real print header, real print header is selected
+        mixed_text = (
+            "Item: Booster Pack 05/15/2023\n"
+            "Total USD$10.00\n"
+            "11/9/26, 3:31 PM Order #1234\n"
+        )
+        self.assertEqual(extract_print_timestamp_date(mixed_text), datetime.date(2026, 11, 9))
+
     def test_prompt_for_year_interactive_and_non_interactive(self):
         """Verifies interactive year resolution with default and explicit input, and fail-closed non-interactive."""
         from tracker.purchases import prompt_for_year

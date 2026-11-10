@@ -111,19 +111,42 @@ def parse_date_candidate(text: str) -> Optional[str]:
 
 
 def extract_print_timestamp_date(text: str) -> Optional[datetime.date]:
-    """Finds date from print header/footer timestamp (e.g. 11/9/26 or 11/9/2026)."""
-    m4 = re.search(r"(?<!\d)(\d{1,2})/(\d{1,2})/(20\d{2})(?!\d)", text)
+    """Finds date from print header/footer timestamp with time context (e.g. 11/9/26, 3:31 PM or Printed 11/9/2026)."""
+    time_ctx = r"(?:\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)"
+    label_ctx = r"(?:Printed|Print\s+date|Timestamp)[\s:]+"
+
+    # Match 4-digit year with time or print-label context
+    m4 = re.search(
+        rf"(?:(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)[,\s]+{time_ctx}"
+        rf"|{time_ctx}[,\s]+(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)"
+        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d))",
+        text,
+        re.IGNORECASE,
+    )
     if m4:
-        try:
-            return datetime.date(int(m4.group(3)), int(m4.group(1)), int(m4.group(2)))
-        except ValueError:
-            pass
-    m2 = re.search(r"(?<!\d)(\d{1,2})/(\d{1,2})/(\d{2})(?!\d)", text)
+        for idx in (1, 4, 7):
+            if m4.group(idx):
+                try:
+                    return datetime.date(int(m4.group(idx + 2)), int(m4.group(idx)), int(m4.group(idx + 1)))
+                except ValueError:
+                    pass
+
+    # Match 2-digit year with time or print-label context
+    m2 = re.search(
+        rf"(?:(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)[,\s]+{time_ctx}"
+        rf"|{time_ctx}[,\s]+(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)"
+        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d))",
+        text,
+        re.IGNORECASE,
+    )
     if m2:
-        try:
-            return datetime.date(int(f"20{m2.group(3)}"), int(m2.group(1)), int(m2.group(2)))
-        except ValueError:
-            pass
+        for idx in (1, 4, 7):
+            if m2.group(idx):
+                try:
+                    return datetime.date(int(f"20{m2.group(idx + 2)}"), int(m2.group(idx)), int(m2.group(idx + 1)))
+                except ValueError:
+                    pass
+
     return None
 
 
