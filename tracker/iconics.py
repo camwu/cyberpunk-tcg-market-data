@@ -19,6 +19,7 @@ from tracker.constants import (
     REPO_CARDS_FILE,
     REPO_PRICES_DIR,
     REPO_DATA_DIR,
+    COLOR_DOTS,
 )
 from tracker.config import load_config
 from tracker.valuation import sanitize_card_name
@@ -27,6 +28,18 @@ TIER_MAP: Dict[str, str] = {
     "IL": "Legends",
     "IO": "Others",
     "IS": "Secrets",
+}
+
+TIER_DISPLAY_NAMES: Dict[str, str] = {
+    "Legends": "Iconic Legends",
+    "Others": "Iconic Others",
+    "Secrets": "Iconic Secret Rares",
+}
+
+TIER_TOTAL_NAMES: Dict[str, str] = {
+    "Legends": "Total Legends",
+    "Others": "Total Others",
+    "Secrets": "Total Secret Rares",
 }
 
 
@@ -41,9 +54,11 @@ class IconicCardPair:
     beta_price: Optional[float]
     retail_price: Optional[float]
     spread: Optional[float]
-    ratio: Optional[float]
+    beta_premium_pct: Optional[float]
     beta_owned: int
     retail_owned: int
+    color: Optional[str] = None
+    card_type: Optional[str] = None
 
     @property
     def pair_complete(self) -> bool:
@@ -60,11 +75,20 @@ class TierSummary:
     beta_median: Optional[float]
     retail_median: Optional[float]
     spread: Optional[float]
-    spread_min: Optional[float]
-    spread_p25: Optional[float]
-    spread_median: Optional[float]
-    spread_p75: Optional[float]
-    spread_max: Optional[float]
+    beta_min: Optional[float] = None
+    beta_p25: Optional[float] = None
+    beta_p75: Optional[float] = None
+    beta_max: Optional[float] = None
+    retail_min: Optional[float] = None
+    retail_p25: Optional[float] = None
+    retail_p75: Optional[float] = None
+    retail_max: Optional[float] = None
+    beta_set_total: Optional[float] = None
+    retail_set_total: Optional[float] = None
+    set_premium_dlr: Optional[float] = None
+    set_premium_pct: Optional[float] = None
+    beta_physical_owned: int = 0
+    retail_physical_owned: int = 0
 
 
 def compute_quantiles(
@@ -402,6 +426,8 @@ def load_iconic_pairs(
         card_name = sanitize_card_name(raw_name)
         tier = TIER_MAP[b_card.get("rarity")]
         valid_finish = valid_finish_by_key[k]
+        color = b_card.get("color") or r_card.get("color")
+        card_type = b_card.get("cardType") or r_card.get("cardType")
 
         b_pid = b_card.get("productId")
         r_pid = r_card.get("productId")
@@ -411,10 +437,10 @@ def load_iconic_pairs(
 
         if b_price is not None and r_price is not None:
             spread = b_price - r_price
-            ratio = (b_price / r_price) if r_price > 0.0 else None
+            beta_premium_pct = ((b_price - r_price) / r_price) * 100.0 if r_price > 0.0 else None
         else:
             spread = None
-            ratio = None
+            beta_premium_pct = None
 
         b_pnum = str(b_card.get("printNumber") or f"B{k}").strip()
         r_pnum = str(r_card.get("printNumber") or k).strip()
@@ -433,9 +459,11 @@ def load_iconic_pairs(
                 beta_price=b_price,
                 retail_price=r_price,
                 spread=spread,
-                ratio=ratio,
+                beta_premium_pct=beta_premium_pct,
                 beta_owned=b_owned,
                 retail_owned=r_owned,
+                color=color,
+                card_type=card_type,
             )
         )
 
@@ -445,11 +473,13 @@ def load_iconic_pairs(
 def build_tier_summary(name: str, pairs_subset: List[IconicCardPair]) -> TierSummary:
     """
     Builds paired-subset summary metrics for a tier.
-    Medians and spreads are strictly computed over pairs where both Beta and Retail prices exist.
+    Medians, quantiles, and set values are strictly computed over pairs where both Beta and Retail prices exist.
     """
     total_cards = len(pairs_subset)
     b_owned_count = sum(1 for p in pairs_subset if p.beta_owned > 0)
     r_owned_count = sum(1 for p in pairs_subset if p.retail_owned > 0)
+    b_physical_owned = sum(p.beta_owned for p in pairs_subset)
+    r_physical_owned = sum(p.retail_owned for p in pairs_subset)
 
     # Paired subset: both prices exist
     priced_pairs = [p for p in pairs_subset if p.beta_price is not None and p.retail_price is not None]
@@ -457,18 +487,26 @@ def build_tier_summary(name: str, pairs_subset: List[IconicCardPair]) -> TierSum
 
     b_prices = [p.beta_price for p in priced_pairs if p.beta_price is not None]
     r_prices = [p.retail_price for p in priced_pairs if p.retail_price is not None]
-    spreads = [p.spread for p in priced_pairs if p.spread is not None]
 
     if priced_count > 0:
         b_med = statistics.median(b_prices)
         r_med = statistics.median(r_prices)
         reconciled_spread = b_med - r_med
+        b_set_total = sum(b_prices)
+        r_set_total = sum(r_prices)
+        set_prem_dlr = b_set_total - r_set_total
+        set_prem_pct = ((set_prem_dlr) / r_set_total) * 100.0 if r_set_total > 0 else None
     else:
         b_med = None
         r_med = None
         reconciled_spread = None
+        b_set_total = None
+        r_set_total = None
+        set_prem_dlr = None
+        set_prem_pct = None
 
-    s_min, s_p25, s_med, s_p75, s_max = compute_quantiles(spreads)
+    b_min, b_p25, _, b_p75, b_max = compute_quantiles(b_prices)
+    r_min, r_p25, _, r_p75, r_max = compute_quantiles(r_prices)
 
     return TierSummary(
         name=name,
@@ -479,11 +517,20 @@ def build_tier_summary(name: str, pairs_subset: List[IconicCardPair]) -> TierSum
         beta_median=b_med,
         retail_median=r_med,
         spread=reconciled_spread,
-        spread_min=s_min,
-        spread_p25=s_p25,
-        spread_median=s_med,
-        spread_p75=s_p75,
-        spread_max=s_max,
+        beta_min=b_min,
+        beta_p25=b_p25,
+        beta_p75=b_p75,
+        beta_max=b_max,
+        retail_min=r_min,
+        retail_p25=r_p25,
+        retail_p75=r_p75,
+        retail_max=r_max,
+        beta_set_total=b_set_total,
+        retail_set_total=r_set_total,
+        set_premium_dlr=set_prem_dlr,
+        set_premium_pct=set_prem_pct,
+        beta_physical_owned=b_physical_owned,
+        retail_physical_owned=r_physical_owned,
     )
 
 
@@ -575,98 +622,195 @@ def format_console_summary(
     return "\n".join(lines)
 
 
+def format_table_currency(val: Optional[float]) -> str:
+    """Formats currency wrapped in backticks. Returns N/A when None."""
+    if val is None:
+        return "N/A"
+    return f"`${val:,.2f}`"
+
+
+def format_signed_currency(val: Optional[float]) -> str:
+    """Formats signed currency difference wrapped in backticks. Returns N/A when None."""
+    if val is None:
+        return "N/A"
+    sign = "+" if val >= 0 else "-"
+    return f"`{sign}${abs(val):,.2f}`"
+
+
+def format_signed_pct(val: Optional[float]) -> str:
+    """Formats signed percentage wrapped in backticks. Returns N/A when None."""
+    if val is None:
+        return "N/A"
+    sign = "+" if val >= 0 else "-"
+    return f"`{sign}{abs(val):.1f}%`"
+
+
 def generate_markdown_report(
     pairs: List[IconicCardPair],
     tier_summaries: List[TierSummary],
     output_path: str,
     collection_name: Optional[str] = None,
     collection_mtime_date: Optional[str] = None,
+    prices_date: Optional[str] = None,
 ) -> None:
     """Generates the Markdown comparison report with per-card distributions and pair breakdown."""
-    priced_pairs = [p for p in pairs if p.spread is not None]
-    all_spreads = [p.spread for p in priced_pairs if p.spread is not None]
-    overall_min, overall_p25, overall_med, overall_p75, overall_max = compute_quantiles(all_spreads)
-
-    total_pairs = len(pairs)
-    priced_count = len(priced_pairs)
-    if priced_count > 0:
-        beta_set_val = sum(p.beta_price for p in priced_pairs if p.beta_price is not None)
-        retail_set_val = sum(p.retail_price for p in priced_pairs if p.retail_price is not None)
-        set_spread = beta_set_val - retail_set_val
-        b_set_str = f"${beta_set_val:,.2f}"
-        r_set_str = f"${retail_set_val:,.2f}"
-        spread_set_str = format_currency_diff(set_spread)
-    else:
-        b_set_str = "N/A"
-        r_set_str = "N/A"
-        spread_set_str = "N/A"
-
-    if priced_count == total_pairs:
-        set_label = f"**Complete {total_pairs}-Card Set Value**"
-    else:
-        set_label = f"**Priced Set Value ({priced_count}/{total_pairs} pairs)**"
-
-    beta_owned_val = sum((p.beta_price or 0.0) * p.beta_owned for p in pairs)
-    retail_owned_val = sum((p.retail_price or 0.0) * p.retail_owned for p in pairs)
-    total_owned_val = beta_owned_val + retail_owned_val
-
-    total_beta_owned = sum(1 for p in pairs if p.beta_owned > 0)
-    total_retail_owned = sum(1 for p in pairs if p.retail_owned > 0)
-    completed_pairs = sum(1 for p in pairs if p.pair_complete)
-
     today_str = datetime.date.today().isoformat()
-    source_info = []
-    if collection_name:
-        source_info.append(f"Collection: `{collection_name}`" + (f" (modified {collection_mtime_date})" if collection_mtime_date else ""))
-    source_info.append(f"Generated: {today_str}")
+    col_date_display = collection_mtime_date or today_str
+    col_source_display = collection_name or "active_collection.csv"
+    price_date_display = prices_date or today_str
+    report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
 
     lines = [
         "# Welcome to Night City: Beta vs. Retail Iconic Cards",
         "",
-        f"*{' | '.join(source_info)}*",
+        f"**Collection Last Updated**: `{col_date_display}`  ",
+        f"**Collection Source**: `{col_source_display}`  ",
+        f"**Prices Last Updated**: `{price_date_display}`  ",
+        f"**Report Generated**: `{report_generated}`",
         "",
-        "## Summary Metrics",
+        "---",
         "",
-        "| Metric | Beta Printing | Retail Printing | Spread (Beta - Retail) |",
-        "| :--- | :---: | :---: | :---: |",
-        f"| {set_label} | {b_set_str} | {r_set_str} | {spread_set_str} |",
-        f"| **Owned Unique Cards** | {total_beta_owned}/{total_pairs} | {total_retail_owned}/{total_pairs} | {completed_pairs}/{total_pairs} Matched Pairs |",
-        f"| **Owned Market Value** | ${beta_owned_val:,.2f} | ${retail_owned_val:,.2f} | Total: ${total_owned_val:,.2f} |",
+        "## Market Price Distributions (5-Number Summary)",
         "",
-        "## Per-Card Price Spread Distribution (5-Number Summary)",
+        "*Note: Distribution metrics reflect secondary market prices evaluated over paired card subsets where prices exist for both Beta and Retail printings.*",
         "",
-        "*Note: Distribution metrics represent per-card spreads (`Beta Price - Retail Price`) across priced pairs in each tier.*",
+        "### Beta",
         "",
-        "| Category | Priced Pairs | Min Spread | Q1 (p25) | Median (p50) | Q3 (p75) | Max Spread |",
+        "| Category | Owned | Min | p25 | Median | p75 | Max |",
         "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |",
     ]
 
+    # Paired subset across all cards
+    priced_pairs = [p for p in pairs if p.beta_price is not None and p.retail_price is not None]
+    total_pairs = len(pairs)
+    priced_count = len(priced_pairs)
+    tot_b_prices = [p.beta_price for p in priced_pairs if p.beta_price is not None]
+    tot_r_prices = [p.retail_price for p in priced_pairs if p.retail_price is not None]
+    tot_b_min, tot_b_p25, tot_b_med, tot_b_p75, tot_b_max = compute_quantiles(tot_b_prices)
+    tot_r_min, tot_r_p25, tot_r_med, tot_r_p75, tot_r_max = compute_quantiles(tot_r_prices)
+
+    total_beta_distinct_owned = sum(1 for p in pairs if p.beta_owned > 0)
+    total_retail_distinct_owned = sum(1 for p in pairs if p.retail_owned > 0)
+
     for ts in tier_summaries:
+        cat_display = TIER_DISPLAY_NAMES.get(ts.name, f"Iconic {ts.name}")
+        if ts.priced_pairs_count < ts.total_cards:
+            cat_label = f"{cat_display} ({ts.priced_pairs_count}/{ts.total_cards} pairs)"
+        else:
+            cat_label = f"{cat_display} ({ts.total_cards})"
         lines.append(
-            f"| **Iconic {ts.name}** | {ts.priced_pairs_count}/{ts.total_cards} | {format_currency_diff(ts.spread_min)} | {format_currency_diff(ts.spread_p25)} | {format_currency_diff(ts.spread_median)} | {format_currency_diff(ts.spread_p75)} | {format_currency_diff(ts.spread_max)} |"
+            f"| {cat_label} | {ts.beta_owned_count} | {format_table_currency(ts.beta_min)} | {format_table_currency(ts.beta_p25)} | {format_table_currency(ts.beta_median)} | {format_table_currency(ts.beta_p75)} | {format_table_currency(ts.beta_max)} |"
+        )
+
+    if priced_count < total_pairs:
+        tot_label = f"Total Iconics ({priced_count}/{total_pairs} pairs)"
+    else:
+        tot_label = f"Total Iconics ({total_pairs})"
+
+    lines.append(
+        f"| **{tot_label}** | **{total_beta_distinct_owned}** | {format_table_currency(tot_b_min)} | {format_table_currency(tot_b_p25)} | {format_table_currency(tot_b_med)} | {format_table_currency(tot_b_p75)} | {format_table_currency(tot_b_max)} |"
+    )
+
+    lines.append("")
+    lines.append("### Retail")
+    lines.append("")
+    lines.append("| Category | Owned | Min | p25 | Median | p75 | Max |")
+    lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
+
+    for ts in tier_summaries:
+        cat_display = TIER_DISPLAY_NAMES.get(ts.name, f"Iconic {ts.name}")
+        if ts.priced_pairs_count < ts.total_cards:
+            cat_label = f"{cat_display} ({ts.priced_pairs_count}/{ts.total_cards} pairs)"
+        else:
+            cat_label = f"{cat_display} ({ts.total_cards})"
+        lines.append(
+            f"| {cat_label} | {ts.retail_owned_count} | {format_table_currency(ts.retail_min)} | {format_table_currency(ts.retail_p25)} | {format_table_currency(ts.retail_median)} | {format_table_currency(ts.retail_p75)} | {format_table_currency(ts.retail_max)} |"
         )
 
     lines.append(
-        f"| **All Iconics** | {len(priced_pairs)}/{total_pairs} | {format_currency_diff(overall_min)} | {format_currency_diff(overall_p25)} | {format_currency_diff(overall_med)} | {format_currency_diff(overall_p75)} | {format_currency_diff(overall_max)} |"
+        f"| **{tot_label}** | **{total_retail_distinct_owned}** | {format_table_currency(tot_r_min)} | {format_table_currency(tot_r_p25)} | {format_table_currency(tot_r_med)} | {format_table_currency(tot_r_p75)} | {format_table_currency(tot_r_max)} |"
     )
+
+    # Owned Collection Value bullets
+    beta_owned_val = 0.0
+    retail_owned_val = 0.0
+    unpriced_owned_count = 0
+    total_beta_cards = sum(p.beta_owned for p in pairs)
+    total_retail_cards = sum(p.retail_owned for p in pairs)
+
+    for p in pairs:
+        if p.beta_owned > 0:
+            if p.beta_price is not None:
+                beta_owned_val += p.beta_price * p.beta_owned
+            else:
+                unpriced_owned_count += p.beta_owned
+        if p.retail_owned > 0:
+            if p.retail_price is not None:
+                retail_owned_val += p.retail_price * p.retail_owned
+            else:
+                unpriced_owned_count += p.retail_owned
+
+    total_owned_val = beta_owned_val + retail_owned_val
+    unpriced_clause = f" (excludes {unpriced_owned_count} unpriced card(s))" if unpriced_owned_count > 0 else ""
+
+    lines.append("")
+    lines.append("**Owned Collection Value:**")
+    lines.append(f"- **Beta ({total_beta_cards} cards):** {format_table_currency(beta_owned_val)}")
+    lines.append(f"- **Retail ({total_retail_cards} cards):** {format_table_currency(retail_owned_val)}")
+    lines.append(f"- **Total:** {format_table_currency(total_owned_val)}{unpriced_clause}")
+    lines.append("")
+    lines.append("---")
     lines.append("")
     lines.append("## Card-by-Card Comparison")
-    lines.append("")
-    lines.append("| # | Card Name | Tier | Beta Price | Retail Price | Spread ($) | Ratio | Beta Owned | Retail Owned |")
-    lines.append("| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
 
-    # Order by collector print number (141-171)
-    sorted_pairs = sorted(pairs, key=lambda p: int(p.print_number) if p.print_number.isdigit() else p.print_number)
+    tier_map_by_name = {ts.name: ts for ts in tier_summaries}
+    tier_subsections = [
+        ("Legends", "### Iconic Legends"),
+        ("Others", "### Iconic Others"),
+        ("Secrets", "### Iconic Secret Rares"),
+    ]
 
-    for p in sorted_pairs:
-        b_p_str = f"${p.beta_price:,.2f}" if p.beta_price is not None else "N/A"
-        r_p_str = f"${p.retail_price:,.2f}" if p.retail_price is not None else "N/A"
-        s_str = format_currency_diff(p.spread)
-        rat_str = f"{p.ratio:.2f}x" if p.ratio is not None else "N/A"
+    for tname, heading in tier_subsections:
+        sub_pairs = [p for p in pairs if p.tier == tname]
+        if not sub_pairs:
+            continue
 
-        lines.append(
-            f"| {p.print_number} | {p.card_name} | {p.tier} | {b_p_str} | {r_p_str} | {s_str} | {rat_str} | {p.beta_owned} | {p.retail_owned} |"
-        )
+        lines.append("")
+        lines.append(heading)
+        lines.append("")
+        lines.append("| # | Card Name | Type | Beta Price | Retail Price | Beta Premium ($) | Beta Premium (%) | Beta Owned | Retail Owned |")
+        lines.append("| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+
+        sorted_sub = sorted(sub_pairs, key=lambda p: int(p.print_number) if p.print_number.isdigit() else p.print_number)
+        for p in sorted_sub:
+            dot = COLOR_DOTS.get(p.color, "")
+            name_display = f"{dot} {p.card_name}".strip() if dot else p.card_name
+            type_display = p.card_type or ""
+            b_p_str = format_table_currency(p.beta_price)
+            r_p_str = format_table_currency(p.retail_price)
+            diff_str = format_signed_currency(p.spread)
+            pct_str = format_signed_pct(p.beta_premium_pct)
+
+            lines.append(
+                f"| {p.print_number} | {name_display} | {type_display} | {b_p_str} | {r_p_str} | {diff_str} | {pct_str} | {p.beta_owned} | {p.retail_owned} |"
+            )
+
+        ts = tier_map_by_name.get(tname)
+        if ts:
+            tot_display = TIER_TOTAL_NAMES.get(ts.name, f"Total {ts.name}")
+            if ts.priced_pairs_count < ts.total_cards:
+                row_label = f"**{tot_display} ({ts.priced_pairs_count}/{ts.total_cards} pairs)**"
+            else:
+                row_label = f"**{tot_display} ({ts.total_cards})**"
+
+            tot_b_str = f"**`${ts.beta_set_total:,.2f}`**" if ts.beta_set_total is not None else "N/A"
+            tot_r_str = f"**`${ts.retail_set_total:,.2f}`**" if ts.retail_set_total is not None else "N/A"
+            tot_diff_str = f"**`{'+' if ts.set_premium_dlr >= 0 else '-'}${abs(ts.set_premium_dlr):,.2f}`**" if ts.set_premium_dlr is not None else "N/A"
+            tot_pct_str = f"**`{'+' if ts.set_premium_pct >= 0 else '-'}{abs(ts.set_premium_pct):.1f}%`**" if ts.set_premium_pct is not None else "N/A"
+
+            lines.append(
+                f"| | {row_label} | | {tot_b_str} | {tot_r_str} | {tot_diff_str} | {tot_pct_str} | **{ts.beta_physical_owned}** | **{ts.retail_physical_owned}** |"
+            )
 
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
@@ -710,12 +854,22 @@ def run_iconics_comparison(
         if subset:
             tier_summaries.append(build_tier_summary(tname, subset))
 
+    latest_path = resolve_latest_price_file(prices_dir)
+    prices_date = None
+    if latest_path and latest_path.is_file():
+        try:
+            with open(latest_path, "r", encoding="utf-8") as f:
+                prices_date = json.load(f).get("date")
+        except Exception:
+            pass
+
     generate_markdown_report(
         pairs=pairs,
         tier_summaries=tier_summaries,
         output_path=target_output,
         collection_name=col_name,
         collection_mtime_date=col_mtime,
+        prices_date=prices_date,
     )
 
     summary_text = format_console_summary(

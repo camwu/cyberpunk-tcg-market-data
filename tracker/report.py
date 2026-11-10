@@ -11,7 +11,7 @@ import sqlite3
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-from tracker.constants import CANONICAL_RARITIES, normalize_rarity
+from tracker.constants import CANONICAL_RARITIES, COLOR_DOTS, normalize_rarity
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -30,12 +30,6 @@ RARITY_ICONS = {
     "Nova": "▣",
 }
 
-COLOR_DOTS = {
-    "Green": "🟢",
-    "Blue": "🔵",
-    "Red": "🔴",
-    "Yellow": "🟡",
-}
 
 def format_rarity(rarity: str, bold: bool = False) -> str:
     norm = normalize_rarity(rarity)
