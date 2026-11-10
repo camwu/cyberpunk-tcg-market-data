@@ -681,6 +681,417 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(total2, 75.00)
         self.assertEqual(len(records2), 1)
 
+    def test_parse_receipt_shopify_format_with_usd_total(self):
+        """Verifies Total USD$44.10 extracts 44.10 without picking up Subtotal $40.00."""
+        text = (
+            "Cyberpunk pre release 1 $40.00\n"
+            "Subtotal $40.00\n"
+            "Taxes $4.10\n"
+            "Total USD$44.10\n"
+            "Confirmed Oct 31\n"
+            "Order #6631 - Example Card Shop - Account\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        p = self.purchase_dir / "receipt.txt"
+        p.write_text(text, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res = parse_receipt_document(str(p), interactive=True)
+        self.assertIsNotNone(res)
+        date, merchant, amount, desc = res
+        self.assertEqual(amount, 44.10)
+        self.assertEqual(merchant, "Example Card Shop")
+        self.assertEqual(date, "2026-10-31")
+
+    def test_parse_receipt_web_order_merchant(self):
+        """Verifies generic web order title and sold-by merchant recognition."""
+        text_and = "Order #6935\nConfirmed Nov 7\nOrders sold by City Brawl Games\nTotal USD $10.00\n11/9/26, 3:31 PM\n"
+        p1 = self.purchase_dir / "and.txt"
+        p1.write_text(text_and, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res1 = parse_receipt_document(str(p1), interactive=True)
+        self.assertIsNotNone(res1)
+        self.assertEqual(res1[1], "City Brawl Games")
+
+        text_title = "Order #6822\nConfirmed Nov 5\nOrder #6822 - Hobby Haven - Account\nTotal $10.00\n11/9/26, 3:31 PM\n"
+        p2 = self.purchase_dir / "amp.txt"
+        p2.write_text(text_title, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res2 = parse_receipt_document(str(p2), interactive=True)
+        self.assertIsNotNone(res2)
+        self.assertEqual(res2[1], "Hobby Haven")
+
+        # Hyphenated merchant title
+        text_hyphen = "Order #6631\nConfirmed Nov 5\nOrder #6631 - Sci-Fi City - Account\nTotal $10.00\n11/9/26, 3:31 PM\n"
+        p3 = self.purchase_dir / "hyphen.txt"
+        p3.write_text(text_hyphen, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res3 = parse_receipt_document(str(p3), interactive=True)
+        self.assertIsNotNone(res3)
+        self.assertEqual(res3[1], "Sci-Fi City")
+
+    def test_parse_receipt_year_rollover_from_future_print_timestamp(self):
+        """Verifies that late-year orders printed in January default to the prior year."""
+        text_rollover = (
+            "Confirmed Dec 28\n"
+            "Order #7100 - Sample Games - Account\n"
+            "Total USD$25.00\n"
+            "1/3/27, 10:00 AM\n"
+        )
+        p = self.purchase_dir / "rollover.txt"
+        p.write_text(text_rollover, encoding="utf-8")
+        # Empty string accepts default year, which should be 2026 (not 2027)
+        with patch("builtins.input", return_value=""):
+            res = parse_receipt_document(str(p), interactive=True)
+        self.assertIsNotNone(res)
+        self.assertEqual(res[0], "2026-12-28")
+        self.assertEqual(res[1], "Sample Games")
+        self.assertEqual(res[2], 25.00)
+
+    def test_parse_receipt_anchored_date_avoids_false_positives(self):
+        """Verifies street addresses or shipping estimates are not mistaken for transaction dates."""
+        text_address = (
+            "Billing Address: 123 May 12th St, Suite 4\n"
+            "Shipping window: Arrives Nov 10 by 8 PM\n"
+            "Item: March of the Machines\n"
+            "Confirmed Oct 31\n"
+            "Total USD$44.10\n"
+            "Order #6631 - Sample Games - Account\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        p = self.purchase_dir / "addr.txt"
+        p.write_text(text_address, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res = parse_receipt_document(str(p), interactive=True)
+        self.assertIsNotNone(res)
+        self.assertEqual(res[0], "2026-10-31")
+
+    def test_extract_print_timestamp_date_requires_context(self):
+        """Verifies print timestamp matching requires time or label context, ignoring arbitrary slash dates."""
+        import datetime
+        from tracker.purchases import extract_print_timestamp_date
+
+        # Arbitrary slash date in line item text without context should return None
+        self.assertIsNone(extract_print_timestamp_date("Item: Special Edition 05/15/2023 release"))
+
+        # Valid date-and-time formats in 2-digit and 4-digit forms
+        d2 = extract_print_timestamp_date("Order Details\n11/9/26, 3:31 PM\nOrder #1234")
+        self.assertEqual(d2, datetime.date(2026, 11, 9))
+
+        d4 = extract_print_timestamp_date("Page 1 of 1\n11/9/2026 15:30:00")
+        self.assertEqual(d4, datetime.date(2026, 11, 9))
+
+        # Time preceding date
+        d_pre = extract_print_timestamp_date("Footer: 10:00 AM, 1/3/27")
+        self.assertEqual(d_pre, datetime.date(2027, 1, 3))
+
+        # Print label context without time
+        d_lbl = extract_print_timestamp_date("Printed: 11/9/2026")
+        self.assertEqual(d_lbl, datetime.date(2026, 11, 9))
+
+        # When arbitrary slash date precedes a real print header, real print header is selected
+        mixed_text = (
+            "Item: Booster Pack 05/15/2023\n"
+            "Total USD$10.00\n"
+            "11/9/26, 3:31 PM Order #1234\n"
+        )
+        self.assertEqual(extract_print_timestamp_date(mixed_text), datetime.date(2026, 11, 9))
+
+        # Preceding invalid date with time context does not stop search for valid timestamp
+        invalid_preceding_4 = (
+            "Invalid header: 99/99/2026, 10:00 AM\n"
+            "Footer: 11/9/2026, 3:31 PM\n"
+        )
+        self.assertEqual(extract_print_timestamp_date(invalid_preceding_4), datetime.date(2026, 11, 9))
+
+        invalid_preceding_2 = (
+            "Invalid header: 99/99/26, 10:00 AM\n"
+            "Footer: 11/9/26, 3:31 PM\n"
+        )
+        self.assertEqual(extract_print_timestamp_date(invalid_preceding_2), datetime.date(2026, 11, 9))
+
+        # Invalid calendar dates with leading digits do not partially match sub-dates (lookbehind preservation)
+        self.assertIsNone(extract_print_timestamp_date("11/31/2026, 3:31 PM"))
+        self.assertIsNone(extract_print_timestamp_date("11/31/26, 3:31 PM"))
+
+        # ISO timestamp format with time or label context
+        d_iso = extract_print_timestamp_date("Printed: 2027-01-03, 10:00 AM")
+        self.assertEqual(d_iso, datetime.date(2027, 1, 3))
+
+        # find_print_timestamp_match returns date, start, and end offsets
+        from tracker.purchases import find_print_timestamp_match
+        sample_ts = "Printed: 2027-01-03, 10:00 AM"
+        match = find_print_timestamp_match(sample_ts)
+        self.assertIsNotNone(match)
+        self.assertEqual(match[0], datetime.date(2027, 1, 3))
+        self.assertEqual(match[1], 0)
+        self.assertEqual(match[2], len(sample_ts))
+
+    def test_prompt_for_year_interactive_and_non_interactive(self):
+        """Verifies interactive year resolution with default and explicit input, and fail-closed non-interactive."""
+        from tracker.purchases import prompt_for_year
+
+        # 1. Non-interactive -> None
+        self.assertIsNone(
+            prompt_for_year("test.pdf", "10", "31", "Oct", default_year=2026, interactive=False)
+        )
+
+        # 2. Interactive with empty string (accepts default)
+        with patch("builtins.input", return_value=""):
+            res_default = prompt_for_year("test.pdf", "10", "31", "Oct", default_year=2026, interactive=True)
+            self.assertEqual(res_default, "2026-10-31")
+
+        # 3. Interactive with explicit year
+        with patch("builtins.input", return_value="2025"):
+            res_explicit = prompt_for_year("test.pdf", "10", "31", "Oct", default_year=2026, interactive=True)
+            self.assertEqual(res_explicit, "2025-10-31")
+
+        # 4. Interactive skip option
+        with patch("builtins.input", return_value="s"):
+            res_skip = prompt_for_year("test.pdf", "10", "31", "Oct", default_year=2026, interactive=True)
+            self.assertIsNone(res_skip)
+
+    def test_sync_purchase_history_content_addressing_on_rename(self):
+        """Verifies that renamed files with identical SHA-256 are recognized from cache without prompting."""
+        p1 = self.purchase_dir / "orig.txt"
+        text = (
+            "Confirmed Oct 31\n"
+            "In-store purchase\n"
+            "Order #6631 - Sample Games - Account\n"
+            "Total USD$44.10\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        p1.write_text(text, encoding="utf-8")
+
+        # Initial ingestion with interactive prompt
+        with patch("builtins.input", return_value=""):
+            tot, recs, updated = sync_purchase_history(
+                str(self.purchase_dir),
+                cache_path=self.cache_path,
+                ledger_path=self.ledger_path,
+                interactive=True,
+            )
+        self.assertEqual(tot, 44.10)
+        self.assertTrue(updated)
+        self.assertEqual(len(recs), 1)
+
+        # Rename file on disk
+        p1.unlink()
+        p2 = self.purchase_dir / "renamed_receipt.txt"
+        p2.write_text(text, encoding="utf-8")
+
+        # Second sync in non-interactive mode should hit SHA-256 content cache without prompting
+        tot2, recs2, updated2 = sync_purchase_history(
+            str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(tot2, 44.10)
+        self.assertEqual(len(recs2), 1)
+        self.assertEqual(recs2[0].date, "2026-10-31")
+        self.assertEqual(recs2[0].amount, 44.10)
+        self.assertEqual(recs2[0].filename, "renamed_receipt.txt")
+
+    def test_cross_filename_cache_reuse_preserves_ledger_override(self):
+        """Verifies that an existing ledger override for a filename takes precedence over hash matching from another cached file."""
+        p1 = self.purchase_dir / "orig.txt"
+        text = (
+            "Confirmed Oct 31\n"
+            "Order #6631 - Sample Games - Account\n"
+            "Total USD$44.10\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        p1.write_text(text, encoding="utf-8")
+
+        # Initial ingestion of orig.txt into cache and ledger
+        with patch("builtins.input", return_value=""):
+            tot1, recs1, _ = sync_purchase_history(
+                str(self.purchase_dir),
+                cache_path=self.cache_path,
+                ledger_path=self.ledger_path,
+                interactive=True,
+            )
+        self.assertEqual(tot1, 44.10)
+
+        # Place an identical file under a new name 'override.txt'
+        p2 = self.purchase_dir / "override.txt"
+        p2.write_text(text, encoding="utf-8")
+
+        # Simulate user having manually added an override in existing_ledger for 'override.txt'
+        from tracker.purchases import load_purchase_ledger, save_purchase_ledger
+        rows = load_purchase_ledger(self.ledger_path)
+        rows["override.txt"] = PurchaseRecord(
+            date="2026-10-31",
+            merchant="Custom Merchant",
+            amount=50.00,
+            description="Manual Ledger Override",
+            filename="override.txt",
+            sha256="",
+        )
+        save_purchase_ledger(self.ledger_path, list(rows.values()))
+
+        # Sync in non-interactive mode: override.txt must retain $50.00 from ledger, NOT $44.10 from orig.txt cache
+        tot2, recs2, _ = sync_purchase_history(
+            str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        recs_by_fname = {r.filename: r for r in recs2}
+        self.assertIn("override.txt", recs_by_fname)
+        self.assertEqual(recs_by_fname["override.txt"].amount, 50.00)
+        self.assertEqual(recs_by_fname["override.txt"].merchant, "Custom Merchant")
+        self.assertEqual(recs_by_fname["override.txt"].description, "Manual Ledger Override")
+
+    def test_parse_actual_web_receipt_structures(self):
+        """Verifies synthetic text matching web receipt layouts with generic titles."""
+        samples = [
+            (
+                "2026-10-31_sample.txt",
+                (
+                    "C\nOrders Profile\nConfirmed Oct 31\nOrder #6631\nIn-store purchase\n"
+                    "Oct 31 at 12:08 PM\nCyberpunk pre release\n1\n$40.00\nSubtotal $40.00\n"
+                    "Taxes $4.10\nTotal USD$44.10\nBilling address -\nPayment Visa 7127\n"
+                    "11/9/26, 3:31 PM Order #6631 - Sample Shop - Account\n"
+                ),
+                ("2026-10-31", "Sample Shop", 44.10),
+            ),
+            (
+                "2026-11-05_sample.txt",
+                (
+                    "C\nOrders Profile\nConfirmed Nov 5\nOrder #6822\nIn-store purchase\n"
+                    "Nov 5 at 6:48 PM\nCyberpunk weekly\n1\n$10.00\nSubtotal $10.00\n"
+                    "Total USD$10.00\nBilling address -\nPayment Visa 7127\n"
+                    "11/9/26, 3:31 PM Order #6822 - Sample Shop - Account\n"
+                ),
+                ("2026-11-05", "Sample Shop", 10.00),
+            ),
+            (
+                "2026-11-07_sample.txt",
+                (
+                    "C\nOrders Profile\nConfirmed Nov 7\nOrder #6935\nIn-store purchase\n"
+                    "Nov 7 at 2:18 PM\nCyberpunk weekly\n1\n$10.00\nSubtotal $10.00\n"
+                    "Total USD$10.00\nBilling address -\nPayment Visa 7127\nOrders sold by Sample Shop\n"
+                    "11/9/26, 3:31 PM Order #6935 - Sample Shop - Account\n"
+                ),
+                ("2026-11-07", "Sample Shop", 10.00),
+            ),
+        ]
+        for fname, raw_text, (exp_date, exp_merchant, exp_amount) in samples:
+            f = self.purchase_dir / fname
+            f.write_text(raw_text, encoding="utf-8")
+            with patch("builtins.input", return_value=""):
+                res = parse_receipt_document(str(f), interactive=True)
+            self.assertIsNotNone(res, f"Failed to parse {fname}")
+            d, m, a, _ = res
+            self.assertEqual(d, exp_date)
+            self.assertEqual(m, exp_merchant)
+            self.assertEqual(a, exp_amount)
+
+    def test_parse_receipt_document_masks_print_timestamp(self):
+        """Verifies print timestamps (e.g. ISO format) are masked and not mistaken for transaction dates."""
+        # 1. ISO print header alongside partial date 'Confirmed Dec 28'
+        # The print header must not be captured as transaction date.
+        # Rollover should propose 2026 from 2027 print timestamp and resolve to 2026-12-28.
+        doc_iso_header = (
+            "Printed: 2027-01-03, 10:00 AM\n"
+            "Order #7001 - Sample Shop - Account\n"
+            "Confirmed Dec 28\n"
+            "Total USD$25.00\n"
+        )
+        f1 = self.purchase_dir / "iso_header.txt"
+        f1.write_text(doc_iso_header, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res1 = parse_receipt_document(str(f1), interactive=True)
+        self.assertIsNotNone(res1)
+        self.assertEqual(res1[0], "2026-12-28")
+        self.assertEqual(res1[1], "Sample Shop")
+        self.assertEqual(res1[2], 25.00)
+
+        # 2. Body containing an authentic ISO transaction date alongside a print timestamp
+        doc_with_real_iso = (
+            "Printed: 11/9/2026, 3:31 PM\n"
+            "Invoice Date: 2026-11-05\n"
+            "Order #7002 - Sample Shop - Account\n"
+            "Total USD$15.00\n"
+        )
+        f2 = self.purchase_dir / "authentic_iso.txt"
+        f2.write_text(doc_with_real_iso, encoding="utf-8")
+        res2 = parse_receipt_document(str(f2), interactive=False)
+        self.assertIsNotNone(res2)
+        self.assertEqual(res2[0], "2026-11-05")
+        self.assertEqual(res2[1], "Sample Shop")
+        self.assertEqual(res2[2], 15.00)
+
+    def test_parse_receipt_document_masks_arrival_dates(self):
+        """Verifies arrival/delivery dates do not override transaction dates or bypass year prompts."""
+        from tracker.purchases import mask_arrival_dates
+
+        # Direct unit test for mask_arrival_dates
+        sample = "Shipping window: Arrives Nov 10, 2026 by 8 PM\nOrder Date: 2026-10-31"
+        masked = mask_arrival_dates(sample)
+        self.assertNotIn("Nov 10, 2026", masked)
+        self.assertIn("Order Date: 2026-10-31", masked)
+
+        # Yearless arrival estimates must not cross newlines or transaction labels
+        sample_nl = "Arrives Nov 10\nOrder Date: 2026-10-31"
+        masked_nl = mask_arrival_dates(sample_nl)
+        self.assertIn("Order Date: 2026-10-31", masked_nl)
+
+        sample_inline = "Arrives Nov 10 Order Date: 2026-10-31"
+        masked_inline = mask_arrival_dates(sample_inline)
+        self.assertIn("Order Date: 2026-10-31", masked_inline)
+
+        # 1. Receipt with partial order date and explicit 4-digit arrival date
+        # Arrival date must be masked so resolve_partial_date prompts for year (or uses default).
+        doc_with_arrival = (
+            "Shipping window: Arrives Nov 10, 2026 by 8 PM\n"
+            "Order #8001 - Sample Shop - Account\n"
+            "Confirmed Oct 31\n"
+            "Total USD$44.10\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        f1 = self.purchase_dir / "arrival_partial.txt"
+        f1.write_text(doc_with_arrival, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res1 = parse_receipt_document(str(f1), interactive=True)
+        self.assertIsNotNone(res1)
+        self.assertEqual(res1[0], "2026-10-31")
+        self.assertEqual(res1[1], "Sample Shop")
+        self.assertEqual(res1[2], 44.10)
+
+        # 2. Receipt with ISO arrival date alongside authentic ISO order date
+        # Arrival date is at top of document, but order date is correctly selected.
+        doc_iso_arrival = (
+            "Estimated delivery: 2026-11-10\n"
+            "Order #8002 - Sample Shop - Account\n"
+            "Order Date: 2026-10-31\n"
+            "Total USD$19.99\n"
+        )
+        f2 = self.purchase_dir / "arrival_iso.txt"
+        f2.write_text(doc_iso_arrival, encoding="utf-8")
+        res2 = parse_receipt_document(str(f2), interactive=False)
+        self.assertIsNotNone(res2)
+        self.assertEqual(res2[0], "2026-10-31")
+        self.assertEqual(res2[1], "Sample Shop")
+        self.assertEqual(res2[2], 19.99)
+
+        # 3. Receipt with yearless arrival followed on next line by ISO order date
+        # The yearless arrival must not mask the order date on the next line.
+        doc_yearless_arrival = (
+            "Shipping window: Arrives Nov 10\n"
+            "Order #8003 - Sample Shop - Account\n"
+            "Order Date: 2026-10-31\n"
+            "Total USD$15.00\n"
+        )
+        f3 = self.purchase_dir / "yearless_arrival.txt"
+        f3.write_text(doc_yearless_arrival, encoding="utf-8")
+        res3 = parse_receipt_document(str(f3), interactive=False)
+        self.assertIsNotNone(res3)
+        self.assertEqual(res3[0], "2026-10-31")
+        self.assertEqual(res3[1], "Sample Shop")
+        self.assertEqual(res3[2], 15.00)
+
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
 
