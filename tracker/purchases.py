@@ -116,14 +116,15 @@ def extract_print_timestamp_date(text: str) -> Optional[datetime.date]:
     label_ctx = r"(?:Printed|Print\s+date|Timestamp)[\s:]+"
 
     # Match 4-digit year with time or print-label context across all candidates
-    p4 = (
+    p4 = re.compile(
         rf"(?:(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)[,\s]+{time_ctx}"
         rf"|{time_ctx}[,\s]+(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)"
-        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d))"
+        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d))",
+        re.IGNORECASE,
     )
     pos = 0
     while pos < len(text):
-        m4 = re.search(p4, text[pos:], re.IGNORECASE)
+        m4 = p4.search(text, pos)
         if not m4:
             break
         for idx in (1, 4, 7):
@@ -132,17 +133,18 @@ def extract_print_timestamp_date(text: str) -> Optional[datetime.date]:
                     return datetime.date(int(m4.group(idx + 2)), int(m4.group(idx)), int(m4.group(idx + 1)))
                 except ValueError:
                     break
-        pos += m4.start() + 1
+        pos = m4.start() + 1
 
     # Match 2-digit year with time or print-label context across all candidates
-    p2 = (
+    p2 = re.compile(
         rf"(?:(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)[,\s]+{time_ctx}"
         rf"|{time_ctx}[,\s]+(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)"
-        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d))"
+        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d))",
+        re.IGNORECASE,
     )
     pos = 0
     while pos < len(text):
-        m2 = re.search(p2, text[pos:], re.IGNORECASE)
+        m2 = p2.search(text, pos)
         if not m2:
             break
         for idx in (1, 4, 7):
@@ -151,7 +153,7 @@ def extract_print_timestamp_date(text: str) -> Optional[datetime.date]:
                     return datetime.date(int(f"20{m2.group(idx + 2)}"), int(m2.group(idx)), int(m2.group(idx + 1)))
                 except ValueError:
                     break
-        pos += m2.start() + 1
+        pos = m2.start() + 1
 
     return None
 

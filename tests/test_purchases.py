@@ -809,6 +809,10 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(extract_print_timestamp_date(invalid_preceding_2), datetime.date(2026, 11, 9))
 
+        # Invalid calendar dates with leading digits do not partially match sub-dates (lookbehind preservation)
+        self.assertIsNone(extract_print_timestamp_date("11/31/2026, 3:31 PM"))
+        self.assertIsNone(extract_print_timestamp_date("11/31/26, 3:31 PM"))
+
     def test_prompt_for_year_interactive_and_non_interactive(self):
         """Verifies interactive year resolution with default and explicit input, and fail-closed non-interactive."""
         from tracker.purchases import prompt_for_year
