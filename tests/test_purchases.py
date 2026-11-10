@@ -681,6 +681,174 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(total2, 75.00)
         self.assertEqual(len(records2), 1)
 
+    def test_parse_receipt_shopify_format_with_usd_total(self):
+        """Verifies Total USD$44.10 extracts 44.10 without picking up Subtotal $40.00."""
+        text = (
+            "Cyberpunk pre release 1 $40.00\n"
+            "Subtotal $40.00\n"
+            "Taxes $4.10\n"
+            "Total USD$44.10\n"
+            "Confirmed Oct 31\n"
+            "Order #6631 - Example Card Shop - Account\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        p = self.purchase_dir / "receipt.txt"
+        p.write_text(text, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res = parse_receipt_document(str(p), interactive=True)
+        self.assertIsNotNone(res)
+        date, merchant, amount, desc = res
+        self.assertEqual(amount, 44.10)
+        self.assertEqual(merchant, "Example Card Shop")
+        self.assertEqual(date, "2026-10-31")
+
+    def test_parse_receipt_web_order_merchant(self):
+        """Verifies generic web order title and sold-by merchant recognition."""
+        text_and = "Order #6935\nConfirmed Nov 7\nOrders sold by City Brawl Games\nTotal USD $10.00\n11/9/26, 3:31 PM\n"
+        p1 = self.purchase_dir / "and.txt"
+        p1.write_text(text_and, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res1 = parse_receipt_document(str(p1), interactive=True)
+        self.assertIsNotNone(res1)
+        self.assertEqual(res1[1], "City Brawl Games")
+
+        text_title = "Order #6822\nConfirmed Nov 5\nOrder #6822 - Hobby Haven - Account\nTotal $10.00\n11/9/26, 3:31 PM\n"
+        p2 = self.purchase_dir / "amp.txt"
+        p2.write_text(text_title, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res2 = parse_receipt_document(str(p2), interactive=True)
+        self.assertIsNotNone(res2)
+        self.assertEqual(res2[1], "Hobby Haven")
+
+    def test_parse_receipt_anchored_date_avoids_false_positives(self):
+        """Verifies street addresses or shipping estimates are not mistaken for transaction dates."""
+        text_address = (
+            "Billing Address: 123 May 12th St, Suite 4\n"
+            "Shipping window: Arrives Nov 10 by 8 PM\n"
+            "Item: March of the Machines\n"
+            "Confirmed Oct 31\n"
+            "Total USD$44.10\n"
+            "Order #6631 - Sample Games - Account\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        p = self.purchase_dir / "addr.txt"
+        p.write_text(text_address, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res = parse_receipt_document(str(p), interactive=True)
+        self.assertIsNotNone(res)
+        self.assertEqual(res[0], "2026-10-31")
+
+    def test_prompt_for_year_interactive_and_non_interactive(self):
+        """Verifies interactive year resolution with default and explicit input, and fail-closed non-interactive."""
+        from tracker.purchases import prompt_for_year
+
+        # 1. Non-interactive -> None
+        self.assertIsNone(
+            prompt_for_year("test.pdf", "10", "31", "Oct", default_year=2026, interactive=False)
+        )
+
+        # 2. Interactive with empty string (accepts default)
+        with patch("builtins.input", return_value=""):
+            res_default = prompt_for_year("test.pdf", "10", "31", "Oct", default_year=2026, interactive=True)
+            self.assertEqual(res_default, "2026-10-31")
+
+        # 3. Interactive with explicit year
+        with patch("builtins.input", return_value="2025"):
+            res_explicit = prompt_for_year("test.pdf", "10", "31", "Oct", default_year=2026, interactive=True)
+            self.assertEqual(res_explicit, "2025-10-31")
+
+        # 4. Interactive skip option
+        with patch("builtins.input", return_value="s"):
+            res_skip = prompt_for_year("test.pdf", "10", "31", "Oct", default_year=2026, interactive=True)
+            self.assertIsNone(res_skip)
+
+    def test_sync_purchase_history_content_addressing_on_rename(self):
+        """Verifies that renamed files with identical SHA-256 are recognized from cache without prompting."""
+        p1 = self.purchase_dir / "orig.txt"
+        text = (
+            "Confirmed Oct 31\n"
+            "In-store purchase\n"
+            "Order #6631 - Sample Games - Account\n"
+            "Total USD$44.10\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        p1.write_text(text, encoding="utf-8")
+
+        # Initial ingestion with interactive prompt
+        with patch("builtins.input", return_value=""):
+            tot, recs, updated = sync_purchase_history(
+                str(self.purchase_dir),
+                cache_path=self.cache_path,
+                ledger_path=self.ledger_path,
+                interactive=True,
+            )
+        self.assertEqual(tot, 44.10)
+        self.assertTrue(updated)
+        self.assertEqual(len(recs), 1)
+
+        # Rename file on disk
+        p1.unlink()
+        p2 = self.purchase_dir / "renamed_receipt.txt"
+        p2.write_text(text, encoding="utf-8")
+
+        # Second sync in non-interactive mode should hit SHA-256 content cache without prompting
+        tot2, recs2, updated2 = sync_purchase_history(
+            str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        self.assertEqual(tot2, 44.10)
+        self.assertEqual(len(recs2), 1)
+        self.assertEqual(recs2[0].date, "2026-10-31")
+        self.assertEqual(recs2[0].amount, 44.10)
+        self.assertEqual(recs2[0].filename, "renamed_receipt.txt")
+
+    def test_parse_actual_web_receipt_structures(self):
+        """Verifies synthetic text matching web receipt layouts with generic titles."""
+        samples = [
+            (
+                "2026-10-31_sample.txt",
+                (
+                    "C\nOrders Profile\nConfirmed Oct 31\nOrder #6631\nIn-store purchase\n"
+                    "Oct 31 at 12:08 PM\nCyberpunk pre release\n1\n$40.00\nSubtotal $40.00\n"
+                    "Taxes $4.10\nTotal USD$44.10\nBilling address -\nPayment Visa 7127\n"
+                    "11/9/26, 3:31 PM Order #6631 - Sample Shop - Account\n"
+                ),
+                ("2026-10-31", "Sample Shop", 44.10),
+            ),
+            (
+                "2026-11-05_sample.txt",
+                (
+                    "C\nOrders Profile\nConfirmed Nov 5\nOrder #6822\nIn-store purchase\n"
+                    "Nov 5 at 6:48 PM\nCyberpunk weekly\n1\n$10.00\nSubtotal $10.00\n"
+                    "Total USD$10.00\nBilling address -\nPayment Visa 7127\n"
+                    "11/9/26, 3:31 PM Order #6822 - Sample Shop - Account\n"
+                ),
+                ("2026-11-05", "Sample Shop", 10.00),
+            ),
+            (
+                "2026-11-07_sample.txt",
+                (
+                    "C\nOrders Profile\nConfirmed Nov 7\nOrder #6935\nIn-store purchase\n"
+                    "Nov 7 at 2:18 PM\nCyberpunk weekly\n1\n$10.00\nSubtotal $10.00\n"
+                    "Total USD$10.00\nBilling address -\nPayment Visa 7127\nOrders sold by Sample Shop\n"
+                    "11/9/26, 3:31 PM Order #6935 - Sample Shop - Account\n"
+                ),
+                ("2026-11-07", "Sample Shop", 10.00),
+            ),
+        ]
+        for fname, raw_text, (exp_date, exp_merchant, exp_amount) in samples:
+            f = self.purchase_dir / fname
+            f.write_text(raw_text, encoding="utf-8")
+            with patch("builtins.input", return_value=""):
+                res = parse_receipt_document(str(f), interactive=True)
+            self.assertIsNotNone(res, f"Failed to parse {fname}")
+            d, m, a, _ = res
+            self.assertEqual(d, exp_date)
+            self.assertEqual(m, exp_merchant)
+            self.assertEqual(a, exp_amount)
+
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
 

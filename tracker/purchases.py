@@ -110,6 +110,102 @@ def parse_date_candidate(text: str) -> Optional[str]:
     return None
 
 
+def extract_default_year_from_text(text: str) -> Optional[int]:
+    """Finds 4-digit year or bounded 2-digit year in print header/footer timestamps."""
+    m4 = re.search(r"(?<!\d)\d{1,2}/\d{1,2}/(20\d{2})(?!\d)", text)
+    if m4:
+        return int(m4.group(1))
+    m2 = re.search(r"(?<!\d)\d{1,2}/\d{1,2}/(\d{2})(?!\d)", text)
+    if m2:
+        return int(f"20{m2.group(1)}")
+    return None
+
+
+def prompt_for_year(
+    filename: str,
+    month_str: str,
+    day_str: str,
+    display_month: str,
+    default_year: Optional[int] = None,
+    interactive: Optional[bool] = None,
+) -> Optional[str]:
+    """
+    Prompts user interactively to confirm or supply the 4-digit year for Month DD dates.
+    Validates resulting date with datetime.date.fromisoformat() in a retry loop.
+    Returns ISO date (YYYY-MM-DD) or None if non-interactive / skipped.
+    """
+    if interactive is None:
+        interactive = sys.stdin.isatty()
+
+    if not interactive:
+        return None
+
+    def_yr = default_year or datetime.date.today().year
+    print(f"\n[Action Required] Year resolution needed for '{filename}':")
+    print(f"Detected transaction date '{display_month} {int(day_str)}' without a 4-digit year.")
+
+    while True:
+        prompt_msg = f"Enter 4-digit year (e.g. {def_yr}) [default: {def_yr}], or 's' to skip: "
+        choice = input(prompt_msg).strip()
+        if choice.lower() in ("s", "skip"):
+            return None
+        year_cand = choice if choice else str(def_yr)
+        if not re.match(r"^20\d{2}$", year_cand):
+            print("Invalid year. Must be a 4-digit year (e.g. 2026).")
+            continue
+        cand_date = f"{year_cand}-{month_str}-{day_str}"
+        try:
+            datetime.date.fromisoformat(cand_date)
+            return cand_date
+        except ValueError:
+            print(f"Invalid calendar date '{cand_date}'. Please enter a valid 4-digit year.")
+
+
+def resolve_partial_date(
+    text: str,
+    filename: str,
+    interactive: Optional[bool] = None,
+) -> Optional[str]:
+    """
+    Extracts Month DD dates anchored by order confirmation context and prompts for year.
+    Returns YYYY-MM-DD string or None.
+    """
+    months = {
+        "jan": "01", "feb": "02", "mar": "03", "apr": "04", "may": "05", "jun": "06",
+        "jul": "07", "aug": "08", "sep": "09", "oct": "10", "nov": "11", "dec": "12",
+    }
+    patterns = [
+        # Anchored by order keywords: Confirmed Oct 31, In-store purchase\nOct 31, etc.
+        r"(?<![a-zA-Z])(?:Confirmed|Updated|Ordered|Order\s+date|Order\s*#\d+|In-store\s+purchase|Date|Placed\s+on|Purchased(?:\s+on)?)[\s:\n]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})(?!\d)",
+        # Accompanied by order time: Oct 31 at 12:08 PM
+        r"(?<![a-zA-Z])(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})\s+at\s+\d{1,2}:\d{2}(?!\d)",
+    ]
+    m_found = None
+    for pat in patterns:
+        m_found = re.search(pat, text, re.IGNORECASE)
+        if m_found:
+            break
+
+    if not m_found:
+        return None
+
+    month_raw = m_found.group(1)
+    month_num = months.get(month_raw[:3].lower())
+    if not month_num:
+        return None
+    day_num = f"{int(m_found.group(2)):02d}"
+
+    default_yr = extract_default_year_from_text(text) or datetime.date.today().year
+    return prompt_for_year(
+        filename=filename,
+        month_str=month_num,
+        day_str=day_num,
+        display_month=month_raw[:3].capitalize(),
+        default_year=default_yr,
+        interactive=interactive,
+    )
+
+
 def validate_amount_string(val_str: str) -> Optional[float]:
     """
     Validates that val_str represents a positive currency amount.
@@ -304,6 +400,9 @@ def parse_receipt_document(
     # 1. Date extraction strictly from text
     date_cand = parse_date_candidate(text)
     if not date_cand:
+        date_cand = resolve_partial_date(text, filename=filename, interactive=interactive)
+
+    if not date_cand:
         print(f"Warning: Could not extract purchase date from '{filename}'. Skipping file.")
         return None
 
@@ -325,14 +424,23 @@ def parse_receipt_document(
         m_stmt = re.search(r"Statement name\s*\n\s*([^\n\r]+)", text, re.IGNORECASE)
         if m_stmt:
             merchant = m_stmt.group(1).strip()
+        else:
+            # Check for generic web order title: Order #1234 - Store Name - Account
+            m_order = re.search(r"Order\s+#\d+\s*-\s*([^\n\r-]+?)\s*-\s*Account", text, re.IGNORECASE)
+            if m_order:
+                merchant = m_order.group(1).strip()
+            else:
+                m_sold = re.search(r"Orders sold by\s+([^\n\r]+)", text, re.IGNORECASE)
+                if m_sold:
+                    merchant = m_sold.group(1).strip()
 
     # 3. Amount extraction
     amount: Optional[float] = None
 
     # Rule A: Explicit standard accounting labels
     patterns = [
-        r"(?:Pledge total|Total charged to|Grand Total|Order Total)[\s:\$]*\$?([\d,]+\.\d{2})",
-        r"(?:Total|Amount Paid|Final Total)[\s:\$]*\$?([\d,]+\.\d{2})",
+        r"\b(?:Pledge total|Total charged to|Grand Total|Order Total)[\s:\$]*(?:USD\s*)?\$?([\d,]+\.\d{2})",
+        r"\b(?:Total|Amount Paid|Final Total)[\s:\$]*(?:USD\s*)?\$?([\d,]+\.\d{2})",
     ]
     for pat in patterns:
         matches = re.findall(pat, text, re.IGNORECASE)
@@ -514,9 +622,18 @@ def sync_purchase_history(
         fname = fpath.name
         file_sha256 = compute_file_sha256(str(fpath))
 
-        # Check 1: Cache match (same filename and sha256) unless reparse requested
-        if not reparse and fname in cached_files and cached_files[fname].get("sha256") == file_sha256:
-            cached_entry = cached_files[fname]
+        # Check 1: Cache match (same filename and sha256 OR content-addressed sha256) unless reparse requested
+        cached_entry = None
+        if not reparse:
+            if fname in cached_files and cached_files[fname].get("sha256") == file_sha256:
+                cached_entry = cached_files[fname]
+            elif file_sha256:
+                for entry in cached_files.values():
+                    if isinstance(entry, dict) and entry.get("sha256") == file_sha256:
+                        cached_entry = entry
+                        break
+
+        if cached_entry:
             discovered_records[fname] = PurchaseRecord(
                 date=cached_entry.get("date", ""),
                 merchant=cached_entry.get("merchant", "Unknown"),
