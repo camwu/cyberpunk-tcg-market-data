@@ -55,7 +55,7 @@ class TestTrackerCLICollectionSource(unittest.TestCase):
             collection_csv=kwargs.get("collection_csv") or str(self.collection_csv),
             database_path=kwargs.get("database_path") or self.db_path,
             price_cache_dir=kwargs.get("price_cache_dir") or self.price_dir,
-            output_report=kwargs.get("output_report") or str(self.test_dir / "LATEST_PORTFOLIO_SUMMARY.md"),
+            output_report=kwargs.get("output_report") or str(self.test_dir / "portfolio_summary.md"),
             sealed_csv=kwargs.get("sealed_csv"),
             cardnexus_api_key=self.api_key_for_test,
             purchase_history_dir=kwargs.get("purchase_history_dir"),
@@ -832,19 +832,32 @@ class TestLauncherScripts(unittest.TestCase):
     """Verifies cross-platform launcher script integrity, git checks, and parity."""
 
     def test_update_portfolio_bat_git_pull_guard(self):
-        bat_file = Path(__file__).resolve().parent.parent / "update_portfolio.bat"
+        bat_file = Path(__file__).resolve().parent.parent / "launchers" / "update_portfolio.bat"
         self.assertTrue(bat_file.is_file())
         content = bat_file.read_text(encoding="utf-8")
-        self.assertIn('if exist "%~dp0.git"', content)
-        self.assertIn('git -C "%~dp0." pull --ff-only 2>nul', content)
+        self.assertIn('if exist "%REPO_ROOT%\\.git"', content)
+        self.assertIn('git -C "%REPO_ROOT%" pull --ff-only 2>nul', content)
         self.assertIn("REM Best-effort fast-forward; ignore exit code if offline, detached, or dirty", content)
 
     def test_update_portfolio_sh_git_pull_guard(self):
-        sh_file = Path(__file__).resolve().parent.parent / "update_portfolio.sh"
+        sh_file = Path(__file__).resolve().parent.parent / "launchers" / "update_portfolio.sh"
         self.assertTrue(sh_file.is_file())
         content = sh_file.read_text(encoding="utf-8")
         self.assertIn('if [ -d "$DIR/.git" ] || [ -f "$DIR/.git" ]; then', content)
         self.assertIn('git -C "$DIR" pull --ff-only 2>/dev/null || true', content)
+
+    def test_compare_iconics_launchers_auto_open(self):
+        bat_file = Path(__file__).resolve().parent.parent / "launchers" / "compare_iconics.bat"
+        sh_file = Path(__file__).resolve().parent.parent / "launchers" / "compare_iconics.sh"
+        self.assertTrue(bat_file.is_file())
+        self.assertTrue(sh_file.is_file())
+        bat_content = bat_file.read_text(encoding="utf-8")
+        sh_content = sh_file.read_text(encoding="utf-8")
+        self.assertIn(".latest_iconics_report", bat_content)
+        self.assertIn("wnc_iconics_comparison.md", bat_content)
+        self.assertIn('if defined REPORT start "" "%REPORT%"', bat_content)
+        self.assertIn(".latest_iconics_report", sh_content)
+        self.assertIn("wnc_iconics_comparison.md", sh_content)
 
 
 if __name__ == "__main__":

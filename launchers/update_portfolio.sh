@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 echo "================================================================"
 echo "  CYBERPUNK TCG - UPDATING PORTFOLIO AND MARKET PRICES"
 echo "================================================================"
@@ -16,9 +16,9 @@ if [ -f "$DIR/.latest_report" ]; then
     REPORT=$(cat "$DIR/.latest_report")
 fi
 if [ -z "$REPORT" ] || [ ! -f "$REPORT" ]; then
-    REPORT="LATEST_PORTFOLIO_SUMMARY.md"
-    if [ ! -f "$REPORT" ] && [ -f "$DIR/LATEST_PORTFOLIO_SUMMARY.md" ]; then
-        REPORT="$DIR/LATEST_PORTFOLIO_SUMMARY.md"
+    REPORT="portfolio_summary.md"
+    if [ ! -f "$REPORT" ] && [ -f "$DIR/portfolio_summary.md" ]; then
+        REPORT="$DIR/portfolio_summary.md"
     fi
 fi
 
@@ -29,4 +29,3 @@ if [ -n "$REPORT" ] && [ -f "$REPORT" ]; then
         xdg-open "$REPORT"
     fi
 fi
-

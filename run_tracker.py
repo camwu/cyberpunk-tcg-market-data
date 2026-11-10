@@ -185,7 +185,7 @@ def handle_compare_iconics_subcommand(
     if not target_output:
         if cfg and getattr(cfg, "output_report", None):
             parent = Path(cfg.output_report).parent
-            target_output = str(parent / "WNC_ICONICS_COMPARISON.md")
+            target_output = str(parent / "wnc_iconics_comparison.md")
 
     try:
         exit_code, summary_text = run_iconics_comparison(

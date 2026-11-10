@@ -21,7 +21,7 @@ class TrackerConfig:
     collection_csv: str = "data"
     database_path: str = "data/price_history.db"
     price_cache_dir: str = DEFAULT_PRICES_DIR
-    output_report: str = "LATEST_PORTFOLIO_SUMMARY.md"
+    output_report: str = "portfolio_summary.md"
     sealed_csv: Optional[str] = None
     cardnexus_api_key: Optional[str] = None
     purchase_history_dir: Optional[str] = "data/purchase_history"
@@ -186,7 +186,7 @@ def load_config(config_path: Optional[str] = None, **cli_overrides) -> TrackerCo
         collection_csv=resolved_collection,
         database_path=resolve(database_path, "data/price_history.db"),
         price_cache_dir=resolve_repo_asset(price_cache_dir, "prices"),
-        output_report=resolve(output_report, "LATEST_PORTFOLIO_SUMMARY.md"),
+        output_report=resolve(output_report, "portfolio_summary.md"),
         sealed_csv=resolved_sealed,
         cardnexus_api_key=cardnexus_key,
         purchase_history_dir=resolved_purchase_dir,

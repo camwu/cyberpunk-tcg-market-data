@@ -11,7 +11,7 @@ Automated daily market price scraper and portfolio valuation CLI tool for the Cy
 - **Purchase Cost Basis Tracking**: Ingests purchase receipts from `purchase_history/` to calculate invested capital and net unrealized portfolio returns.
 - **Historical Performance & ROI**: Calculates rolling 7-day price deltas and lifetime gain/loss against purchase prices or initial market baselines.
 - **Rarity, Finish & Color Breakdowns**: Summarizes collection distribution across official rarity tiers (`▽ Common` through `▣ Nova Rare`), standard/foil finishes, and card colors.
-- **1-Click & Drag-and-Drop Launchers**: Update portfolios via Windows batch (`update_portfolio.bat`), Unix shell (`update_portfolio.sh`), or the Python CLI with automatic CSV detection.
+- **1-Click & Drag-and-Drop Launchers**: Update portfolios via Windows batch (`launchers/update_portfolio.bat`), Unix shell (`launchers/update_portfolio.sh`), or the Python CLI with automatic CSV detection.
 
 ---
 
@@ -29,8 +29,9 @@ cyberpunk-tcg-market-data/
 ├── tracker/                   # Application code and valuation pipeline
 ├── scrape.py                  # Standalone daily market price scraper
 ├── run_tracker.py             # Main CLI entry point
-├── update_portfolio.bat       # Windows 1-click execution launcher
-├── update_portfolio.sh        # Unix 1-click execution launcher
+├── launchers/                 # Cross-platform 1-click CLI launchers (.bat, .sh)
+    ├── update_portfolio.bat   # Windows 1-click execution launcher
+    └── update_portfolio.sh    # Unix 1-click execution launcher
 └── data/                      # Local private data directory (gitignored)
     ├── price_history.db       # Historical portfolio valuation SQLite database
     ├── my_collection.csv      # CardNexus collection export (auto-discovered)
@@ -52,14 +53,14 @@ If you prefer to store your personal collection files, valuation database, and p
      "collection_csv": "../my_collection",
      "database_path": "../my_collection/price_history.db",
      "price_cache_dir": "prices",
-     "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
+     "output_report": "portfolio_summary.md",
      "purchase_history_dir": "../my_collection/purchase_history"
    }
    ```
    `config.json` is listed in `.gitignore` so your personal directory paths remain private and untracked.
 
 ### 3. Launcher Workflow
-The 1-click launchers (`update_portfolio.bat` on Windows and `update_portfolio.sh` on macOS/Linux) automatically read active paths from `config.json` (or default to `data/`), run the portfolio valuation pipeline, and open the generated markdown report directly upon completion without requiring terminal interaction.
+The 1-click launchers (`launchers/update_portfolio.bat` on Windows and `launchers/update_portfolio.sh` on macOS/Linux) automatically read active paths from `config.json` (or default to `data/`), run the portfolio valuation pipeline, and open the generated markdown report directly upon completion without requiring terminal interaction.
 
 ---
 
@@ -109,8 +110,8 @@ When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes y
    - **Auto-Discovery**: The pipeline validates required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) and automatically selects the newest CSV by modification timestamp.
 
 2. **Run the tracker**:
-   - **Windows 1-Click / Drag-and-Drop**: Double-click `update_portfolio.bat`, or drag-and-drop any CSV file onto it.
-   - **macOS / Linux Launcher**: Run `./update_portfolio.sh` (or pass/drag a CSV file: `./update_portfolio.sh path/to/cards.csv`).
+   - **Windows 1-Click / Drag-and-Drop**: Double-click `launchers/update_portfolio.bat`, or drag-and-drop any CSV file onto it.
+   - **macOS / Linux Launcher**: Run `./launchers/update_portfolio.sh` (or pass/drag a CSV file: `./launchers/update_portfolio.sh path/to/cards.csv`).
    - **CLI**:
      ```bash
      python run_tracker.py
@@ -132,7 +133,7 @@ When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes y
      "collection_csv": "data",
      "database_path": "data/price_history.db",
      "price_cache_dir": "prices",
-     "output_report": "LATEST_PORTFOLIO_SUMMARY.md",
+     "output_report": "portfolio_summary.md",
      "purchase_history_dir": "data/purchase_history"
    }
    ```
@@ -163,7 +164,7 @@ pytest
 - `--sealed <path>`: Optional / legacy path to separate sealed inventory CSV file (overrides configuration file).
 - `--db <path>`: Path to SQLite historical database (default: `data/price_history.db`).
 - `--prices <path>`: Path to daily price cache directory (default: `prices`).
-- `--output <path>`: Path to markdown summary report (default: `LATEST_PORTFOLIO_SUMMARY.md`).
+- `--output <path>`: Path to markdown summary report (default: `portfolio_summary.md`).
 - `--import <path>`, `--import-file <path>`: Validate and promote a new CardNexus CSV export to the active collection.
 - `--live`: Scrape live market prices directly from TCGCSV endpoints instead of using cached local files or remote GitHub snapshots. When omitted and today's remote snapshot has not yet been published (daily cloud sync runs at 20:17 UTC, subject to standard GitHub Actions queue latency of up to 3 hours during peak load), the pipeline falls back cleanly to `prices/latest.json` with an informational notice.
 - `--force`: Force a fresh price sync and recalculate/overwrite the portfolio valuation snapshot for the target date.

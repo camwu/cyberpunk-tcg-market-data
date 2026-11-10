@@ -3,11 +3,12 @@ title Cyberpunk TCG Portfolio Tracker
 echo ================================================================
 echo   CYBERPUNK TCG - UPDATING PORTFOLIO AND MARKET PRICES
 echo ================================================================
-if exist "%~dp0.git" (
+for %%I in ("%~dp0..") do set "REPO_ROOT=%%~fI"
+if exist "%REPO_ROOT%\.git" (
     REM Best-effort fast-forward; ignore exit code if offline, detached, or dirty
-    git -C "%~dp0." pull --ff-only 2>nul
+    git -C "%REPO_ROOT%" pull --ff-only 2>nul
 )
-python "%~dp0run_tracker.py" %*
+python "%REPO_ROOT%\run_tracker.py" %*
 if %ERRORLEVEL% neq 0 (
     echo.
     pause
@@ -15,8 +16,8 @@ if %ERRORLEVEL% neq 0 (
 )
 
 set "REPORT="
-if exist "%~dp0.latest_report" set /p REPORT=<"%~dp0.latest_report"
-if not defined REPORT if exist "LATEST_PORTFOLIO_SUMMARY.md" set "REPORT=%CD%\LATEST_PORTFOLIO_SUMMARY.md"
-if not defined REPORT if exist "%~dp0LATEST_PORTFOLIO_SUMMARY.md" set "REPORT=%~dp0LATEST_PORTFOLIO_SUMMARY.md"
+if exist "%REPO_ROOT%\.latest_report" set /p REPORT=<"%REPO_ROOT%\.latest_report"
+if not defined REPORT if exist "portfolio_summary.md" set "REPORT=%CD%\portfolio_summary.md"
+if not defined REPORT if exist "%REPO_ROOT%\portfolio_summary.md" set "REPORT=%REPO_ROOT%\portfolio_summary.md"
 
 if defined REPORT start "" "%REPORT%"
