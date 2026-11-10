@@ -110,15 +110,37 @@ def parse_date_candidate(text: str) -> Optional[str]:
     return None
 
 
-def extract_default_year_from_text(text: str) -> Optional[int]:
-    """Finds 4-digit year or bounded 2-digit year in print header/footer timestamps."""
-    m4 = re.search(r"(?<!\d)\d{1,2}/\d{1,2}/(20\d{2})(?!\d)", text)
+def extract_print_timestamp_date(text: str) -> Optional[datetime.date]:
+    """Finds date from print header/footer timestamp (e.g. 11/9/26 or 11/9/2026)."""
+    m4 = re.search(r"(?<!\d)(\d{1,2})/(\d{1,2})/(20\d{2})(?!\d)", text)
     if m4:
-        return int(m4.group(1))
-    m2 = re.search(r"(?<!\d)\d{1,2}/\d{1,2}/(\d{2})(?!\d)", text)
+        try:
+            return datetime.date(int(m4.group(3)), int(m4.group(1)), int(m4.group(2)))
+        except ValueError:
+            pass
+    m2 = re.search(r"(?<!\d)(\d{1,2})/(\d{1,2})/(\d{2})(?!\d)", text)
     if m2:
-        return int(f"20{m2.group(1)}")
+        try:
+            return datetime.date(int(f"20{m2.group(3)}"), int(m2.group(1)), int(m2.group(2)))
+        except ValueError:
+            pass
     return None
+
+
+def extract_default_year_from_text(
+    text: str,
+    order_month: Optional[int] = None,
+    order_day: Optional[int] = None,
+) -> Optional[int]:
+    """
+    Finds default year from print header/footer timestamp, decrementing by 1 if transaction date is ahead of print date.
+    """
+    ref_date = extract_print_timestamp_date(text) or datetime.date.today()
+    default_yr = ref_date.year
+    if order_month is not None and order_day is not None:
+        if (order_month, order_day) > (ref_date.month, ref_date.day):
+            default_yr -= 1
+    return default_yr
 
 
 def prompt_for_year(
@@ -195,7 +217,11 @@ def resolve_partial_date(
         return None
     day_num = f"{int(m_found.group(2)):02d}"
 
-    default_yr = extract_default_year_from_text(text) or datetime.date.today().year
+    default_yr = extract_default_year_from_text(
+        text,
+        order_month=int(month_num),
+        order_day=int(day_num),
+    )
     return prompt_for_year(
         filename=filename,
         month_str=month_num,
@@ -426,7 +452,7 @@ def parse_receipt_document(
             merchant = m_stmt.group(1).strip()
         else:
             # Check for generic web order title: Order #1234 - Store Name - Account
-            m_order = re.search(r"Order\s+#\d+\s*-\s*([^\n\r-]+?)\s*-\s*Account", text, re.IGNORECASE)
+            m_order = re.search(r"Order\s+#\d+\s*-\s*([^\n\r]+?)\s*-\s*Account", text, re.IGNORECASE)
             if m_order:
                 merchant = m_order.group(1).strip()
             else:

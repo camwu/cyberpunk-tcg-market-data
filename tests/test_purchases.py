@@ -720,6 +720,33 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertIsNotNone(res2)
         self.assertEqual(res2[1], "Hobby Haven")
 
+        # Hyphenated merchant title
+        text_hyphen = "Order #6631\nConfirmed Nov 5\nOrder #6631 - Sci-Fi City - Account\nTotal $10.00\n11/9/26, 3:31 PM\n"
+        p3 = self.purchase_dir / "hyphen.txt"
+        p3.write_text(text_hyphen, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res3 = parse_receipt_document(str(p3), interactive=True)
+        self.assertIsNotNone(res3)
+        self.assertEqual(res3[1], "Sci-Fi City")
+
+    def test_parse_receipt_year_rollover_from_future_print_timestamp(self):
+        """Verifies that late-year orders printed in January default to the prior year."""
+        text_rollover = (
+            "Confirmed Dec 28\n"
+            "Order #7100 - Sample Games - Account\n"
+            "Total USD$25.00\n"
+            "1/3/27, 10:00 AM\n"
+        )
+        p = self.purchase_dir / "rollover.txt"
+        p.write_text(text_rollover, encoding="utf-8")
+        # Empty string accepts default year, which should be 2026 (not 2027)
+        with patch("builtins.input", return_value=""):
+            res = parse_receipt_document(str(p), interactive=True)
+        self.assertIsNotNone(res)
+        self.assertEqual(res[0], "2026-12-28")
+        self.assertEqual(res[1], "Sample Games")
+        self.assertEqual(res[2], 25.00)
+
     def test_parse_receipt_anchored_date_avoids_false_positives(self):
         """Verifies street addresses or shipping estimates are not mistaken for transaction dates."""
         text_address = (
