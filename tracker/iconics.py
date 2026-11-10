@@ -62,6 +62,7 @@ class IconicCardPair:
 
     @property
     def pair_complete(self) -> bool:
+        """Indicates whether at least one copy is owned in both Beta and Retail printings."""
         return self.beta_owned > 0 and self.retail_owned > 0
 
 
