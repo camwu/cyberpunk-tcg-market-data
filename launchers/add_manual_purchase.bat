@@ -3,7 +3,8 @@ title Cyberpunk TCG - Add Manual Purchase
 echo ================================================================
 echo   CYBERPUNK TCG - RECORD MANUAL PURCHASE (NO RECEIPT)
 echo ================================================================
-python "%~dp0run_tracker.py" add-manual %*
+for %%I in ("%~dp0..") do set "REPO_ROOT=%%~fI"
+python "%REPO_ROOT%\run_tracker.py" add-manual %*
 if %ERRORLEVEL% neq 0 (
     echo.
     pause

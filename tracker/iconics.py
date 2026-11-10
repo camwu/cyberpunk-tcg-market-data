@@ -692,9 +692,9 @@ def run_iconics_comparison(
     if not target_output:
         if cfg and getattr(cfg, "output_report", None):
             parent = Path(cfg.output_report).parent
-            target_output = str(parent / "WNC_ICONICS_COMPARISON.md")
+            target_output = str(parent / "wnc_iconics_comparison.md")
         else:
-            target_output = str(REPO_DATA_DIR / "WNC_ICONICS_COMPARISON.md")
+            target_output = str(REPO_DATA_DIR / "wnc_iconics_comparison.md")
 
     pairs, col_name, col_mtime = load_iconic_pairs(
         cards_path=cards_path,
@@ -725,5 +725,12 @@ def run_iconics_comparison(
         collection_name=col_name,
         collection_mtime_date=col_mtime,
     )
+
+    pointer_file = os.path.join(str(REPO_ROOT), ".latest_iconics_report")
+    try:
+        with open(pointer_file, "w", encoding="utf-8") as f:
+            f.write(os.path.abspath(target_output))
+    except OSError as e:
+        print(f"Warning: Could not write latest iconics report pointer to '{pointer_file}': {e}", file=sys.stderr)
 
     return 0, summary_text

@@ -24,10 +24,12 @@ backups/
 logs/
 
 # Local portfolio report artifacts
+portfolio_summary.md
+wnc_iconics_comparison.md
 LATEST_PORTFOLIO_SUMMARY.md
+WNC_ICONICS_COMPARISON.md
 .latest_report
+.latest_iconics_report
 
 # Local agent instructions
 AGENTS.md
-
-

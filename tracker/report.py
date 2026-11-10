@@ -561,7 +561,7 @@ def render_markdown_report(
 
 def generate_portfolio_report(
     db_path: str = "data/price_history.db",
-    output_md: str = "LATEST_PORTFOLIO_SUMMARY.md",
+    output_md: str = "portfolio_summary.md",
     price_cache_dir: Optional[str] = None,
     target_date: Optional[str] = None,
 ) -> None:

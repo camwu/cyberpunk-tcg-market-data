@@ -333,6 +333,20 @@ class TestIconicsEngine(unittest.TestCase):
             )
         self.assertIn("Collection: active_collection.csv", summary)
 
+    def test_run_iconics_comparison_writes_latest_pointer(self):
+        out_md = self.test_dir / "wnc_iconics_comparison.md"
+        with patch("tracker.iconics.REPO_ROOT", self.test_dir):
+            rc, _ = run_iconics_comparison(
+                output_path=str(out_md),
+                collection_path=str(self.collection_csv),
+                cards_path=self.cards_file,
+                prices_dir=self.prices_dir,
+            )
+        self.assertEqual(rc, 0)
+        pointer_file = self.test_dir / ".latest_iconics_report"
+        self.assertTrue(pointer_file.is_file())
+        self.assertEqual(pointer_file.read_text(encoding="utf-8"), str(out_md.resolve()))
+
     def test_markdown_report_9_columns_and_all_unpriced_renders_na(self):
         # Create unpriced pairs
         p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, None, None, None, None, 1, 1)
@@ -440,7 +454,7 @@ class TestIconicsCLI(unittest.TestCase):
             collection_csv=str(self.collection_file),
             database_path=str(self.test_dir / "test.db"),
             price_cache_dir=str(self.test_dir / "prices"),
-            output_report=str(self.test_dir / "LATEST_PORTFOLIO_SUMMARY.md"),
+            output_report=str(self.test_dir / "portfolio_summary.md"),
             cardnexus_api_key="test_api_key",
         )
 
@@ -459,7 +473,10 @@ class TestIconicsCLI(unittest.TestCase):
                 run_tracker.main(["compare-iconics"])
 
         self.assertEqual(ctx.exception.code, 0)
-        mock_run.assert_called_once()
+        mock_run.assert_called_once_with(
+            output_path=str(self.test_dir / "wnc_iconics_comparison.md"),
+            collection_path=str(self.collection_file),
+        )
         self.assertIn("MOCK_CONSOLE_SUMMARY", stdout_buf.getvalue())
 
     @patch("run_tracker.load_config")
@@ -525,7 +542,10 @@ class TestIconicsCLI(unittest.TestCase):
                 run_tracker.main(["compare-iconics", "--sync-collection"])
         self.assertEqual(ctx.exception.code, 0)
         mock_sync.assert_called_once()
-        mock_run.assert_called_once()
+        mock_run.assert_called_once_with(
+            output_path=str(self.test_dir / "wnc_iconics_comparison.md"),
+            collection_path=str(self.collection_file),
+        )
 
     @patch("run_tracker.load_config")
     @patch("run_tracker.sync_cardnexus_collection")
