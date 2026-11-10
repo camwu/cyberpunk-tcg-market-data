@@ -1033,6 +1033,15 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertNotIn("Nov 10, 2026", masked)
         self.assertIn("Order Date: 2026-10-31", masked)
 
+        # Yearless arrival estimates must not cross newlines or transaction labels
+        sample_nl = "Arrives Nov 10\nOrder Date: 2026-10-31"
+        masked_nl = mask_arrival_dates(sample_nl)
+        self.assertIn("Order Date: 2026-10-31", masked_nl)
+
+        sample_inline = "Arrives Nov 10 Order Date: 2026-10-31"
+        masked_inline = mask_arrival_dates(sample_inline)
+        self.assertIn("Order Date: 2026-10-31", masked_inline)
+
         # 1. Receipt with partial order date and explicit 4-digit arrival date
         # Arrival date must be masked so resolve_partial_date prompts for year (or uses default).
         doc_with_arrival = (
@@ -1066,6 +1075,22 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(res2[0], "2026-10-31")
         self.assertEqual(res2[1], "Sample Shop")
         self.assertEqual(res2[2], 19.99)
+
+        # 3. Receipt with yearless arrival followed on next line by ISO order date
+        # The yearless arrival must not mask the order date on the next line.
+        doc_yearless_arrival = (
+            "Shipping window: Arrives Nov 10\n"
+            "Order #8003 - Sample Shop - Account\n"
+            "Order Date: 2026-10-31\n"
+            "Total USD$15.00\n"
+        )
+        f3 = self.purchase_dir / "yearless_arrival.txt"
+        f3.write_text(doc_yearless_arrival, encoding="utf-8")
+        res3 = parse_receipt_document(str(f3), interactive=False)
+        self.assertIsNotNone(res3)
+        self.assertEqual(res3[0], "2026-10-31")
+        self.assertEqual(res3[1], "Sample Shop")
+        self.assertEqual(res3[2], 15.00)
 
 
 class TestValuationCostBasisIntegration(unittest.TestCase):

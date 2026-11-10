@@ -114,8 +114,8 @@ def mask_arrival_dates(text: str) -> str:
     """Masks dates labeled as arrival or delivery estimates so they are not captured as transaction dates."""
     pat = re.compile(
         r"(?i)(?<![a-zA-Z])(?:arrives?|arriving|delivered|estimated\s+delivery|delivery\s+date|expected\s+(?:delivery|by))"
-        r"[\s:\w,]{0,40}?"
-        r"(?:(20\d{2}-\d{2}-\d{2})|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?,?\s+20\d{2})"
+        r"(?:(?!\b(?:order|confirmed|purchased|placed|invoice|date\b))[^\r\n]){0,40}?"
+        r"(?:(20\d{2}-\d{2}-\d{2})|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+20\d{2})"
     )
     return pat.sub(lambda m: " " * len(m.group(0)), text)
 
