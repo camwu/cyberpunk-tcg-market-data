@@ -18,3 +18,4 @@ if not defined REPORT if exist "wnc_iconics_comparison.md" set "REPORT=%CD%\wnc_
 if not defined REPORT if exist "%REPO_ROOT%\wnc_iconics_comparison.md" set "REPORT=%REPO_ROOT%\wnc_iconics_comparison.md"
 
 if defined REPORT start "" "%REPORT%"
+exit /b 0

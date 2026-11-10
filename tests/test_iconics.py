@@ -411,6 +411,8 @@ class TestIconicsEngine(unittest.TestCase):
             output_path=str(out_incomplete),
         )
         content = out_incomplete.read_text(encoding="utf-8")
+        # Prices Last Updated renders N/A when prices_date is omitted
+        self.assertIn("**Prices Last Updated**: `N/A`", content)
         # Category label reflects 1/2 pairs in 5-number distributions
         self.assertIn("| Iconic Legends (1/2 pairs) | 1 | `$100.00` | N/A | `$100.00` | N/A | `$100.00` |", content)
         # Category total row sums over paired subset only ($100.00 and $80.00), excluding p2's Beta $58.41

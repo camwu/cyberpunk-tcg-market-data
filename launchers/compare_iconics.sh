@@ -21,8 +21,8 @@ fi
 
 if [ -n "$REPORT" ] && [ -f "$REPORT" ]; then
     if command -v open >/dev/null 2>&1; then
-        open "$REPORT"
+        open "$REPORT" 2>/dev/null || true
     elif command -v xdg-open >/dev/null 2>&1; then
-        xdg-open "$REPORT"
+        xdg-open "$REPORT" 2>/dev/null || true
     fi
 fi

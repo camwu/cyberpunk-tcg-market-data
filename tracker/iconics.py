@@ -657,7 +657,7 @@ def generate_markdown_report(
     today_str = datetime.date.today().isoformat()
     col_date_display = collection_mtime_date or today_str
     col_source_display = collection_name or "active_collection.csv"
-    price_date_display = prices_date or today_str
+    price_date_display = prices_date or "N/A"
     report_generated = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
 
     lines = [
@@ -860,8 +860,8 @@ def run_iconics_comparison(
         try:
             with open(latest_path, "r", encoding="utf-8") as f:
                 prices_date = json.load(f).get("date")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: Could not read price date from '{latest_path}': {e}", file=sys.stderr)
 
     generate_markdown_report(
         pairs=pairs,
