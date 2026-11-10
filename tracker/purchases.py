@@ -110,52 +110,60 @@ def parse_date_candidate(text: str) -> Optional[str]:
     return None
 
 
-def extract_print_timestamp_date(text: str) -> Optional[datetime.date]:
-    """Finds date from print header/footer timestamp with time context (e.g. 11/9/26, 3:31 PM or Printed 11/9/2026)."""
+def find_print_timestamp_match(text: str) -> Optional[Tuple[datetime.date, int, int]]:
+    """Finds date and character span (start, end) from print header/footer timestamp with time context."""
     time_ctx = r"(?:\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)"
     label_ctx = r"(?:Printed|Print\s+date|Timestamp)[\s:]+"
 
-    # Match 4-digit year with time or print-label context across all candidates
+    # Match 4-digit slash year with time or print-label context
     p4 = re.compile(
         rf"(?:(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)[,\s]+{time_ctx}"
         rf"|{time_ctx}[,\s]+(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)"
-        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d))",
+        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)(?:[,\s]+{time_ctx})?)",
         re.IGNORECASE,
     )
-    pos = 0
-    while pos < len(text):
-        m4 = p4.search(text, pos)
-        if not m4:
-            break
-        for idx in (1, 4, 7):
-            if m4.group(idx):
-                try:
-                    return datetime.date(int(m4.group(idx + 2)), int(m4.group(idx)), int(m4.group(idx + 1)))
-                except ValueError:
-                    break
-        pos = m4.start() + 1
-
-    # Match 2-digit year with time or print-label context across all candidates
+    # Match 4-digit ISO (dash) year with time or print-label context
+    p_iso = re.compile(
+        rf"(?:(?<!\d)(20\d{{2}})-(\d{{2}})-(\d{{2}})(?!\d)[,\s]+{time_ctx}"
+        rf"|{time_ctx}[,\s]+(?<!\d)(20\d{{2}})-(\d{{2}})-(\d{{2}})(?!\d)"
+        rf"|{label_ctx}(?<!\d)(20\d{{2}})-(\d{{2}})-(\d{{2}})(?!\d)(?:[,\s]+{time_ctx})?)",
+        re.IGNORECASE,
+    )
+    # Match 2-digit slash year with time or print-label context
     p2 = re.compile(
         rf"(?:(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)[,\s]+{time_ctx}"
         rf"|{time_ctx}[,\s]+(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)"
-        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d))",
+        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)(?:[,\s]+{time_ctx})?)",
         re.IGNORECASE,
     )
-    pos = 0
-    while pos < len(text):
-        m2 = p2.search(text, pos)
-        if not m2:
-            break
-        for idx in (1, 4, 7):
-            if m2.group(idx):
-                try:
-                    return datetime.date(int(f"20{m2.group(idx + 2)}"), int(m2.group(idx)), int(m2.group(idx + 1)))
-                except ValueError:
-                    break
-        pos = m2.start() + 1
+
+    for pat, is_iso, is_2digit in [(p4, False, False), (p_iso, True, False), (p2, False, True)]:
+        pos = 0
+        while pos < len(text):
+            m = pat.search(text, pos)
+            if not m:
+                break
+            for idx in (1, 4, 7):
+                if m.group(idx):
+                    try:
+                        if is_iso:
+                            d = datetime.date(int(m.group(idx)), int(m.group(idx + 1)), int(m.group(idx + 2)))
+                        elif is_2digit:
+                            d = datetime.date(int(f"20{m.group(idx + 2)}"), int(m.group(idx)), int(m.group(idx + 1)))
+                        else:
+                            d = datetime.date(int(m.group(idx + 2)), int(m.group(idx)), int(m.group(idx + 1)))
+                        return (d, m.start(), m.end())
+                    except ValueError:
+                        break
+            pos = m.start() + 1
 
     return None
+
+
+def extract_print_timestamp_date(text: str) -> Optional[datetime.date]:
+    """Finds date from print header/footer timestamp with time context (e.g. 11/9/26, 3:31 PM or Printed 11/9/2026)."""
+    match = find_print_timestamp_match(text)
+    return match[0] if match else None
 
 
 def extract_default_year_from_text(
@@ -455,7 +463,15 @@ def parse_receipt_document(
                     )
 
     # 1. Date extraction strictly from text
-    date_cand = parse_date_candidate(text)
+    # Mask print timestamp span so print headers (e.g. ISO-formatted in non-US locales)
+    # are never captured as transaction dates by parse_date_candidate.
+    ts_match = find_print_timestamp_match(text)
+    text_for_date = text
+    if ts_match:
+        _, start_idx, end_idx = ts_match
+        text_for_date = text[:start_idx] + " " * (end_idx - start_idx) + text[end_idx:]
+
+    date_cand = parse_date_candidate(text_for_date)
     if not date_cand:
         date_cand = resolve_partial_date(text, filename=filename, interactive=interactive)
 

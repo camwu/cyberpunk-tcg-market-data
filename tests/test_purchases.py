@@ -813,6 +813,19 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertIsNone(extract_print_timestamp_date("11/31/2026, 3:31 PM"))
         self.assertIsNone(extract_print_timestamp_date("11/31/26, 3:31 PM"))
 
+        # ISO timestamp format with time or label context
+        d_iso = extract_print_timestamp_date("Printed: 2027-01-03, 10:00 AM")
+        self.assertEqual(d_iso, datetime.date(2027, 1, 3))
+
+        # find_print_timestamp_match returns date, start, and end offsets
+        from tracker.purchases import find_print_timestamp_match
+        sample_ts = "Printed: 2027-01-03, 10:00 AM"
+        match = find_print_timestamp_match(sample_ts)
+        self.assertIsNotNone(match)
+        self.assertEqual(match[0], datetime.date(2027, 1, 3))
+        self.assertEqual(match[1], 0)
+        self.assertEqual(match[2], len(sample_ts))
+
     def test_prompt_for_year_interactive_and_non_interactive(self):
         """Verifies interactive year resolution with default and explicit input, and fail-closed non-interactive."""
         from tracker.purchases import prompt_for_year
@@ -974,6 +987,41 @@ class TestPurchaseHistory(unittest.TestCase):
             self.assertEqual(d, exp_date)
             self.assertEqual(m, exp_merchant)
             self.assertEqual(a, exp_amount)
+
+    def test_parse_receipt_document_masks_print_timestamp(self):
+        """Verifies print timestamps (e.g. ISO format) are masked and not mistaken for transaction dates."""
+        # 1. ISO print header alongside partial date 'Confirmed Dec 28'
+        # The print header must not be captured as transaction date.
+        # Rollover should propose 2026 from 2027 print timestamp and resolve to 2026-12-28.
+        doc_iso_header = (
+            "Printed: 2027-01-03, 10:00 AM\n"
+            "Order #7001 - Sample Shop - Account\n"
+            "Confirmed Dec 28\n"
+            "Total USD$25.00\n"
+        )
+        f1 = self.purchase_dir / "iso_header.txt"
+        f1.write_text(doc_iso_header, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res1 = parse_receipt_document(str(f1), interactive=True)
+        self.assertIsNotNone(res1)
+        self.assertEqual(res1[0], "2026-12-28")
+        self.assertEqual(res1[1], "Sample Shop")
+        self.assertEqual(res1[2], 25.00)
+
+        # 2. Body containing an authentic ISO transaction date alongside a print timestamp
+        doc_with_real_iso = (
+            "Printed: 11/9/2026, 3:31 PM\n"
+            "Invoice Date: 2026-11-05\n"
+            "Order #7002 - Sample Shop - Account\n"
+            "Total USD$15.00\n"
+        )
+        f2 = self.purchase_dir / "authentic_iso.txt"
+        f2.write_text(doc_with_real_iso, encoding="utf-8")
+        res2 = parse_receipt_document(str(f2), interactive=False)
+        self.assertIsNotNone(res2)
+        self.assertEqual(res2[0], "2026-11-05")
+        self.assertEqual(res2[1], "Sample Shop")
+        self.assertEqual(res2[2], 15.00)
 
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
