@@ -110,6 +110,16 @@ def parse_date_candidate(text: str) -> Optional[str]:
     return None
 
 
+def mask_arrival_dates(text: str) -> str:
+    """Masks dates labeled as arrival or delivery estimates so they are not captured as transaction dates."""
+    pat = re.compile(
+        r"(?i)(?<![a-zA-Z])(?:arrives?|arriving|delivered|estimated\s+delivery|delivery\s+date|expected\s+(?:delivery|by))"
+        r"[\s:\w,]{0,40}?"
+        r"(?:(20\d{2}-\d{2}-\d{2})|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?,?\s+20\d{2})"
+    )
+    return pat.sub(lambda m: " " * len(m.group(0)), text)
+
+
 def find_print_timestamp_match(text: str) -> Optional[Tuple[datetime.date, int, int]]:
     """Finds date and character span (start, end) from print header/footer timestamp with time context."""
     time_ctx = r"(?:\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)"
@@ -470,6 +480,9 @@ def parse_receipt_document(
     if ts_match:
         _, start_idx, end_idx = ts_match
         text_for_date = text[:start_idx] + " " * (end_idx - start_idx) + text[end_idx:]
+
+    # Mask arrival and delivery date estimates so they do not override transaction dates
+    text_for_date = mask_arrival_dates(text_for_date)
 
     date_cand = parse_date_candidate(text_for_date)
     if not date_cand:

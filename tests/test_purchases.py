@@ -1023,6 +1023,50 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(res2[1], "Sample Shop")
         self.assertEqual(res2[2], 15.00)
 
+    def test_parse_receipt_document_masks_arrival_dates(self):
+        """Verifies arrival/delivery dates do not override transaction dates or bypass year prompts."""
+        from tracker.purchases import mask_arrival_dates
+
+        # Direct unit test for mask_arrival_dates
+        sample = "Shipping window: Arrives Nov 10, 2026 by 8 PM\nOrder Date: 2026-10-31"
+        masked = mask_arrival_dates(sample)
+        self.assertNotIn("Nov 10, 2026", masked)
+        self.assertIn("Order Date: 2026-10-31", masked)
+
+        # 1. Receipt with partial order date and explicit 4-digit arrival date
+        # Arrival date must be masked so resolve_partial_date prompts for year (or uses default).
+        doc_with_arrival = (
+            "Shipping window: Arrives Nov 10, 2026 by 8 PM\n"
+            "Order #8001 - Sample Shop - Account\n"
+            "Confirmed Oct 31\n"
+            "Total USD$44.10\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        f1 = self.purchase_dir / "arrival_partial.txt"
+        f1.write_text(doc_with_arrival, encoding="utf-8")
+        with patch("builtins.input", return_value=""):
+            res1 = parse_receipt_document(str(f1), interactive=True)
+        self.assertIsNotNone(res1)
+        self.assertEqual(res1[0], "2026-10-31")
+        self.assertEqual(res1[1], "Sample Shop")
+        self.assertEqual(res1[2], 44.10)
+
+        # 2. Receipt with ISO arrival date alongside authentic ISO order date
+        # Arrival date is at top of document, but order date is correctly selected.
+        doc_iso_arrival = (
+            "Estimated delivery: 2026-11-10\n"
+            "Order #8002 - Sample Shop - Account\n"
+            "Order Date: 2026-10-31\n"
+            "Total USD$19.99\n"
+        )
+        f2 = self.purchase_dir / "arrival_iso.txt"
+        f2.write_text(doc_iso_arrival, encoding="utf-8")
+        res2 = parse_receipt_document(str(f2), interactive=False)
+        self.assertIsNotNone(res2)
+        self.assertEqual(res2[0], "2026-10-31")
+        self.assertEqual(res2[1], "Sample Shop")
+        self.assertEqual(res2[2], 19.99)
+
 
 class TestValuationCostBasisIntegration(unittest.TestCase):
 
