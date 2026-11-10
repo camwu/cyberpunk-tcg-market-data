@@ -676,7 +676,9 @@ def sync_purchase_history(
         if not reparse:
             if fname in cached_files and cached_files[fname].get("sha256") == file_sha256:
                 cached_entry = cached_files[fname]
-            elif file_sha256:
+            elif file_sha256 and not (
+                fname in existing_ledger and existing_ledger[fname].amount > 0
+            ):
                 for entry in cached_files.values():
                     if isinstance(entry, dict) and entry.get("sha256") == file_sha256:
                         cached_entry = entry

@@ -862,6 +862,57 @@ class TestPurchaseHistory(unittest.TestCase):
         self.assertEqual(recs2[0].amount, 44.10)
         self.assertEqual(recs2[0].filename, "renamed_receipt.txt")
 
+    def test_cross_filename_cache_reuse_preserves_ledger_override(self):
+        """Verifies that an existing ledger override for a filename takes precedence over hash matching from another cached file."""
+        p1 = self.purchase_dir / "orig.txt"
+        text = (
+            "Confirmed Oct 31\n"
+            "Order #6631 - Sample Games - Account\n"
+            "Total USD$44.10\n"
+            "11/9/26, 3:31 PM\n"
+        )
+        p1.write_text(text, encoding="utf-8")
+
+        # Initial ingestion of orig.txt into cache and ledger
+        with patch("builtins.input", return_value=""):
+            tot1, recs1, _ = sync_purchase_history(
+                str(self.purchase_dir),
+                cache_path=self.cache_path,
+                ledger_path=self.ledger_path,
+                interactive=True,
+            )
+        self.assertEqual(tot1, 44.10)
+
+        # Place an identical file under a new name 'override.txt'
+        p2 = self.purchase_dir / "override.txt"
+        p2.write_text(text, encoding="utf-8")
+
+        # Simulate user having manually added an override in existing_ledger for 'override.txt'
+        from tracker.purchases import load_purchase_ledger, save_purchase_ledger
+        rows = load_purchase_ledger(self.ledger_path)
+        rows["override.txt"] = PurchaseRecord(
+            date="2026-10-31",
+            merchant="Custom Merchant",
+            amount=50.00,
+            description="Manual Ledger Override",
+            filename="override.txt",
+            sha256="",
+        )
+        save_purchase_ledger(self.ledger_path, list(rows.values()))
+
+        # Sync in non-interactive mode: override.txt must retain $50.00 from ledger, NOT $44.10 from orig.txt cache
+        tot2, recs2, _ = sync_purchase_history(
+            str(self.purchase_dir),
+            cache_path=self.cache_path,
+            ledger_path=self.ledger_path,
+            interactive=False,
+        )
+        recs_by_fname = {r.filename: r for r in recs2}
+        self.assertIn("override.txt", recs_by_fname)
+        self.assertEqual(recs_by_fname["override.txt"].amount, 50.00)
+        self.assertEqual(recs_by_fname["override.txt"].merchant, "Custom Merchant")
+        self.assertEqual(recs_by_fname["override.txt"].description, "Manual Ledger Override")
+
     def test_parse_actual_web_receipt_structures(self):
         """Verifies synthetic text matching web receipt layouts with generic titles."""
         samples = [
