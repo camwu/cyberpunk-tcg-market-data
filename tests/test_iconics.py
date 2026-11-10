@@ -49,6 +49,8 @@ class TestIconicsEngine(unittest.TestCase):
                 "groupName": "Welcome to Night City - Beta",
                 "printNumber": "B141",
                 "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
             },
             "102": {
                 "productId": 102,
@@ -56,6 +58,8 @@ class TestIconicsEngine(unittest.TestCase):
                 "groupName": "Welcome to Night City - Retail",
                 "printNumber": "141",
                 "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
             },
             "201": {
                 "productId": 201,
@@ -63,6 +67,8 @@ class TestIconicsEngine(unittest.TestCase):
                 "groupName": "Welcome to Night City - Beta",
                 "printNumber": "B159",
                 "rarity": "IO",
+                "color": "Yellow",
+                "cardType": "Unit",
             },
             "202": {
                 "productId": 202,
@@ -70,6 +76,8 @@ class TestIconicsEngine(unittest.TestCase):
                 "groupName": "Welcome to Night City - Retail",
                 "printNumber": "159",
                 "rarity": "IO",
+                "color": "Yellow",
+                "cardType": "Unit",
             },
             "301": {
                 "productId": 301,
@@ -77,6 +85,8 @@ class TestIconicsEngine(unittest.TestCase):
                 "groupName": "Welcome to Night City - Beta",
                 "printNumber": "B168",
                 "rarity": "IS",
+                "color": "Blue",
+                "cardType": "Unit",
             },
             "302": {
                 "productId": 302,
@@ -84,6 +94,8 @@ class TestIconicsEngine(unittest.TestCase):
                 "groupName": "Welcome to Night City - Retail",
                 "printNumber": "168",
                 "rarity": "IS",
+                "color": "Blue",
+                "cardType": "Unit",
             },
         }
 
@@ -260,7 +272,9 @@ class TestIconicsEngine(unittest.TestCase):
         self.assertEqual(p141.beta_price, 100.0)
         self.assertEqual(p141.retail_price, 80.0)
         self.assertEqual(p141.spread, 20.0)
-        self.assertAlmostEqual(p141.ratio, 1.25)
+        self.assertAlmostEqual(p141.beta_premium_pct, 25.0)
+        self.assertEqual(p141.color, "Red")
+        self.assertEqual(p141.card_type, "Legend")
         self.assertEqual(p141.beta_owned, 1)
         self.assertEqual(p141.retail_owned, 1)
         self.assertTrue(p141.pair_complete)
@@ -349,7 +363,7 @@ class TestIconicsEngine(unittest.TestCase):
 
     def test_markdown_report_9_columns_and_all_unpriced_renders_na(self):
         # Create unpriced pairs
-        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, None, None, None, None, 1, 1)
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, None, None, None, None, 1, 1, color="Red", card_type="Legend")
         t_sums = [build_tier_summary("Legends", [p1])]
         out_md = self.test_dir / "unpriced_output.md"
 
@@ -359,25 +373,35 @@ class TestIconicsEngine(unittest.TestCase):
             output_path=str(out_md),
             collection_name="test.csv",
             collection_mtime_date="2026-11-09",
+            prices_date="2026-11-09",
         )
 
         content = out_md.read_text(encoding="utf-8")
-        # Ensure exact 9 columns in card table (no Pair column)
-        self.assertIn("| # | Card Name | Tier | Beta Price | Retail Price | Spread ($) | Ratio | Beta Owned | Retail Owned |", content)
-        self.assertNotIn("| Pair |", content)
+        # Metadata header matching portfolio_summary.md
+        self.assertIn("# Welcome to Night City: Beta vs. Retail Iconic Cards", content)
+        self.assertIn("**Collection Last Updated**: `2026-11-09`", content)
+        self.assertIn("**Collection Source**: `test.csv`", content)
+        self.assertIn("**Prices Last Updated**: `2026-11-09`", content)
+        self.assertIn("**Report Generated**:", content)
 
-        # Summary Metrics retains Matched Pairs
-        self.assertIn("Matched Pairs", content)
+        # Ensure exact 9 columns in card table
+        self.assertIn("| # | Card Name | Type | Beta Price | Retail Price | Beta Premium ($) | Beta Premium (%) | Beta Owned | Retail Owned |", content)
+        self.assertIn("🔴 Card 1", content)
 
-        # Distribution table renders N/A for empty/unpriced tier and All Iconics without crashing
-        self.assertIn("| **Iconic Legends** | 0/1 | N/A | N/A | N/A | N/A | N/A |", content)
-        self.assertIn("| **All Iconics** | 0/1 | N/A | N/A | N/A | N/A | N/A |", content)
+        # Distribution tables render N/A for empty/unpriced tier and All Iconics without crashing
+        self.assertIn("### Beta", content)
+        self.assertIn("### Retail", content)
+        self.assertIn("| Iconic Legends (0/1 pairs) | 1 | N/A | N/A | N/A | N/A | N/A |", content)
+        self.assertIn("| **Total Iconics (0/1 pairs)** | **1** | N/A | N/A | N/A | N/A | N/A |", content)
+
+        # Category total row renders N/A with physical copies
+        self.assertIn("| | **Total Legends (0/1 pairs)** | | N/A | N/A | N/A | N/A | **1** | **1** |", content)
 
     def test_markdown_report_paired_subset_set_values_and_label(self):
         # Pair 1: priced on both sides
-        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 100.0, 80.0, 20.0, 1.25, 1, 0)
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 100.0, 80.0, 20.0, 25.0, 1, 0, color="Red", card_type="Legend")
         # Pair 2: Retail price is missing (like Royce #143)
-        p2 = IconicCardPair("143", "Card 2", "Legends", "Foil", 103, 104, 58.41, None, None, None, 0, 0)
+        p2 = IconicCardPair("143", "Card 2", "Legends", "Foil", 103, 104, 58.41, None, None, None, 0, 0, color="Red", card_type="Legend")
 
         out_incomplete = self.test_dir / "incomplete_set.md"
         t_sums = [build_tier_summary("Legends", [p1, p2])]
@@ -387,10 +411,14 @@ class TestIconicsEngine(unittest.TestCase):
             output_path=str(out_incomplete),
         )
         content = out_incomplete.read_text(encoding="utf-8")
-        # Set values must sum over the paired subset only ($100.00 and $80.00), excluding p2's Beta $58.41
-        self.assertIn("| **Priced Set Value (1/2 pairs)** | $100.00 | $80.00 | +$20.00 |", content)
+        # Prices Last Updated renders N/A when prices_date is omitted
+        self.assertIn("**Prices Last Updated**: `N/A`", content)
+        # Category label reflects 1/2 pairs in 5-number distributions
+        self.assertIn("| Iconic Legends (1/2 pairs) | 1 | `$100.00` | N/A | `$100.00` | N/A | `$100.00` |", content)
+        # Category total row sums over paired subset only ($100.00 and $80.00), excluding p2's Beta $58.41
+        self.assertIn("| | **Total Legends (1/2 pairs)** | | **`$100.00`** | **`$80.00`** | **`+$20.00`** | **`+25.0%`** | **1** | **0** |", content)
 
-        # When all pairs are priced, label is Complete N-Card Set Value
+        # When all pairs are priced, label is Complete N cards without '(N/M pairs)'
         out_complete = self.test_dir / "complete_set.md"
         generate_markdown_report(
             pairs=[p1],
@@ -398,11 +426,12 @@ class TestIconicsEngine(unittest.TestCase):
             output_path=str(out_complete),
         )
         complete_content = out_complete.read_text(encoding="utf-8")
-        self.assertIn("| **Complete 1-Card Set Value** | $100.00 | $80.00 | +$20.00 |", complete_content)
+        self.assertIn("| Iconic Legends (1) | 1 | `$100.00` | N/A | `$100.00` | N/A | `$100.00` |", complete_content)
+        self.assertIn("| | **Total Legends (1)** | | **`$100.00`** | **`$80.00`** | **`+$20.00`** | **`+25.0%`** | **1** | **0** |", complete_content)
 
     def test_console_summary_owned_value_alignment_and_na_width(self):
         # Mixed 1-digit and 2-digit counts (27 Beta cards, 0 Retail cards)
-        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 10.0, 8.0, 2.0, 1.25, 27, 0)
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 10.0, 8.0, 2.0, 25.0, 27, 0)
         # Tier with no prices (N/A medians)
         p_unpriced = IconicCardPair("142", "Card 2", "Others", "Foil", 201, 202, None, None, None, None, 0, 0)
 

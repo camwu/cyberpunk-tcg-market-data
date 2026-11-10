@@ -46,6 +46,14 @@ RARITY_MAP: dict[str, str] = {
 }
 
 
+COLOR_DOTS: dict[str, str] = {
+    "Green": "🟢",
+    "Blue": "🔵",
+    "Red": "🔴",
+    "Yellow": "🟡",
+}
+
+
 def normalize_rarity(rarity: Optional[str]) -> str:
     """
     Normalizes card rarity strings to canonical game tiers.
