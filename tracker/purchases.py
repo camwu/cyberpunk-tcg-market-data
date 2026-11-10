@@ -115,37 +115,43 @@ def extract_print_timestamp_date(text: str) -> Optional[datetime.date]:
     time_ctx = r"(?:\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)"
     label_ctx = r"(?:Printed|Print\s+date|Timestamp)[\s:]+"
 
-    # Match 4-digit year with time or print-label context
-    m4 = re.search(
+    # Match 4-digit year with time or print-label context across all candidates
+    p4 = (
         rf"(?:(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)[,\s]+{time_ctx}"
         rf"|{time_ctx}[,\s]+(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d)"
-        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d))",
-        text,
-        re.IGNORECASE,
+        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(20\d{{2}})(?!\d))"
     )
-    if m4:
+    pos = 0
+    while pos < len(text):
+        m4 = re.search(p4, text[pos:], re.IGNORECASE)
+        if not m4:
+            break
         for idx in (1, 4, 7):
             if m4.group(idx):
                 try:
                     return datetime.date(int(m4.group(idx + 2)), int(m4.group(idx)), int(m4.group(idx + 1)))
                 except ValueError:
-                    pass
+                    break
+        pos += m4.start() + 1
 
-    # Match 2-digit year with time or print-label context
-    m2 = re.search(
+    # Match 2-digit year with time or print-label context across all candidates
+    p2 = (
         rf"(?:(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)[,\s]+{time_ctx}"
         rf"|{time_ctx}[,\s]+(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d)"
-        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d))",
-        text,
-        re.IGNORECASE,
+        rf"|{label_ctx}(?<!\d)(\d{{1,2}})/(\d{{1,2}})/(\d{{2}})(?!\d))"
     )
-    if m2:
+    pos = 0
+    while pos < len(text):
+        m2 = re.search(p2, text[pos:], re.IGNORECASE)
+        if not m2:
+            break
         for idx in (1, 4, 7):
             if m2.group(idx):
                 try:
                     return datetime.date(int(f"20{m2.group(idx + 2)}"), int(m2.group(idx)), int(m2.group(idx + 1)))
                 except ValueError:
-                    pass
+                    break
+        pos += m2.start() + 1
 
     return None
 

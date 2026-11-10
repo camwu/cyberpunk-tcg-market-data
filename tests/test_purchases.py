@@ -796,6 +796,19 @@ class TestPurchaseHistory(unittest.TestCase):
         )
         self.assertEqual(extract_print_timestamp_date(mixed_text), datetime.date(2026, 11, 9))
 
+        # Preceding invalid date with time context does not stop search for valid timestamp
+        invalid_preceding_4 = (
+            "Invalid header: 99/99/2026, 10:00 AM\n"
+            "Footer: 11/9/2026, 3:31 PM\n"
+        )
+        self.assertEqual(extract_print_timestamp_date(invalid_preceding_4), datetime.date(2026, 11, 9))
+
+        invalid_preceding_2 = (
+            "Invalid header: 99/99/26, 10:00 AM\n"
+            "Footer: 11/9/26, 3:31 PM\n"
+        )
+        self.assertEqual(extract_print_timestamp_date(invalid_preceding_2), datetime.date(2026, 11, 9))
+
     def test_prompt_for_year_interactive_and_non_interactive(self):
         """Verifies interactive year resolution with default and explicit input, and fail-closed non-interactive."""
         from tracker.purchases import prompt_for_year
