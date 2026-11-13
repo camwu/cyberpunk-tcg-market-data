@@ -13,9 +13,9 @@ if [ -f "$DIR/.latest_iconics_report" ]; then
     REPORT=$(cat "$DIR/.latest_iconics_report")
 fi
 if [ -z "$REPORT" ] || [ ! -f "$REPORT" ]; then
-    REPORT="wnc_iconics_comparison.md"
-    if [ ! -f "$REPORT" ] && [ -f "$DIR/wnc_iconics_comparison.md" ]; then
-        REPORT="$DIR/wnc_iconics_comparison.md"
+    REPORT="wnc_iconic_price_trajectories.html"
+    if [ ! -f "$REPORT" ] && [ -f "$DIR/wnc_iconic_price_trajectories.html" ]; then
+        REPORT="$DIR/wnc_iconic_price_trajectories.html"
     fi
 fi
 
