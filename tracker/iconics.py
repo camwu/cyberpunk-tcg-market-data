@@ -21,6 +21,7 @@ from tracker.constants import (
 )
 from tracker.config import load_config
 from tracker.iconics_common import (
+    ValidatedCollectionRow,
     compute_quantiles,
     extract_finish_price,
     load_validated_collection_rows,
@@ -208,6 +209,7 @@ def load_iconic_pairs(
     cards_path: Path = REPO_CARDS_FILE,
     prices_dir: Path = REPO_PRICES_DIR,
     collection_path: Optional[str] = None,
+    validated_rows: Optional[List[ValidatedCollectionRow]] = None,
 ) -> Tuple[List[IconicCardPair], Optional[str], Optional[str]]:
     """
     Loads, dynamically validates, and pairs Welcome to Night City Iconic cards.
@@ -318,7 +320,8 @@ def load_iconic_pairs(
         mtime_ts = os.path.getmtime(collection_path)
         col_mtime_date = datetime.date.fromtimestamp(mtime_ts).isoformat()
 
-        validated_rows = load_validated_collection_rows(collection_path)
+        if validated_rows is None:
+            validated_rows = load_validated_collection_rows(collection_path)
         total_rows = len(validated_rows)
         wnc_rows = 0
 
@@ -578,10 +581,20 @@ def run_iconics_comparison(
 
     target_db = database_path if database_path is not None else (getattr(cfg, "database_path", None) if cfg else None)
 
+    validated_rows: Optional[List[ValidatedCollectionRow]] = None
+    if collection_path:
+        if not os.path.isfile(collection_path):
+            raise FileNotFoundError(
+                f"Collection file not found: '{collection_path}'. "
+                "Run with --sync-collection to download active collection, or provide --collection."
+            )
+        validated_rows = load_validated_collection_rows(collection_path)
+
     pairs, col_name, col_mtime = load_iconic_pairs(
         cards_path=cards_path,
         prices_dir=prices_dir,
         collection_path=collection_path,
+        validated_rows=validated_rows,
     )
 
     tier_order = ["Legends", "Others", "Secrets"]
@@ -597,6 +610,7 @@ def run_iconics_comparison(
         collection_path=collection_path,
         output_path=target_output,
         database_path=target_db,
+        validated_rows=validated_rows,
     )
 
     summary_text = format_console_summary(

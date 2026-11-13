@@ -15,6 +15,7 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 from tracker.iconics_common import (
+    ValidatedCollectionRow,
     compute_quantiles,
     extract_finish_price,
     load_validated_collection_rows,
@@ -109,23 +110,39 @@ def load_collection_acquisitions(
     database_path: Optional[str],
     earliest_beta_date: Optional[str],
     earliest_retail_date: Optional[str],
+    validated_rows: Optional[List[ValidatedCollectionRow]] = None,
 ) -> Dict[Tuple[str, str, str], Dict[str, Any]]:
     """
     Loads card acquisition lots and baselines from card_metadata SQLite (when available)
     and active collection CSV rows keyed by (expansion, printNumber, normalized_finish).
     """
-    db_baselines: Dict[Tuple[str, str, str], Tuple[str, float]] = {}
+    db_lot_baselines: Dict[Tuple[str, str, str, str], float] = {}
+    db_clamped_baselines: Dict[Tuple[str, str, str, str], float] = {}
     if database_path and os.path.isfile(database_path):
         conn = None
         try:
             conn = sqlite3.connect(database_path)
             cur = conn.cursor()
             cur.execute(
-                "SELECT expansion, print_number, finish, first_seen_date, baseline_market_price FROM card_metadata"
+                "SELECT expansion, print_number, finish, first_seen_date, baseline_market_price "
+                "FROM card_metadata ORDER BY first_seen_date ASC"
             )
             for exp, pn, fin, fsd, bmp in cur.fetchall():
+                exp_s = str(exp or "")
+                pn_s = str(pn or "")
                 norm_fin = normalize_finish(str(fin or ""), default="Standard")
-                db_baselines[(str(exp), str(pn), norm_fin)] = (str(fsd or ""), float(bmp or 0.0))
+                raw_fsd = str(fsd or "").strip()
+                bmp_val = float(bmp or 0.0)
+                if raw_fsd and bmp_val > 0.0:
+                    db_lot_baselines.setdefault((exp_s, pn_s, norm_fin, raw_fsd), bmp_val)
+                    min_ed = (
+                        earliest_beta_date
+                        if exp_s == WNC_BETA_GROUP_NAME
+                        else (earliest_retail_date if exp_s == WNC_RETAIL_GROUP_NAME else earliest_beta_date)
+                    )
+                    clamped_fsd = _clamp_date(raw_fsd, min_ed)
+                    if clamped_fsd:
+                        db_clamped_baselines.setdefault((exp_s, pn_s, norm_fin, clamped_fsd), bmp_val)
         except sqlite3.Error as e:
             print(f"Warning: Could not read card_metadata from '{database_path}': {e}", file=sys.stderr)
         finally:
@@ -133,10 +150,12 @@ def load_collection_acquisitions(
                 conn.close()
 
     acquisitions: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
-    if not collection_path or not os.path.isfile(collection_path):
-        return acquisitions
+    if validated_rows is None:
+        if not collection_path or not os.path.isfile(collection_path):
+            return acquisitions
+        validated_rows = load_validated_collection_rows(collection_path)
 
-    for vrow in load_validated_collection_rows(collection_path):
+    for vrow in validated_rows:
         if vrow.qty <= 0:
             continue
 
@@ -151,41 +170,53 @@ def load_collection_acquisitions(
             else (earliest_retail_date if exp == WNC_RETAIL_GROUP_NAME else earliest_beta_date)
         )
         clamped_lots: List[Tuple[str, int]] = []
+        lot_entries: List[Tuple[str, int, float]] = []
         for lot_date, lot_qty in lots:
             if lot_date:
                 c_date = _clamp_date(lot_date, min_edition_date)
                 if c_date:
                     clamped_lots.append((c_date, lot_qty))
+                    lot_db_cost = (
+                        db_lot_baselines.get((exp, pn, fin, lot_date))
+                        or db_lot_baselines.get((exp, pn, fin, c_date))
+                        or db_clamped_baselines.get((exp, pn, fin, c_date))
+                        or 0.0
+                    )
+                    lot_entries.append((c_date, lot_qty, lot_db_cost))
 
         dated_candidates = sorted(d for d, _ in clamped_lots)
         raw_earliest = sorted(d for d, _ in lots if d)[0] if any(d for d, _ in lots) else None
-        csv_acq_date = dated_candidates[0] if dated_candidates else None
-
-        db_record = db_baselines.get((exp, pn, fin))
-        if db_record and db_record[1] > 0:
-            acq_date = _clamp_date(db_record[0] or csv_acq_date, min_edition_date)
-            cost = db_record[1]
-        else:
-            acq_date = csv_acq_date
-            cost = 0.0
+        acq_date = dated_candidates[0] if dated_candidates else None
 
         acq_key = (exp, pn, fin)
         existing = acquisitions.get(acq_key)
         if existing:
             existing["qty"] += vrow.qty
             existing["lots"].extend(clamped_lots)
+            existing["lot_entries"].extend(lot_entries)
             if acq_date and (not existing["date"] or acq_date < existing["date"]):
                 existing["date"] = acq_date
-            if cost > 0.0 and existing["cost"] <= 0.0:
-                existing["cost"] = cost
+            merged_entries = existing["lot_entries"]
+            merged_qty = sum(q for _, q, _ in merged_entries)
+            if merged_qty > 0 and all(c > 0.0 for _, _, c in merged_entries):
+                existing["cost"] = sum(c * q for _, q, c in merged_entries) / merged_qty
+            else:
+                existing["cost"] = 0.0
         else:
+            row_lot_qty = sum(q for _, q, _ in lot_entries)
+            summary_cost = (
+                sum(c * q for _, q, c in lot_entries) / row_lot_qty
+                if (row_lot_qty > 0 and all(c > 0.0 for _, _, c in lot_entries))
+                else 0.0
+            )
             acquisitions[acq_key] = {
                 "date": acq_date,
                 "rawDate": raw_earliest,
-                "cost": cost,
+                "cost": summary_cost,
                 "qty": vrow.qty,
                 "finish": fin,
                 "lots": clamped_lots,
+                "lot_entries": lot_entries,
             }
 
     return acquisitions
@@ -292,10 +323,21 @@ def build_edition_trajectories(
         if acq and acq.get("date") and owned_qty > 0:
             earliest_card_date = clean_points[0][0] if clean_points else None
             acq_date = _clamp_date(str(acq["date"]), earliest_card_date)
-            db_cost = float(acq.get("cost") or 0.0)
-            if db_cost > 0.0:
-                acq_cost = db_cost
-            elif clean_points and acq.get("lots"):
+            lot_entries = acq.get("lot_entries")
+            if lot_entries:
+                lot_total_qty = sum(q for _, q, _ in lot_entries)
+                if lot_total_qty > 0:
+                    weighted = 0.0
+                    resolved_qty = 0
+                    for d, q, lot_db_cost in lot_entries:
+                        lot_price = lot_db_cost if lot_db_cost > 0.0 else (_lookup_point_price(clean_points, d) if clean_points else 0.0)
+                        if lot_price > 0.0:
+                            weighted += lot_price * q
+                            resolved_qty += q
+                    acq_cost = (weighted / resolved_qty) if resolved_qty > 0 else 0.0
+                else:
+                    acq_cost = _lookup_point_price(clean_points, acq_date or "") if clean_points else 0.0
+            elif acq.get("lots") and clean_points:
                 lot_total_qty = sum(q for _, q in acq["lots"])
                 if lot_total_qty > 0:
                     weighted = sum(_lookup_point_price(clean_points, d) * q for d, q in acq["lots"])
@@ -303,7 +345,8 @@ def build_edition_trajectories(
                 else:
                     acq_cost = _lookup_point_price(clean_points, acq_date or "")
             else:
-                acq_cost = _lookup_point_price(clean_points, acq_date or "") if clean_points else 0.0
+                db_cost = float(acq.get("cost") or 0.0)
+                acq_cost = db_cost if db_cost > 0.0 else (_lookup_point_price(clean_points, acq_date or "") if clean_points else 0.0)
 
             acq_delta_dollar = current_price - acq_cost if current_price > 0 else 0.0
             acq_delta_pct = (acq_delta_dollar / acq_cost * 100.0) if (acq_cost > 0 and current_price > 0) else 0.0
@@ -1877,19 +1920,27 @@ _DASHBOARD_JS_BODY = r"""    let currentEdition = 'beta';
 
         const activeTiles = tiles.filter(tile => tile.dataset.edition === currentEdition);
         activeTiles.sort((a, b) => {
-          if (sort === 'price-desc') return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
-          if (sort === 'price-asc') return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
-          if (sort === 'gain-desc') return parseFloat(b.dataset.c7d) - parseFloat(a.dataset.c7d);
-          if (sort === 'gain-all-desc') return parseFloat(b.dataset.call) - parseFloat(a.dataset.call);
-          if (sort === 'gain-acq-desc') {
+          if (sort === 'price-desc') {
+            const cmp = compareNullableNums(a.dataset.price, b.dataset.price, -1);
+            if (cmp !== 0) return cmp;
+          } else if (sort === 'price-asc') {
+            const cmp = compareNullableNums(a.dataset.price, b.dataset.price, 1);
+            if (cmp !== 0) return cmp;
+          } else if (sort === 'gain-desc') {
+            const cmp = compareNullableNums(a.dataset.c7d, b.dataset.c7d, -1);
+            if (cmp !== 0) return cmp;
+          } else if (sort === 'gain-all-desc') {
+            const cmp = compareNullableNums(a.dataset.call, b.dataset.call, -1);
+            if (cmp !== 0) return cmp;
+          } else if (sort === 'gain-acq-desc') {
             const hasA = a.dataset.hasAcq === '1';
             const hasB = b.dataset.hasAcq === '1';
             if (hasA && !hasB) return -1;
             if (!hasA && hasB) return 1;
-            if (!hasA && !hasB) {
-              return (parseInt(a.dataset.num.replace(/\D/g, '')) || 0) - (parseInt(b.dataset.num.replace(/\D/g, '')) || 0);
+            if (hasA && hasB) {
+              const cmp = compareNullableNums(a.dataset.cacq, b.dataset.cacq, -1);
+              if (cmp !== 0) return cmp;
             }
-            return (parseFloat(b.dataset.cacq) || 0) - (parseFloat(a.dataset.cacq) || 0);
           }
           return (parseInt(a.dataset.num.replace(/\D/g, '')) || 0) - (parseInt(b.dataset.num.replace(/\D/g, '')) || 0);
         });
@@ -2164,8 +2215,16 @@ def _render_tier_sections(
                         else 'Lifetime: <span class="text-muted">N/A</span>'
                     )
 
+                has_price = bool(t.get("hasPrice"))
+                price_attr = f"{t['currentPrice']}" if has_price else ""
+                c7d_attr = f"{t['change7dPct']}" if has_price else ""
+                call_attr = f"{t['changeAllPct']}" if has_price else ""
                 has_acq_attr = "1" if t.get("hasAcquisition") else "0"
-                cacq_attr = f"{t.get('acqDeltaPct', 0.0):.2f}" if t.get("hasAcquisition") else ""
+                cacq_attr = (
+                    f"{t.get('acqDeltaPct', 0.0):.2f}"
+                    if (t.get("hasAcquisition") and has_price and t.get("acqCost", 0.0) > 0)
+                    else ""
+                )
                 safe_name_attr = html.escape(t["name"].lower(), quote=True)
                 safe_name_title = html.escape(t["name"], quote=True)
                 safe_name_body = html.escape(t["name"])
@@ -2179,7 +2238,7 @@ def _render_tier_sections(
                     else f'<span class="truncate">{safe_name_body}</span>'
                 )
 
-                parts.append(f"""      <div class="card-tile" data-edition="{edition_name}" data-pid="{safe_pid}" data-num="{safe_pnum}" data-name="{safe_name_attr}" data-rarity="{t['rarity']}" data-color="{safe_color}" data-type="{safe_type}" data-price="{t['currentPrice']}" data-c7d="{t['change7dPct']}" data-call="{t['changeAllPct']}" data-has-acq="{has_acq_attr}" data-cacq="{cacq_attr}" data-owned-qty="{t.get('ownedQty', 0)}"{disp_style}>
+                parts.append(f"""      <div class="card-tile" data-edition="{edition_name}" data-pid="{safe_pid}" data-num="{safe_pnum}" data-name="{safe_name_attr}" data-rarity="{t['rarity']}" data-color="{safe_color}" data-type="{safe_type}" data-price="{price_attr}" data-c7d="{c7d_attr}" data-call="{call_attr}" data-has-acq="{has_acq_attr}" data-cacq="{cacq_attr}" data-owned-qty="{t.get('ownedQty', 0)}"{disp_style}>
         <div>
           <div class="card-header">
             <span class="card-num">#{safe_pnum}</span>
@@ -2431,6 +2490,7 @@ def generate_html_dashboard(
     database_path: Optional[str] = None,
     earliest_beta_date: Optional[str] = EARLIEST_BETA_DATE,
     earliest_retail_date: Optional[str] = EARLIEST_RETAIL_DATE,
+    validated_rows: Optional[List[ValidatedCollectionRow]] = None,
 ) -> None:
     """
     Generates the interactive standalone HTML comparison and trajectory dashboard for WNC Iconics.
@@ -2448,6 +2508,7 @@ def generate_html_dashboard(
         database_path=database_path,
         earliest_beta_date=earliest_beta,
         earliest_retail_date=earliest_retail,
+        validated_rows=validated_rows,
     )
 
     beta_trajectories = build_edition_trajectories(
@@ -2481,13 +2542,15 @@ def generate_html_dashboard(
         for code in ("IL", "IO", "IS")
     }
 
+    pair_by_num = {str(p.print_number): p for p in pairs}
     r_by_num = {t["cleanNumber"]: t for t in retail_trajectories}
     comp_pairs: List[Dict[str, Any]] = []
     for b in beta_trajectories:
         cnum = b["cleanNumber"]
         r = r_by_num.get(cnum)
-        b_p = b["currentPrice"] if b.get("hasPrice") else None
-        r_p = r["currentPrice"] if (r and r.get("hasPrice")) else None
+        pair_obj = pair_by_num.get(cnum)
+        b_p = pair_obj.beta_price if pair_obj is not None else (b["currentPrice"] if b.get("hasPrice") else None)
+        r_p = pair_obj.retail_price if pair_obj is not None else (r["currentPrice"] if (r and r.get("hasPrice")) else None)
         is_paired = (b_p is not None and r_p is not None)
         if is_paired:
             spread_dlr: Optional[float] = b_p - r_p

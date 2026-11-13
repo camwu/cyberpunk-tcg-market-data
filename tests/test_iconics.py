@@ -28,6 +28,7 @@ from tracker.iconics import (
     TierSummary,
     TIER_MAP,
 )
+from tracker.iconics_common import load_validated_collection_rows
 from tracker.iconics_html import (
     build_edition_trajectories,
     generate_html_dashboard,
@@ -730,6 +731,134 @@ class TestIconicsEngine(unittest.TestCase):
         self.assertEqual(len(beta_line), 33)
         self.assertEqual(len(retail_line), 33)
         self.assertEqual(len(total_line), 33)
+
+    def test_sqlite_multilot_weighted_cost_and_updated_csv_date_not_clobbered(self):
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 100.0, 80.0, 20.0, 25.0, 3, 0, color="Red", card_type="Legend")
+        p2 = IconicCardPair("142", "Card 2", "Legends", "Foil", 103, 104, 120.0, 90.0, 30.0, 33.3, 1, 0, color="Blue", card_type="Legend")
+        p_dir = self.test_dir / "multilot_prices"
+        p_dir.mkdir(parents=True, exist_ok=True)
+        for d, v1, v2 in [("2026-09-14", 40.0, 60.0), ("2026-09-20", 70.0, 90.0), ("2026-10-01", 85.0, 95.0), ("2026-11-09", 100.0, 120.0)]:
+            (p_dir / f"{d}.json").write_text(json.dumps({
+                "date": d,
+                "prices": {
+                    "101": {"Foil": {"marketPrice": v1}},
+                    "102": {"Foil": {"marketPrice": v1 - 5}},
+                    "103": {"Foil": {"marketPrice": v2}},
+                    "104": {"Foil": {"marketPrice": v2 - 5}},
+                },
+            }), encoding="utf-8")
+
+        col_csv = self.test_dir / "multilot.csv"
+        col_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            "Card 1,Welcome to Night City - Beta,B141,Foil,3,2026-09-14: 2; 2026-09-20: 1\n"
+            "Card 2,Welcome to Night City - Beta,B142,Foil,1,2026-10-01\n",
+            encoding="utf-8",
+        )
+        db_path = self.test_dir / "multilot_meta.db"
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE card_metadata (expansion TEXT, print_number TEXT, finish TEXT, first_seen_date TEXT, baseline_market_price REAL)"
+        )
+        # B141 has per-lot DB baselines ($40 qty 2, $70 qty 1 -> weighted $50.00)
+        conn.execute(
+            "INSERT INTO card_metadata VALUES (?, ?, ?, ?, ?)",
+            ("Welcome to Night City - Beta", "B141", "Foil", "2026-09-14", 40.0),
+        )
+        conn.execute(
+            "INSERT INTO card_metadata VALUES (?, ?, ?, ?, ?)",
+            ("Welcome to Night City - Beta", "B141", "Foil", "2026-09-20", 70.0),
+        )
+        # B142 has a stale SQLite baseline on 2026-09-14 ($55.00), while CSV moved to 2026-10-01 ($95.00)
+        conn.execute(
+            "INSERT INTO card_metadata VALUES (?, ?, ?, ?, ?)",
+            ("Welcome to Night City - Beta", "B142", "Foil", "2026-09-14", 55.0),
+        )
+        conn.commit()
+        conn.close()
+
+        acqs = load_collection_acquisitions(
+            collection_path=str(col_csv),
+            database_path=str(db_path),
+            earliest_beta_date="2026-09-13",
+            earliest_retail_date=None,
+        )
+        all_dates = ["2026-09-14", "2026-09-20", "2026-10-01", "2026-11-09"]
+        price_by_date = {
+            d: json.loads((p_dir / f"{d}.json").read_text(encoding="utf-8"))["prices"]
+            for d in all_dates
+        }
+        trajs = build_edition_trajectories(
+            pairs=[p1, p2],
+            edition="beta",
+            dates=all_dates,
+            price_by_date=price_by_date,
+            acquisitions=acqs,
+        )
+        self.assertAlmostEqual(trajs[0]["acqCost"], 50.0)
+        self.assertEqual(trajs[1]["acqDate"], "2026-10-01")
+        self.assertAlmostEqual(trajs[1]["acqCost"], 95.0)
+
+    def test_comparison_view_matches_pair_prices_outside_trajectory_window_and_na_sort_attrs(self):
+        # Retail #141 only has a pre-cutoff price ($60 on 2026-10-15); #142 is unpriced.
+        p1 = IconicCardPair("141", "Priced Card", "Legends", "Foil", 101, 102, 100.0, 60.0, 40.0, 66.7, 0, 0, color="Red", card_type="Legend")
+        p2 = IconicCardPair("142", "Unpriced Card", "Legends", "Foil", 103, 104, None, None, None, None, 0, 0, color="Blue", card_type="Legend")
+
+        p_dir = self.test_dir / "cutoff_prices"
+        p_dir.mkdir(parents=True, exist_ok=True)
+        (p_dir / "2026-10-15.json").write_text(json.dumps({
+            "date": "2026-10-15",
+            "prices": {"101": {"Foil": {"marketPrice": 100.0}}, "102": {"Foil": {"marketPrice": 60.0}}},
+        }), encoding="utf-8")
+        (p_dir / "2026-11-09.json").write_text(json.dumps({
+            "date": "2026-11-09",
+            "prices": {"101": {"Foil": {"marketPrice": 100.0}}},
+        }), encoding="utf-8")
+
+        out_html = self.test_dir / "cutoff_comp.html"
+        generate_html_dashboard(
+            pairs=[p1, p2],
+            prices_dir=p_dir,
+            collection_path=None,
+            output_path=str(out_html),
+            database_path=None,
+            earliest_beta_date="2026-09-13",
+            earliest_retail_date="2026-10-30",
+        )
+        content = out_html.read_text(encoding="utf-8")
+        # Comparison view still reflects paired console summary totals ($100.00 / $60.00)
+        self.assertIn("Priced Set Value (1/2 pairs)", content)
+        self.assertIn('id="set-val-beta">$100.00</span>', content)
+        self.assertIn('id="set-val-retail">$60.00</span>', content)
+        # Unpriced trajectory tile uses empty nullable numeric data attributes for bottom sorting
+        self.assertIn('data-price="" data-c7d="" data-call="" data-has-acq="0" data-cacq=""', content)
+        self.assertIn("compareNullableNums(a.dataset.price, b.dataset.price, -1)", content)
+        self.assertIn("compareNullableNums(a.dataset.c7d, b.dataset.c7d, -1)", content)
+
+    def test_run_iconics_comparison_reads_collection_csv_once(self):
+        out_html = self.test_dir / "single_read.html"
+        read_counter = {"count": 0}
+        real_loader = load_validated_collection_rows
+
+        def counting_loader(path):
+            read_counter["count"] += 1
+            return real_loader(path)
+
+        with patch("tracker.iconics.REPO_ROOT", self.test_dir), \
+             patch("tracker.iconics.load_validated_collection_rows", side_effect=counting_loader), \
+             patch("tracker.iconics_html.load_validated_collection_rows", side_effect=counting_loader):
+            rc, summary = run_iconics_comparison(
+                output_path=str(out_html),
+                collection_path=str(self.collection_csv),
+                cards_path=self.cards_file,
+                prices_dir=self.prices_dir,
+                database_path=None,
+            )
+
+        self.assertEqual(rc, 0)
+        self.assertEqual(read_counter["count"], 1)
+        self.assertTrue(out_html.is_file())
+        self.assertIn("Welcome to Night City", summary)
 
 
 class TestIconicsCLI(unittest.TestCase):
