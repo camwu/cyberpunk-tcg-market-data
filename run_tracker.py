@@ -147,13 +147,6 @@ def handle_compare_iconics_subcommand(
 
     if explicit_col:
         target_path = cfg.collection_csv
-        if not os.path.isfile(target_path):
-            print(
-                f"Error: Collection file not found at '{target_path}'. "
-                "Run with --sync-collection to download active collection, or provide --collection.",
-                file=sys.stderr,
-            )
-            return 1
     else:
         if args.sync_collection and not cfg.cardnexus_api_key:
             print("Error: CARDNEXUS_API_KEY is not configured. Cannot synchronize collection.", file=sys.stderr)
@@ -168,13 +161,14 @@ def handle_compare_iconics_subcommand(
         )
         sync_res = resolve_and_sync_collection(sync_args, cfg)
         target_path = sync_res.collection_path
-        if not os.path.isfile(target_path):
-            print(
-                f"Error: Collection file not found at '{target_path}'. "
-                "Run with --sync-collection to download active collection, or provide --collection.",
-                file=sys.stderr,
-            )
-            return 1
+
+    if not os.path.isfile(target_path):
+        print(
+            f"Error: Collection file not found at '{target_path}'. "
+            "Run with --sync-collection to download active collection, or provide --collection.",
+            file=sys.stderr,
+        )
+        return 1
 
     target_output = args.output_path
     if not target_output:

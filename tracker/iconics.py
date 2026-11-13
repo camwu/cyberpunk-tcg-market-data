@@ -4,7 +4,6 @@ Analyzes market price spreads and collection ownership between Beta and Retail
 printings across alternate-art Iconic cards (#141 - #171).
 """
 
-import csv
 from dataclasses import dataclass
 import datetime
 import json
@@ -21,8 +20,12 @@ from tracker.constants import (
     REPO_DATA_DIR,
 )
 from tracker.config import load_config
+from tracker.iconics_common import (
+    compute_quantiles,
+    extract_finish_price,
+    load_validated_collection_rows,
+)
 from tracker.iconics_html import generate_html_dashboard
-from tracker.validation import CollectionValidationError, parse_multi_lot_notes
 from tracker.valuation import sanitize_card_name
 
 TIER_MAP: Dict[str, str] = {
@@ -81,26 +84,6 @@ class TierSummary:
     retail_physical_owned: int = 0
 
 
-def compute_quantiles(
-    values: List[float],
-) -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float], Optional[float]]:
-    """
-    Computes (min, p25, median, p75, max) for a numeric sequence.
-    Returns (None, None, None, None, None) when empty.
-    Returns (min, None, median, None, max) when 1 <= len < 4 so uninvented quartiles render N/A.
-    """
-    if not values:
-        return None, None, None, None, None
-    sorted_vals = sorted(values)
-    v_min = sorted_vals[0]
-    v_max = sorted_vals[-1]
-    v_med = statistics.median(sorted_vals)
-    if len(sorted_vals) >= 4:
-        q1, _, q3 = statistics.quantiles(sorted_vals, n=4, method="inclusive")
-        return v_min, q1, v_med, q3, v_max
-    return v_min, None, v_med, None, v_max
-
-
 def resolve_latest_price_file(prices_dir: Path = REPO_PRICES_DIR) -> Optional[Path]:
     """Finds prices/latest.json or the newest dated price JSON file."""
     latest = prices_dir / "latest.json"
@@ -120,29 +103,6 @@ def get_historical_price_files(prices_dir: Path = REPO_PRICES_DIR) -> List[Path]
     ]
     files.sort(key=lambda p: p.stem, reverse=True)
     return files
-
-
-def extract_finish_price(p_data: Any, preferred_finish: str) -> Optional[float]:
-    """
-    Extracts market price strictly for the specified finish, accepting Normal as Standard alias.
-    Never falls back to a different finish.
-    """
-    if not isinstance(p_data, dict):
-        return None
-    finish_variants = [preferred_finish]
-    if preferred_finish == "Standard":
-        finish_variants.append("Normal")
-    elif preferred_finish == "Normal":
-        finish_variants.append("Standard")
-
-    for f in finish_variants:
-        sub = p_data.get(f)
-        if isinstance(sub, dict):
-            mp = sub.get("marketPrice")
-            if mp is not None and isinstance(mp, (int, float)) and float(mp) > 0.0:
-                return float(mp)
-
-    return None
 
 
 def resolve_product_finish(
@@ -358,53 +318,28 @@ def load_iconic_pairs(
         mtime_ts = os.path.getmtime(collection_path)
         col_mtime_date = datetime.date.fromtimestamp(mtime_ts).isoformat()
 
-        total_rows = 0
+        validated_rows = load_validated_collection_rows(collection_path)
+        total_rows = len(validated_rows)
         wnc_rows = 0
 
-        with open(collection_path, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                total_rows += 1
-                exp = (row.get("expansion") or "").strip()
-                pnum = (row.get("printNumber") or "").strip()
-                finish = (row.get("finish") or "").strip()
-                qty_str = (row.get("totalQtyOwned") or "0").strip()
+        for vrow in validated_rows:
+            exp = vrow.expansion
+            pnum = vrow.print_number
+            if "Welcome to Night City" in exp:
+                wnc_rows += 1
 
-                if "Welcome to Night City" in exp:
-                    wnc_rows += 1
+            clean_num = pnum.removeprefix("B")
+            if exp in ("Welcome to Night City - Beta", "Welcome to Night City - Retail") and clean_num in valid_finish_by_key:
+                card_valid_finish = valid_finish_by_key[clean_num]
+                if vrow.norm_finish != card_valid_finish:
+                    print(
+                        f"Warning: Collection row for {exp} #{pnum} has finish '{vrow.raw_finish}' but card is {card_valid_finish}-only. Excluding.",
+                        file=sys.stderr,
+                    )
+                    continue
 
-                # Normalize finish
-                if finish.upper() in ("NORMAL", "STANDARD"):
-                    norm_finish = "Standard"
-                elif finish.upper() == "FOIL":
-                    norm_finish = "Foil"
-                else:
-                    norm_finish = finish
-
-                try:
-                    qty = int(qty_str)
-                except ValueError:
-                    qty = 0
-
-                if qty > 0:
-                    notes = (row.get("notes") or "").strip()
-                    _, lot_err = parse_multi_lot_notes(notes, qty)
-                    if lot_err:
-                        raise CollectionValidationError(f"Row {exp} #{pnum}: {lot_err}")
-
-                # Audit finish mismatch against derived card finish
-                clean_num = pnum.removeprefix("B")
-                if exp in ("Welcome to Night City - Beta", "Welcome to Night City - Retail") and clean_num in valid_finish_by_key:
-                    card_valid_finish = valid_finish_by_key[clean_num]
-                    if norm_finish != card_valid_finish:
-                        print(
-                            f"Warning: Collection row for {exp} #{pnum} has finish '{finish}' but card is {card_valid_finish}-only. Excluding.",
-                            file=sys.stderr,
-                        )
-                        continue
-
-                key = (exp, pnum, norm_finish)
-                owned_counts[key] = owned_counts.get(key, 0) + qty
+            key = (exp, pnum, vrow.norm_finish)
+            owned_counts[key] = owned_counts.get(key, 0) + vrow.qty
 
         if total_rows > 0 and wnc_rows == 0:
             print(
@@ -662,8 +597,6 @@ def run_iconics_comparison(
         collection_path=collection_path,
         output_path=target_output,
         database_path=target_db,
-        extract_price_fn=extract_finish_price,
-        compute_quantiles_fn=compute_quantiles,
     )
 
     summary_text = format_console_summary(

@@ -4,7 +4,6 @@ Renders a self-contained interactive HTML report with dark-mode SVG price trajec
 and paired Beta vs. Retail market comparison tables.
 """
 
-import csv
 import datetime
 import html
 import json
@@ -12,10 +11,15 @@ import math
 import os
 from pathlib import Path
 import sqlite3
-import statistics
-from typing import Any, Callable, Dict, List, Optional, Tuple
+import sys
+from typing import Any, Dict, List, Optional, Tuple
 
-from tracker.validation import CollectionValidationError, parse_multi_lot_notes
+from tracker.iconics_common import (
+    compute_quantiles,
+    extract_finish_price,
+    load_validated_collection_rows,
+    normalize_finish,
+)
 
 EARLIEST_BETA_DATE = "2026-09-13"
 EARLIEST_RETAIL_DATE = "2026-10-30"
@@ -33,15 +37,6 @@ def serialize_json_for_script(data: Any) -> str:
         .replace("<", "\\u003c")
         .replace(">", "\\u003e")
     )
-
-
-def _normalize_finish(raw_finish: str) -> str:
-    upper = (raw_finish or "").strip().upper()
-    if upper in ("NORMAL", "STANDARD", ""):
-        return "Standard"
-    if upper == "FOIL":
-        return "Foil"
-    return (raw_finish or "Standard").strip()
 
 
 def load_daily_prices_chronological(
@@ -94,29 +89,11 @@ def load_daily_prices_chronological(
     return all_dates, price_by_date
 
 
-def _resolve_edition_dates(
-    all_dates: List[str],
-    price_by_date: Dict[str, Dict[str, Dict[str, Any]]],
-    pids: List[Optional[int]],
-    canonical_earliest: str,
-) -> List[str]:
-    """Resolves chronological snapshot dates for an edition without losing pre-canonical test fixtures."""
-    if not all_dates:
-        return []
-
-    valid_pids = {str(pid) for pid in pids if pid}
-    first_priced_date: Optional[str] = None
-    for d in all_dates:
-        day_prices = price_by_date.get(d, {})
-        if any(pid_str in day_prices for pid_str in valid_pids):
-            first_priced_date = d
-            break
-
-    if all_dates[-1] >= canonical_earliest and (first_priced_date is None or first_priced_date >= canonical_earliest):
-        return [d for d in all_dates if d >= canonical_earliest]
-    if first_priced_date is not None:
-        return [d for d in all_dates if d >= first_priced_date]
-    return list(all_dates)
+def _filter_dates_from(all_dates: List[str], earliest_date: Optional[str]) -> List[str]:
+    """Filters snapshot dates on or after earliest_date when provided."""
+    if not earliest_date:
+        return list(all_dates)
+    return [d for d in all_dates if d >= earliest_date]
 
 
 def _clamp_date(raw_date: Optional[str], min_date: Optional[str]) -> Optional[str]:
@@ -132,13 +109,14 @@ def load_collection_acquisitions(
     database_path: Optional[str],
     earliest_beta_date: Optional[str],
     earliest_retail_date: Optional[str],
-) -> Dict[Tuple[str, str], Dict[str, Any]]:
+) -> Dict[Tuple[str, str, str], Dict[str, Any]]:
     """
     Loads card acquisition lots and baselines from card_metadata SQLite (when available)
-    and active collection CSV rows validated with parse_multi_lot_notes.
+    and active collection CSV rows keyed by (expansion, printNumber, normalized_finish).
     """
     db_baselines: Dict[Tuple[str, str, str], Tuple[str, float]] = {}
     if database_path and os.path.isfile(database_path):
+        conn = None
         try:
             conn = sqlite3.connect(database_path)
             cur = conn.cursor()
@@ -146,77 +124,69 @@ def load_collection_acquisitions(
                 "SELECT expansion, print_number, finish, first_seen_date, baseline_market_price FROM card_metadata"
             )
             for exp, pn, fin, fsd, bmp in cur.fetchall():
-                norm_fin = _normalize_finish(str(fin or "Standard"))
+                norm_fin = normalize_finish(str(fin or ""), default="Standard")
                 db_baselines[(str(exp), str(pn), norm_fin)] = (str(fsd or ""), float(bmp or 0.0))
-            conn.close()
-        except sqlite3.Error:
-            pass
+        except sqlite3.Error as e:
+            print(f"Warning: Could not read card_metadata from '{database_path}': {e}", file=sys.stderr)
+        finally:
+            if conn is not None:
+                conn.close()
 
-    acquisitions: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    acquisitions: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
     if not collection_path or not os.path.isfile(collection_path):
         return acquisitions
 
-    with open(collection_path, "r", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            qty_raw = (row.get("totalQtyOwned") or "0").strip()
-            try:
-                qty = int(qty_raw)
-            except ValueError:
-                qty = 0
-            if qty <= 0:
-                continue
+    for vrow in load_validated_collection_rows(collection_path):
+        if vrow.qty <= 0:
+            continue
 
-            exp = str(row.get("expansion") or "").strip()
-            pn = str(row.get("printNumber") or "").strip()
-            fin = _normalize_finish(str(row.get("finish") or "Standard"))
-            notes = str(row.get("notes") or "").strip()
+        exp = vrow.expansion
+        pn = vrow.print_number
+        fin = vrow.norm_finish or "Standard"
+        lots = vrow.lots
 
-            lots, lot_err = parse_multi_lot_notes(notes, qty)
-            if lot_err:
-                raise CollectionValidationError(f"Row {exp} #{pn}: {lot_err}")
+        min_edition_date = (
+            earliest_beta_date
+            if exp == WNC_BETA_GROUP_NAME
+            else (earliest_retail_date if exp == WNC_RETAIL_GROUP_NAME else earliest_beta_date)
+        )
+        clamped_lots: List[Tuple[str, int]] = []
+        for lot_date, lot_qty in lots:
+            if lot_date:
+                c_date = _clamp_date(lot_date, min_edition_date)
+                if c_date:
+                    clamped_lots.append((c_date, lot_qty))
 
-            min_edition_date = (
-                earliest_beta_date
-                if exp == WNC_BETA_GROUP_NAME
-                else (earliest_retail_date if exp == WNC_RETAIL_GROUP_NAME else earliest_beta_date)
-            )
-            clamped_lots: List[Tuple[str, int]] = []
-            for lot_date, lot_qty in lots:
-                if lot_date:
-                    c_date = _clamp_date(lot_date, min_edition_date)
-                    if c_date:
-                        clamped_lots.append((c_date, lot_qty))
+        dated_candidates = sorted(d for d, _ in clamped_lots)
+        raw_earliest = sorted(d for d, _ in lots if d)[0] if any(d for d, _ in lots) else None
+        csv_acq_date = dated_candidates[0] if dated_candidates else None
 
-            dated_candidates = sorted(d for d, _ in clamped_lots)
-            raw_earliest = sorted(d for d, _ in lots if d)[0] if any(d for d, _ in lots) else None
-            csv_acq_date = dated_candidates[0] if dated_candidates else None
+        db_record = db_baselines.get((exp, pn, fin))
+        if db_record and db_record[1] > 0:
+            acq_date = _clamp_date(db_record[0] or csv_acq_date, min_edition_date)
+            cost = db_record[1]
+        else:
+            acq_date = csv_acq_date
+            cost = 0.0
 
-            db_record = db_baselines.get((exp, pn, fin))
-            if db_record and db_record[1] > 0:
-                acq_date = _clamp_date(db_record[0] or csv_acq_date, min_edition_date)
-                cost = db_record[1]
-            else:
-                acq_date = csv_acq_date
-                cost = 0.0
-
-            existing = acquisitions.get((exp, pn))
-            if existing:
-                existing["qty"] += qty
-                existing["lots"].extend(clamped_lots)
-                if acq_date and (not existing["date"] or acq_date < existing["date"]):
-                    existing["date"] = acq_date
-                if cost > 0.0 and existing["cost"] <= 0.0:
-                    existing["cost"] = cost
-            else:
-                acquisitions[(exp, pn)] = {
-                    "date": acq_date,
-                    "rawDate": raw_earliest,
-                    "cost": cost,
-                    "qty": qty,
-                    "finish": fin,
-                    "lots": clamped_lots,
-                }
+        acq_key = (exp, pn, fin)
+        existing = acquisitions.get(acq_key)
+        if existing:
+            existing["qty"] += vrow.qty
+            existing["lots"].extend(clamped_lots)
+            if acq_date and (not existing["date"] or acq_date < existing["date"]):
+                existing["date"] = acq_date
+            if cost > 0.0 and existing["cost"] <= 0.0:
+                existing["cost"] = cost
+        else:
+            acquisitions[acq_key] = {
+                "date": acq_date,
+                "rawDate": raw_earliest,
+                "cost": cost,
+                "qty": vrow.qty,
+                "finish": fin,
+                "lots": clamped_lots,
+            }
 
     return acquisitions
 
@@ -241,8 +211,7 @@ def build_edition_trajectories(
     edition: str,
     dates: List[str],
     price_by_date: Dict[str, Dict[str, Dict[str, Any]]],
-    acquisitions: Dict[Tuple[str, str], Dict[str, Any]],
-    extract_price_fn: Callable[[Any, str], Optional[float]],
+    acquisitions: Dict[Tuple[str, str, str], Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
     Builds chronological daily price series and return metrics for one WNC Iconic edition.
@@ -274,7 +243,7 @@ def build_edition_trajectories(
 
         for d in dates:
             p_data = price_by_date.get(d, {}).get(pid_str) if pid_str else None
-            mp = extract_price_fn(p_data, pair.valid_finish) if p_data is not None else None
+            mp = extract_finish_price(p_data, pair.valid_finish) if p_data is not None else None
             if mp is not None and mp > 0.0:
                 if baseline_price is None:
                     baseline_price = mp
@@ -307,8 +276,10 @@ def build_edition_trajectories(
                 price_change_1d = 0.0
                 price_change_1d_pct = 0.0
 
-            idx_7d = max(0, len(clean_points) - 8)
-            prev_7d = clean_points[idx_7d][1]
+            target_7d_date = (
+                datetime.date.fromisoformat(clean_points[-1][0]) - datetime.timedelta(days=7)
+            ).isoformat()
+            prev_7d = _lookup_point_price(clean_points, target_7d_date)
             price_change_7d = current_price - prev_7d
             price_change_7d_pct = (price_change_7d / prev_7d * 100.0) if prev_7d > 0 else 0.0
 
@@ -317,7 +288,7 @@ def build_edition_trajectories(
             price_change_all_pct = (price_change_all / base * 100.0) if base > 0 else 0.0
 
         owned_qty = pair.beta_owned if is_beta else pair.retail_owned
-        acq = acquisitions.get((expansion_name, display_pnum))
+        acq = acquisitions.get((expansion_name, display_pnum, pair.valid_finish))
         if acq and acq.get("date") and owned_qty > 0:
             earliest_card_date = clean_points[0][0] if clean_points else None
             acq_date = _clamp_date(str(acq["date"]), earliest_card_date)
@@ -588,12 +559,9 @@ def _fmt_quant_stat(val: Optional[float]) -> str:
     return f"${val:,.2f}" if val is not None else "N/A"
 
 
-def _compute_tier_stats(
-    card_list: List[Dict[str, Any]],
-    compute_quantiles_fn: Callable[[List[float]], Tuple[Optional[float], Optional[float], Optional[float], Optional[float], Optional[float]]],
-) -> Dict[str, Any]:
+def _compute_tier_stats(card_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     prices = [c["currentPrice"] for c in card_list if c["currentPrice"] > 0]
-    q = compute_quantiles_fn(prices)
+    q = compute_quantiles(prices)
     owned_count = sum(1 for c in card_list if c.get("ownedQty", 0) > 0)
     owned_qty = sum(c.get("ownedQty", 0) for c in card_list)
     owned_val = sum(c.get("ownedValue", 0.0) for c in card_list)
@@ -1382,6 +1350,7 @@ _DASHBOARD_CSS = """    :root {
 
 _DASHBOARD_JS_BODY = r"""    let currentEdition = 'beta';
     let currentAnchor = 'acq';
+    let activePricedSetTier = 'all';
     const btnRetail = document.getElementById('btn-retail');
     const btnBeta = document.getElementById('btn-beta');
     const btnComparison = document.getElementById('btn-comparison');
@@ -1399,35 +1368,119 @@ _DASHBOARD_JS_BODY = r"""    let currentEdition = 'beta';
     const tooltip = document.getElementById('chart-tooltip');
     const STORAGE_KEY = 'wnc_iconics_filter_state';
 
-    function setPricedSetTier(tier) {
-      const data = pricedSetTierData[tier];
-      if (!data) return;
-      document.querySelectorAll('.comp-pill-btn').forEach(btn => btn.classList.remove('is-active'));
-      const activeBtn = document.getElementById(`pill-tier-${tier}`);
-      if (activeBtn) activeBtn.classList.add('is-active');
+    function parseNum(raw, fallback) {
+      if (raw === undefined || raw === null || raw === '') return fallback;
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : fallback;
+    }
 
+    function compareNullableNums(rawA, rawB, dir) {
+      const a = parseNum(rawA, null);
+      const b = parseNum(rawB, null);
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return dir * (a - b);
+    }
+
+    function fmtCurrency(val, withCommas = true) {
+      return '$' + (withCommas
+        ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : val.toFixed(2));
+    }
+
+    function computeQuantilesJS(values) {
+      const n = values.length;
+      if (n === 0) return ['N/A', 'N/A', 'N/A', 'N/A', 'N/A'];
+      const sorted = [...values].sort((a, b) => a - b);
+      const vMin = sorted[0];
+      const vMax = sorted[n - 1];
+      const vMed = (n % 2 === 1) ? sorted[(n - 1) >> 1] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+      if (n < 4) {
+        return [fmtCurrency(vMin), 'N/A', fmtCurrency(vMed), 'N/A', fmtCurrency(vMax)];
+      }
+      const interp = (q) => {
+        const idx = q * (n - 1);
+        const lo = Math.floor(idx);
+        const hi = Math.ceil(idx);
+        return sorted[lo] + (idx - lo) * (sorted[hi] - sorted[lo]);
+      };
+      return [
+        fmtCurrency(vMin),
+        fmtCurrency(interp(0.25)),
+        fmtCurrency(vMed),
+        fmtCurrency(interp(0.75)),
+        fmtCurrency(vMax)
+      ];
+    }
+
+    function syncComparisonOverview() {
+      const visibleTierRows = Array.from(document.querySelectorAll('tr.comp-row')).filter(row => {
+        if (row.style.display === 'none') return false;
+        return activePricedSetTier === 'all' || row.dataset.rarity === activePricedSetTier;
+      });
+      const pairedRows = visibleTierRows.filter(row => row.dataset.paired === '1');
       const titleEl = document.getElementById('set-val-title');
-      if (titleEl && data.title) titleEl.textContent = data.title;
+      if (titleEl) {
+        titleEl.textContent = (pairedRows.length < visibleTierRows.length)
+          ? `Priced Set Value (${pairedRows.length}/${visibleTierRows.length} pairs)`
+          : 'Priced Set Value';
+      }
 
       const bEl = document.getElementById('set-val-beta');
       const rEl = document.getElementById('set-val-retail');
       const premEl = document.getElementById('set-val-premium');
-      if (bEl) bEl.textContent = data.beta;
-      if (rEl) rEl.textContent = data.retail;
-      if (premEl) {
-        premEl.textContent = data.premium;
-        premEl.className = data.cls;
+      const bPrices = [];
+      const rPrices = [];
+
+      if (pairedRows.length > 0) {
+        let bSum = 0;
+        let rSum = 0;
+        pairedRows.forEach(row => {
+          const bp = parseNum(row.dataset.bPrice, 0);
+          const rp = parseNum(row.dataset.rPrice, 0);
+          bSum += bp;
+          rSum += rp;
+          bPrices.push(bp);
+          rPrices.push(rp);
+        });
+        const spDlr = bSum - rSum;
+        const spPct = rSum > 0 ? (spDlr / rSum * 100) : 0;
+        const sign = spDlr > 0 ? '+' : '';
+        const dlrTxt = spDlr > 0 ? `+${fmtCurrency(spDlr)}` : (spDlr < 0 ? `-${fmtCurrency(Math.abs(spDlr))}` : '$0.00');
+        const cls = spDlr > 0 ? 'comp-premium-pos' : (spDlr < 0 ? 'comp-premium-neg' : '');
+        if (bEl) bEl.textContent = fmtCurrency(bSum);
+        if (rEl) rEl.textContent = fmtCurrency(rSum);
+        if (premEl) {
+          premEl.textContent = `${dlrTxt} (${sign}${spPct.toFixed(1)}%)`;
+          premEl.className = cls;
+        }
+      } else {
+        if (bEl) bEl.textContent = 'N/A';
+        if (rEl) rEl.textContent = 'N/A';
+        if (premEl) {
+          premEl.textContent = 'N/A';
+          premEl.className = '';
+        }
       }
 
-      if (data.b_dist && data.r_dist) {
-        const ids = ['min', 'p25', 'med', 'p75', 'max'];
-        ids.forEach((k, idx) => {
-          const be = document.getElementById(`dist-b-${k}`);
-          const re = document.getElementById(`dist-r-${k}`);
-          if (be) be.textContent = data.b_dist[idx];
-          if (re) re.textContent = data.r_dist[idx];
-        });
-      }
+      const bDist = computeQuantilesJS(bPrices);
+      const rDist = computeQuantilesJS(rPrices);
+      const ids = ['min', 'p25', 'med', 'p75', 'max'];
+      ids.forEach((k, idx) => {
+        const be = document.getElementById(`dist-b-${k}`);
+        const re = document.getElementById(`dist-r-${k}`);
+        if (be) be.textContent = bDist[idx];
+        if (re) re.textContent = rDist[idx];
+      });
+    }
+
+    function setPricedSetTier(tier) {
+      activePricedSetTier = tier;
+      document.querySelectorAll('.comp-pill-btn').forEach(btn => btn.classList.remove('is-active'));
+      const activeBtn = document.getElementById(`pill-tier-${tier}`);
+      if (activeBtn) activeBtn.classList.add('is-active');
+      syncComparisonOverview();
     }
 
     function toggleTierStats(code) {
@@ -1763,16 +1816,17 @@ _DASHBOARD_JS_BODY = r"""    let currentEdition = 'beta';
           if (!tbody) return;
           const tableRows = Array.from(tbody.querySelectorAll('tr.comp-row'));
           tableRows.sort((a, b) => {
-            if (sort === 'price-desc') return (parseFloat(b.dataset.bPrice) || 0) - (parseFloat(a.dataset.bPrice) || 0);
-            if (sort === 'price-asc') return (parseFloat(a.dataset.bPrice) || 0) - (parseFloat(b.dataset.bPrice) || 0);
+            if (sort === 'price-desc') return compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, -1);
+            if (sort === 'price-asc') return compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, 1);
             if (sort === 'gain-desc' || sort === 'gain-all-desc' || sort === 'gain-acq-desc') {
-              return (parseFloat(b.dataset.spreadPct) || -999999) - (parseFloat(a.dataset.spreadPct) || -999999);
+              return compareNullableNums(a.dataset.spreadPct, b.dataset.spreadPct, -1);
             }
             return (parseInt(a.dataset.num) || 0) - (parseInt(b.dataset.num) || 0);
           });
           tableRows.forEach(row => tbody.appendChild(row));
         });
 
+        syncComparisonOverview();
         countDisplay.textContent = `Showing ${totalVisible} of ${totalCardCount} cards`;
         const hasActiveFilters = Boolean(q || r.length > 0 || c.length > 0 || t.length > 0 || o.length > 0);
         const resetBtn = document.getElementById('btn-reset-filters');
@@ -1802,12 +1856,13 @@ _DASHBOARD_JS_BODY = r"""    let currentEdition = 'beta';
           const rarity = tile.dataset.rarity;
           const color = tile.dataset.color;
           const cardType = tile.dataset.type;
+          const isOwned = (parseInt(tile.dataset.ownedQty, 10) || 0) > 0;
 
           const matchesQ = !q || name.includes(q) || num.includes(q) || cleanNum.includes(q);
           const matchesR = r.length === 0 || r.includes(rarity);
           const matchesC = c.length === 0 || c.includes(color);
           const matchesT = t.length === 0 || t.includes(cardType);
-          const matchesO = o.length === 0 || (o.includes('owned') && tile.dataset.hasAcq === '1') || (o.includes('unowned') && tile.dataset.hasAcq === '0');
+          const matchesO = o.length === 0 || (o.includes('owned') && isOwned) || (o.includes('unowned') && !isOwned);
 
           if (matchesQ && matchesR && matchesC && matchesT && matchesO) {
             tile.style.display = 'flex';
@@ -1930,10 +1985,10 @@ _DASHBOARD_JS_BODY = r"""    let currentEdition = 'beta';
           if (col === 'num') return dir * ((parseInt(a.dataset.num) || 0) - (parseInt(b.dataset.num) || 0));
           if (col === 'name') return dir * a.dataset.name.localeCompare(b.dataset.name);
           if (col === 'type') return dir * a.dataset.type.localeCompare(b.dataset.type);
-          if (col === 'b_price') return dir * ((parseFloat(a.dataset.bPrice) || 0) - (parseFloat(b.dataset.bPrice) || 0));
-          if (col === 'r_price') return dir * ((parseFloat(a.dataset.rPrice) || 0) - (parseFloat(b.dataset.rPrice) || 0));
-          if (col === 'spread_dlr') return dir * ((parseFloat(a.dataset.spreadDlr) || 0) - (parseFloat(b.dataset.spreadDlr) || 0));
-          if (col === 'spread_pct') return dir * ((parseFloat(a.dataset.spreadPct) || 0) - (parseFloat(b.dataset.spreadPct) || 0));
+          if (col === 'b_price') return compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, dir);
+          if (col === 'r_price') return compareNullableNums(a.dataset.rPrice, b.dataset.rPrice, dir);
+          if (col === 'spread_dlr') return compareNullableNums(a.dataset.spreadDlr, b.dataset.spreadDlr, dir);
+          if (col === 'spread_pct') return compareNullableNums(a.dataset.spreadPct, b.dataset.spreadPct, dir);
           if (col === 'b_owned') return dir * ((parseInt(a.dataset.ownedB) || 0) - (parseInt(b.dataset.ownedB) || 0));
           if (col === 'r_owned') return dir * ((parseInt(a.dataset.ownedR) || 0) - (parseInt(b.dataset.ownedR) || 0));
           return 0;
@@ -2124,7 +2179,7 @@ def _render_tier_sections(
                     else f'<span class="truncate">{safe_name_body}</span>'
                 )
 
-                parts.append(f"""      <div class="card-tile" data-edition="{edition_name}" data-pid="{safe_pid}" data-num="{safe_pnum}" data-name="{safe_name_attr}" data-rarity="{t['rarity']}" data-color="{safe_color}" data-type="{safe_type}" data-price="{t['currentPrice']}" data-c7d="{t['change7dPct']}" data-call="{t['changeAllPct']}" data-has-acq="{has_acq_attr}" data-cacq="{cacq_attr}"{disp_style}>
+                parts.append(f"""      <div class="card-tile" data-edition="{edition_name}" data-pid="{safe_pid}" data-num="{safe_pnum}" data-name="{safe_name_attr}" data-rarity="{t['rarity']}" data-color="{safe_color}" data-type="{safe_type}" data-price="{t['currentPrice']}" data-c7d="{t['change7dPct']}" data-call="{t['changeAllPct']}" data-has-acq="{has_acq_attr}" data-cacq="{cacq_attr}" data-owned-qty="{t.get('ownedQty', 0)}"{disp_style}>
         <div>
           <div class="card-header">
             <span class="card-num">#{safe_pnum}</span>
@@ -2156,62 +2211,48 @@ def _render_tier_sections(
     return "".join(parts)
 
 
-def _render_comparison_view(
-    comp_pairs: List[Dict[str, Any]],
-    compute_quantiles_fn: Callable[[List[float]], Tuple[Optional[float], Optional[float], Optional[float], Optional[float], Optional[float]]],
-) -> Tuple[str, Dict[str, Dict[str, Any]]]:
+def _render_comparison_view(comp_pairs: List[Dict[str, Any]]) -> str:
     b_total_owned_cards = sum(p["beta_owned"] for p in comp_pairs)
     b_total_owned_val = sum(p["beta_owned"] * (p["beta_price"] or 0.0) for p in comp_pairs)
     r_total_owned_cards = sum(p["retail_owned"] for p in comp_pairs)
     r_total_owned_val = sum(p["retail_owned"] * (p["retail_price"] or 0.0) for p in comp_pairs)
 
-    priced_set_tier_data: Dict[str, Dict[str, Any]] = {}
-    tier_buckets = [
-        ("all", comp_pairs),
-        ("IL", [p for p in comp_pairs if p["rarity"] == "IL"]),
-        ("IO", [p for p in comp_pairs if p["rarity"] == "IO"]),
-        ("IS", [p for p in comp_pairs if p["rarity"] == "IS"]),
-    ]
+    paired_all = [p for p in comp_pairs if p["is_paired"]]
+    title_str = (
+        f"Priced Set Value ({len(paired_all)}/{len(comp_pairs)} pairs)"
+        if len(paired_all) < len(comp_pairs)
+        else "Priced Set Value"
+    )
+    if paired_all:
+        b_sum = sum(p["beta_price"] for p in paired_all)
+        r_sum = sum(p["retail_price"] for p in paired_all)
+        sp_dlr = b_sum - r_sum
+        sp_pct = (sp_dlr / r_sum * 100.0) if r_sum > 0 else 0.0
+        s_cls = "comp-premium-pos" if sp_dlr > 0 else ("comp-premium-neg" if sp_dlr < 0 else "")
+        s_sign = "+" if sp_dlr > 0 else ""
 
-    for key, all_in_bucket in tier_buckets:
-        paired = [p for p in all_in_bucket if p["is_paired"]]
-        title_str = (
-            f"Priced Set Value ({len(paired)}/{len(all_in_bucket)} pairs)"
-            if len(paired) < len(all_in_bucket)
-            else "Priced Set Value"
-        )
-        if paired:
-            b_sum = sum(p["beta_price"] for p in paired)
-            r_sum = sum(p["retail_price"] for p in paired)
-            sp_dlr = b_sum - r_sum
-            sp_pct = (sp_dlr / r_sum * 100.0) if r_sum > 0 else 0.0
-            s_cls = "comp-premium-pos" if sp_dlr > 0 else ("comp-premium-neg" if sp_dlr < 0 else "")
-            s_sign = "+" if sp_dlr > 0 else ""
+        b_q = compute_quantiles([p["beta_price"] for p in paired_all])
+        r_q = compute_quantiles([p["retail_price"] for p in paired_all])
 
-            b_q = compute_quantiles_fn([p["beta_price"] for p in paired])
-            r_q = compute_quantiles_fn([p["retail_price"] for p in paired])
-
-            priced_set_tier_data[key] = {
-                "title": title_str,
-                "beta": f"${b_sum:,.2f}",
-                "retail": f"${r_sum:,.2f}",
-                "premium": f"{_fmt_currency_delta(sp_dlr)} ({s_sign}{sp_pct:.1f}%)",
-                "cls": s_cls,
-                "b_dist": [_fmt_quant_stat(x) for x in b_q],
-                "r_dist": [_fmt_quant_stat(x) for x in r_q],
-            }
-        else:
-            priced_set_tier_data[key] = {
-                "title": title_str,
-                "beta": "N/A",
-                "retail": "N/A",
-                "premium": "N/A",
-                "cls": "",
-                "b_dist": ["N/A"] * 5,
-                "r_dist": ["N/A"] * 5,
-            }
-
-    all_info = priced_set_tier_data["all"]
+        all_info = {
+            "title": title_str,
+            "beta": f"${b_sum:,.2f}",
+            "retail": f"${r_sum:,.2f}",
+            "premium": f"{_fmt_currency_delta(sp_dlr)} ({s_sign}{sp_pct:.1f}%)",
+            "cls": s_cls,
+            "b_dist": [_fmt_quant_stat(x) for x in b_q],
+            "r_dist": [_fmt_quant_stat(x) for x in r_q],
+        }
+    else:
+        all_info = {
+            "title": title_str,
+            "beta": "N/A",
+            "retail": "N/A",
+            "premium": "N/A",
+            "cls": "",
+            "b_dist": ["N/A"] * 5,
+            "r_dist": ["N/A"] * 5,
+        }
     b_all_dist = all_info["b_dist"]
     r_all_dist = all_info["r_dist"]
 
@@ -2323,7 +2364,7 @@ def _render_comparison_view(
                 sp_dlr_str = "N/A"
                 sp_pct_str = "N/A"
 
-            parts.append(f"""            <tr class="comp-row" data-paired="{'1' if p['is_paired'] else '0'}" data-name="{html.escape(p['name'].lower(), quote=True)}" data-num="{html.escape(p['num'], quote=True)}" data-rarity="{p['rarity']}" data-color="{html.escape(p['color'], quote=True)}" data-type="{html.escape(p['cardType'], quote=True)}" data-b-price="{b_p or 0}" data-r-price="{r_p or 0}" data-spread-dlr="{p['spread_dlr'] if p['spread_dlr'] is not None else ''}" data-spread-pct="{p['spread_pct'] if p['spread_pct'] is not None else ''}" data-owned-b="{p['beta_owned']}" data-owned-r="{p['retail_owned']}">
+            parts.append(f"""            <tr class="comp-row" data-paired="{'1' if p['is_paired'] else '0'}" data-name="{html.escape(p['name'].lower(), quote=True)}" data-num="{html.escape(p['num'], quote=True)}" data-rarity="{p['rarity']}" data-color="{html.escape(p['color'], quote=True)}" data-type="{html.escape(p['cardType'], quote=True)}" data-b-price="{b_p if b_p is not None else ''}" data-r-price="{r_p if r_p is not None else ''}" data-spread-dlr="{p['spread_dlr'] if p['spread_dlr'] is not None else ''}" data-spread-pct="{p['spread_pct'] if p['spread_pct'] is not None else ''}" data-owned-b="{p['beta_owned']}" data-owned-r="{p['retail_owned']}">
               <td style="text-align:center;" class="comp-table-mono">{html.escape(p['num'])}</td>
               <td><div class="comp-card-name"><span class="color-dot color-{html.escape(p['color'], quote=True)}"></span><span>{html.escape(p['name'])}</span></div></td>
               <td style="text-align:center;">{html.escape(p['cardType'])}</td>
@@ -2379,7 +2420,7 @@ def _render_comparison_view(
 """)
 
     parts.append("  </div>\n")
-    return "".join(parts), priced_set_tier_data
+    return "".join(parts)
 
 
 def generate_html_dashboard(
@@ -2387,19 +2428,17 @@ def generate_html_dashboard(
     prices_dir: Path,
     collection_path: Optional[str],
     output_path: str,
-    database_path: Optional[str],
-    extract_price_fn: Callable[[Any, str], Optional[float]],
-    compute_quantiles_fn: Callable[[List[float]], Tuple[Optional[float], Optional[float], Optional[float], Optional[float], Optional[float]]],
+    database_path: Optional[str] = None,
+    earliest_beta_date: Optional[str] = EARLIEST_BETA_DATE,
+    earliest_retail_date: Optional[str] = EARLIEST_RETAIL_DATE,
 ) -> None:
     """
     Generates the interactive standalone HTML comparison and trajectory dashboard for WNC Iconics.
     """
     all_dates, price_by_date = load_daily_prices_chronological(prices_dir)
 
-    beta_pids = [p.beta_product_id for p in pairs]
-    retail_pids = [p.retail_product_id for p in pairs]
-    beta_dates = _resolve_edition_dates(all_dates, price_by_date, beta_pids, EARLIEST_BETA_DATE)
-    retail_dates = _resolve_edition_dates(all_dates, price_by_date, retail_pids, EARLIEST_RETAIL_DATE)
+    beta_dates = _filter_dates_from(all_dates, earliest_beta_date)
+    retail_dates = _filter_dates_from(all_dates, earliest_retail_date)
 
     earliest_beta = beta_dates[0] if beta_dates else (all_dates[0] if all_dates else None)
     earliest_retail = retail_dates[0] if retail_dates else (all_dates[0] if all_dates else None)
@@ -2417,7 +2456,6 @@ def generate_html_dashboard(
         dates=beta_dates,
         price_by_date=price_by_date,
         acquisitions=acquisitions,
-        extract_price_fn=extract_price_fn,
     )
     retail_trajectories = build_edition_trajectories(
         pairs=pairs,
@@ -2425,7 +2463,6 @@ def generate_html_dashboard(
         dates=retail_dates,
         price_by_date=price_by_date,
         acquisitions=acquisitions,
-        extract_price_fn=extract_price_fn,
     )
 
     for t in retail_trajectories:
@@ -2436,11 +2473,11 @@ def generate_html_dashboard(
         t["svgChart"] = generate_svg_chart(t["points"], card_id=f"b_{t['productId']}", acq_info=acq_info)
 
     r_stats = {
-        code: _compute_tier_stats([t for t in retail_trajectories if t["rarity"] == code], compute_quantiles_fn)
+        code: _compute_tier_stats([t for t in retail_trajectories if t["rarity"] == code])
         for code in ("IL", "IO", "IS")
     }
     b_stats = {
-        code: _compute_tier_stats([t for t in beta_trajectories if t["rarity"] == code], compute_quantiles_fn)
+        code: _compute_tier_stats([t for t in beta_trajectories if t["rarity"] == code])
         for code in ("IL", "IO", "IS")
     }
 
@@ -2486,7 +2523,7 @@ def generate_html_dashboard(
     }
 
     tier_sections_html = _render_tier_sections(retail_trajectories, beta_trajectories, r_stats, b_stats)
-    comp_view_html, priced_set_tier_data = _render_comparison_view(comp_pairs, compute_quantiles_fn)
+    comp_view_html = _render_comparison_view(comp_pairs)
     total_card_count = len(beta_trajectories)
 
     html_content = f"""<!DOCTYPE html>
@@ -2624,7 +2661,6 @@ def generate_html_dashboard(
   <script>
     const totalCardCount = {total_card_count};
     const snapshotTemplates = {serialize_json_for_script(snapshot_templates)};
-    const pricedSetTierData = {serialize_json_for_script(priced_set_tier_data)};
 {_DASHBOARD_JS_BODY}"""
 
     out_file = Path(output_path)

@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path
+import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
@@ -30,6 +31,7 @@ from tracker.iconics import (
 from tracker.iconics_html import (
     build_edition_trajectories,
     generate_html_dashboard,
+    load_collection_acquisitions,
     serialize_json_for_script,
 )
 from tracker.validation import CollectionValidationError
@@ -379,8 +381,8 @@ class TestIconicsEngine(unittest.TestCase):
             collection_path=None,
             output_path=str(out_html),
             database_path=None,
-            extract_price_fn=extract_finish_price,
-            compute_quantiles_fn=compute_quantiles,
+            earliest_beta_date=None,
+            earliest_retail_date=None,
         )
 
         content = out_html.read_text(encoding="utf-8")
@@ -424,8 +426,8 @@ class TestIconicsEngine(unittest.TestCase):
             collection_path=None,
             output_path=str(out_incomplete),
             database_path=None,
-            extract_price_fn=extract_finish_price,
-            compute_quantiles_fn=compute_quantiles,
+            earliest_beta_date=None,
+            earliest_retail_date=None,
         )
         content = out_incomplete.read_text(encoding="utf-8")
         # Paired subset sums strictly over p1 ($100.00 / $80.00), excluding unpaired $58.41
@@ -445,8 +447,8 @@ class TestIconicsEngine(unittest.TestCase):
             collection_path=None,
             output_path=str(out_complete),
             database_path=None,
-            extract_price_fn=extract_finish_price,
-            compute_quantiles_fn=compute_quantiles,
+            earliest_beta_date=None,
+            earliest_retail_date=None,
         )
         complete_content = out_complete.read_text(encoding="utf-8")
         self.assertIn('<div class="comp-card-title" id="set-val-title">Priced Set Value</div>', complete_content)
@@ -469,7 +471,6 @@ class TestIconicsEngine(unittest.TestCase):
             dates=["2026-09-13", "2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17"],
             price_by_date=price_by_date,
             acquisitions={},
-            extract_price_fn=extract_finish_price,
         )
         self.assertEqual(len(trajs), 1)
         t = trajs[0]
@@ -515,8 +516,8 @@ class TestIconicsEngine(unittest.TestCase):
             collection_path=str(col_csv),
             output_path=str(out_html),
             database_path=None,
-            extract_price_fn=extract_finish_price,
-            compute_quantiles_fn=compute_quantiles,
+            earliest_beta_date="2026-09-13",
+            earliest_retail_date=None,
         )
         content = out_html.read_text(encoding="utf-8")
         self.assertIn("<svg viewBox=", content)
@@ -539,6 +540,134 @@ class TestIconicsEngine(unittest.TestCase):
                 prices_dir=self.prices_dir,
                 collection_path=str(bad_csv),
             )
+        with self.assertRaises(CollectionValidationError):
+            load_collection_acquisitions(
+                collection_path=str(bad_csv),
+                database_path=None,
+                earliest_beta_date=None,
+                earliest_retail_date=None,
+            )
+
+    def test_acquisitions_keyed_by_finish_separates_standard_and_foil(self):
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 80.0, 60.0, 20.0, 33.3, 1, 0)
+        csv_path = self.test_dir / "mixed_finishes.csv"
+        csv_path.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            "Card 1,Welcome to Night City - Beta,B141,Standard,3,2026-09-13\n"
+            "Card 1,Welcome to Night City - Beta,B141,Foil,1,2026-09-14\n",
+            encoding="utf-8",
+        )
+        acqs = load_collection_acquisitions(
+            collection_path=str(csv_path),
+            database_path=None,
+            earliest_beta_date="2026-09-13",
+            earliest_retail_date=None,
+        )
+        self.assertEqual(acqs[("Welcome to Night City - Beta", "B141", "Standard")]["date"], "2026-09-13")
+        self.assertEqual(acqs[("Welcome to Night City - Beta", "B141", "Foil")]["date"], "2026-09-14")
+
+        price_by_date = {
+            "2026-09-13": {"101": {"Foil": {"marketPrice": 40.0}}},
+            "2026-09-14": {"101": {"Foil": {"marketPrice": 55.0}}},
+            "2026-09-15": {"101": {"Foil": {"marketPrice": 80.0}}},
+        }
+        trajs = build_edition_trajectories(
+            pairs=[p1],
+            edition="beta",
+            dates=["2026-09-13", "2026-09-14", "2026-09-15"],
+            price_by_date=price_by_date,
+            acquisitions=acqs,
+        )
+        # Must select Foil acquisition (2026-09-14 -> $55.00), not merged Standard lot (2026-09-13)
+        self.assertEqual(trajs[0]["acqDate"], "2026-09-14")
+        self.assertAlmostEqual(trajs[0]["acqCost"], 55.0)
+
+    def test_7d_change_uses_calendar_days_and_undated_owned_has_qty_attr(self):
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 75.0, 60.0, 15.0, 25.0, 2, 0, color="Red", card_type="Legend")
+        p_dir = self.test_dir / "gap_prices"
+        p_dir.mkdir(parents=True, exist_ok=True)
+        for d, val in [("2026-11-01", 50.0), ("2026-11-06", 60.0), ("2026-11-11", 75.0)]:
+            (p_dir / f"{d}.json").write_text(json.dumps({
+                "date": d,
+                "prices": {"101": {"Foil": {"marketPrice": val}}, "102": {"Foil": {"marketPrice": val - 10}}},
+            }), encoding="utf-8")
+
+        # Owned quantity=2 with blank notes -> no acquisition date, but still owned!
+        undated_csv = self.test_dir / "undated_owned.csv"
+        undated_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            "Card 1,Welcome to Night City - Beta,B141,Foil,2,\n",
+            encoding="utf-8",
+        )
+        out_html = self.test_dir / "gap_owned.html"
+        generate_html_dashboard(
+            pairs=[p1],
+            prices_dir=p_dir,
+            collection_path=str(undated_csv),
+            output_path=str(out_html),
+            database_path=None,
+            earliest_beta_date=None,
+            earliest_retail_date=None,
+        )
+        content = out_html.read_text(encoding="utf-8")
+        # 7 calendar days before 2026-11-11 is 2026-11-04 -> carried-forward $50.00 (delta +$25.00 / +50.0%)
+        self.assertIn("+$25.00 (+50.0%)", content)
+        self.assertIn('data-has-acq="0" data-cacq="" data-owned-qty="2"', content)
+        self.assertIn("tile.dataset.ownedQty", content)
+        self.assertIn("compareNullableNums", content)
+
+    def test_sqlite_baseline_override_and_error_warning(self):
+        p1 = IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 80.0, 60.0, 20.0, 33.3, 1, 0, color="Red", card_type="Legend")
+        p_dir = self.test_dir / "db_prices"
+        p_dir.mkdir(parents=True, exist_ok=True)
+        (p_dir / "2026-11-09.json").write_text(json.dumps({
+            "date": "2026-11-09",
+            "prices": {"101": {"Foil": {"marketPrice": 80.0}}, "102": {"Foil": {"marketPrice": 60.0}}},
+        }), encoding="utf-8")
+
+        col_csv = self.test_dir / "db_col.csv"
+        col_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            "Card 1,Welcome to Night City - Beta,B141,Foil,1,2026-11-09\n",
+            encoding="utf-8",
+        )
+        db_path = self.test_dir / "test_meta.db"
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE card_metadata (expansion TEXT, print_number TEXT, finish TEXT, first_seen_date TEXT, baseline_market_price REAL)"
+        )
+        conn.execute(
+            "INSERT INTO card_metadata VALUES (?, ?, ?, ?, ?)",
+            ("Welcome to Night City - Beta", "B141", "Foil", "2026-11-09", 45.25),
+        )
+        conn.commit()
+        conn.close()
+
+        out_html = self.test_dir / "db_out.html"
+        generate_html_dashboard(
+            pairs=[p1],
+            prices_dir=p_dir,
+            collection_path=str(col_csv),
+            output_path=str(out_html),
+            database_path=str(db_path),
+            earliest_beta_date=None,
+            earliest_retail_date=None,
+        )
+        content = out_html.read_text(encoding="utf-8")
+        self.assertIn("$45.25", content)
+
+        # Unreadable/corrupt SQLite DB logs warning to stderr instead of failing silently
+        bad_db = self.test_dir / "corrupt.db"
+        bad_db.write_text("not a sqlite database", encoding="utf-8")
+        stderr_buf = io.StringIO()
+        with patch("sys.stderr", stderr_buf):
+            load_collection_acquisitions(
+                collection_path=str(col_csv),
+                database_path=str(bad_db),
+                earliest_beta_date=None,
+                earliest_retail_date=None,
+            )
+        self.assertIn("Warning: Could not read card_metadata", stderr_buf.getvalue())
 
     def test_inline_script_json_and_html_escaping(self):
         malicious = '</script><img src=x onerror=alert(1)>'
@@ -554,8 +683,8 @@ class TestIconicsEngine(unittest.TestCase):
             collection_path=None,
             output_path=str(out_html),
             database_path=None,
-            extract_price_fn=extract_finish_price,
-            compute_quantiles_fn=compute_quantiles,
+            earliest_beta_date=None,
+            earliest_retail_date=None,
         )
         content = out_html.read_text(encoding="utf-8")
         self.assertNotIn("<img src=x onerror=alert(1)>", content)
