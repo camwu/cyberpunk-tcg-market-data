@@ -388,7 +388,7 @@ class TestIconicsEngine(unittest.TestCase):
 
         content = out_html.read_text(encoding="utf-8")
         self.assertIn("Welcome to Night City &ndash; Iconic Price Trajectories", content)
-        self.assertIn("Priced Set Value (0/1 pairs)", content)
+        self.assertIn("Iconics Set Value (0/1 pairs)", content)
         self.assertIn("Total (0/1 pairs)", content)
         self.assertIn('<span id="dist-b-med" class="comp-distro-med-val">N/A</span>', content)
         self.assertIn("Card 1", content)
@@ -432,7 +432,7 @@ class TestIconicsEngine(unittest.TestCase):
         )
         content = out_incomplete.read_text(encoding="utf-8")
         # Paired subset sums strictly over p1 ($100.00 / $80.00), excluding unpaired $58.41
-        self.assertIn("Priced Set Value (1/2 pairs)", content)
+        self.assertIn("Iconics Set Value (1/2 pairs)", content)
         self.assertIn('<span style="color:#58a6ff;" id="set-val-beta">$100.00</span>', content)
         self.assertIn('<span style="color:#8b949e;" id="set-val-retail">$80.00</span>', content)
         self.assertIn('id="total-label-IL">Total (1/2 pairs)</td>', content)
@@ -452,7 +452,8 @@ class TestIconicsEngine(unittest.TestCase):
             earliest_retail_date=None,
         )
         complete_content = out_complete.read_text(encoding="utf-8")
-        self.assertIn('<div class="comp-card-title" id="set-val-title">Priced Set Value</div>', complete_content)
+        self.assertIn('<div class="comp-card-title" id="set-val-title">Iconics Set Value</div>', complete_content)
+        self.assertIn('<div class="comp-card-title">Owned Iconics Value</div>', complete_content)
         self.assertIn('id="total-label-IL">Total</td>', complete_content)
         complete_html_body = complete_content.split("<script>")[0]
         self.assertNotIn("pairs)", complete_html_body)
@@ -714,7 +715,8 @@ class TestIconicsEngine(unittest.TestCase):
         self.assertIn("    N/A", others_line)
         self.assertEqual(len(legends_line), len(others_line))
 
-        # Check Owned Collection Value block
+        # Check Owned Iconics Value block
+        self.assertIn("Owned Iconics Value:", summary)
         beta_line = next(l for l in lines if l.startswith("  Beta (27 cards):"))
         retail_line = next(l for l in lines if l.startswith("  Retail (0 cards):"))
         total_line = next(l for l in lines if l.startswith("  Total:"))
@@ -827,7 +829,7 @@ class TestIconicsEngine(unittest.TestCase):
         )
         content = out_html.read_text(encoding="utf-8")
         # Comparison view still reflects paired console summary totals ($100.00 / $60.00)
-        self.assertIn("Priced Set Value (1/2 pairs)", content)
+        self.assertIn("Iconics Set Value (1/2 pairs)", content)
         self.assertIn('id="set-val-beta">$100.00</span>', content)
         self.assertIn('id="set-val-retail">$60.00</span>', content)
         # Unpriced trajectory tile uses empty nullable numeric data attributes for bottom sorting
