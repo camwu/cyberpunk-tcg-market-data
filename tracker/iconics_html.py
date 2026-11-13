@@ -1466,8 +1466,8 @@ _DASHBOARD_JS_BODY = r"""    let currentEdition = 'beta';
       const titleEl = document.getElementById('set-val-title');
       if (titleEl) {
         titleEl.textContent = (pairedRows.length < visibleTierRows.length)
-          ? `Priced Set Value (${pairedRows.length}/${visibleTierRows.length} pairs)`
-          : 'Priced Set Value';
+          ? `Iconics Set Value (${pairedRows.length}/${visibleTierRows.length} pairs)`
+          : 'Iconics Set Value';
       }
 
       const bEl = document.getElementById('set-val-beta');
@@ -2278,9 +2278,9 @@ def _render_comparison_view(comp_pairs: List[Dict[str, Any]]) -> str:
 
     paired_all = [p for p in comp_pairs if p["is_paired"]]
     title_str = (
-        f"Priced Set Value ({len(paired_all)}/{len(comp_pairs)} pairs)"
+        f"Iconics Set Value ({len(paired_all)}/{len(comp_pairs)} pairs)"
         if len(paired_all) < len(comp_pairs)
-        else "Priced Set Value"
+        else "Iconics Set Value"
     )
     if paired_all:
         b_sum = sum(p["beta_price"] for p in paired_all)
@@ -2359,7 +2359,7 @@ def _render_comparison_view(comp_pairs: List[Dict[str, Any]]) -> str:
         </div>
       </div>
       <div class="comp-card">
-        <div class="comp-card-title">Owned Collection Value</div>
+        <div class="comp-card-title">Owned Iconics Value</div>
         <div class="comp-card-val">${b_total_owned_val + r_total_owned_val:,.2f} <span style="font-size:13px;color:var(--text-muted);font-weight:normal;">({b_total_owned_cards + r_total_owned_cards} total)</span></div>
         <div class="comp-card-sub">
           <div>Beta: {b_total_owned_cards} cards (${b_total_owned_val:,.2f})</div>

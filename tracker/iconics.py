@@ -534,7 +534,7 @@ def format_console_summary(
     tot_r_str = f"{total_retail_owned_distinct:>2}/{total_pairs_count}"
     lines.append(f"Total ({total_pairs_count})         {tot_b_str}         {tot_r_str}")
     lines.append("")
-    lines.append("Owned Collection Value:")
+    lines.append("Owned Iconics Value:")
     b_val_str = f"${beta_owned_val:,.2f}"
     r_val_str = f"${retail_owned_val:,.2f}"
     tot_val_str = f"${total_owned_val:,.2f}"
