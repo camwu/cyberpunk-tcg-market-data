@@ -14,8 +14,8 @@ if %ERRORLEVEL% neq 0 (
 
 set "REPORT="
 if exist "%REPO_ROOT%\.latest_iconics_report" set /p REPORT=<"%REPO_ROOT%\.latest_iconics_report"
-if not defined REPORT if exist "wnc_iconics_comparison.md" set "REPORT=%CD%\wnc_iconics_comparison.md"
-if not defined REPORT if exist "%REPO_ROOT%\wnc_iconics_comparison.md" set "REPORT=%REPO_ROOT%\wnc_iconics_comparison.md"
+if not defined REPORT if exist "wnc_iconic_price_trajectories.html" set "REPORT=%CD%\wnc_iconic_price_trajectories.html"
+if not defined REPORT if exist "%REPO_ROOT%\wnc_iconic_price_trajectories.html" set "REPORT=%REPO_ROOT%\wnc_iconic_price_trajectories.html"
 
 if defined REPORT start "" "%REPORT%"
 exit /b 0

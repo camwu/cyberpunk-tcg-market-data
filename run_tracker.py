@@ -120,7 +120,7 @@ def build_compare_iconics_parser() -> argparse.ArgumentParser:
         prog="run_tracker.py compare-iconics",
         description="Compare market prices and collection ownership across Welcome to Night City Iconic card pairs.",
     )
-    parser.add_argument("--output", "-o", dest="output_path", help="Override destination path for the Markdown comparison report.")
+    parser.add_argument("--output", "-o", dest="output_path", help="Override destination path for the HTML comparison dashboard.")
     parser.add_argument("--collection", dest="collection_csv", help="Override active collection CSV path.")
     parser.add_argument(
         "--sync-collection",
@@ -147,52 +147,45 @@ def handle_compare_iconics_subcommand(
 
     if explicit_col:
         target_path = cfg.collection_csv
-    elif cfg.cardnexus_api_key:
-        if os.path.isdir(cfg.collection_csv):
-            target_path = os.path.join(cfg.collection_csv, "active_collection.csv")
-        else:
-            collection_dir = os.path.dirname(cfg.collection_csv) or "data"
-            target_path = os.path.join(collection_dir, "active_collection.csv")
     else:
-        target_path = cfg.collection_csv
-
-    if args.sync_collection:
-        if not cfg.cardnexus_api_key:
+        if args.sync_collection and not cfg.cardnexus_api_key:
             print("Error: CARDNEXUS_API_KEY is not configured. Cannot synchronize collection.", file=sys.stderr)
             return 1
-        print("\n--- Synchronizing Collection from CardNexus API ---")
-        try:
-            success, _, _ = sync_cardnexus_collection(
-                target_csv=target_path,
-                api_key=cfg.cardnexus_api_key,
-            )
-        except CollectionValidationError as e:
-            print(f"Error: CardNexus collection validation failed: {e}", file=sys.stderr)
-            return 1
-        if not success:
+        sync_args = argparse.Namespace(
+            import_path=None,
+            sync_collection=True if args.sync_collection else None,
+            collection_csv=None,
+            collection_target=None,
+            include_marketplace=True,
+            refresh_catalog=False,
+        )
+        sync_res = resolve_and_sync_collection(sync_args, cfg)
+        if args.sync_collection and sync_res.collection_source == "CardNexus API (fallback)":
             print("Error: CardNexus collection synchronization failed.", file=sys.stderr)
             return 1
-    else:
-        if not os.path.isfile(target_path):
-            print(
-                f"Error: Collection file not found at '{target_path}'. "
-                "Run with --sync-collection to download active collection, or provide --collection.",
-                file=sys.stderr,
-            )
-            return 1
+        target_path = sync_res.collection_path
+
+    if not os.path.isfile(target_path):
+        print(
+            f"Error: Collection file not found at '{target_path}'. "
+            "Run with --sync-collection to download active collection, or provide --collection.",
+            file=sys.stderr,
+        )
+        return 1
 
     target_output = args.output_path
     if not target_output:
         if cfg and getattr(cfg, "output_report", None):
             parent = Path(cfg.output_report).parent
-            target_output = str(parent / "wnc_iconics_comparison.md")
+            target_output = str(parent / "wnc_iconic_price_trajectories.html")
 
     try:
         exit_code, summary_text = run_iconics_comparison(
             output_path=target_output,
             collection_path=target_path,
+            database_path=getattr(cfg, "database_path", None),
         )
-    except (ValueError, FileNotFoundError) as e:
+    except (ValueError, FileNotFoundError, CollectionValidationError) as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
@@ -385,7 +378,8 @@ def resolve_and_sync_collection(args: argparse.Namespace, cfg: Any) -> Collectio
                         include_marketplace=args.include_marketplace,
                         refresh_catalog=args.refresh_catalog,
                     )
-                except CollectionValidationError:
+                except CollectionValidationError as e:
+                    print(f"Error: CardNexus collection validation failed: {e}", file=sys.stderr)
                     sys.exit(1)
                 if success:
                     cfg.collection_csv = target_path

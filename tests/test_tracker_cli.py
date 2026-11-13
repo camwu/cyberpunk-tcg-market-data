@@ -854,10 +854,10 @@ class TestLauncherScripts(unittest.TestCase):
         bat_content = bat_file.read_text(encoding="utf-8")
         sh_content = sh_file.read_text(encoding="utf-8")
         self.assertIn(".latest_iconics_report", bat_content)
-        self.assertIn("wnc_iconics_comparison.md", bat_content)
+        self.assertIn("wnc_iconic_price_trajectories.html", bat_content)
         self.assertIn('if defined REPORT start "" "%REPORT%"', bat_content)
         self.assertIn(".latest_iconics_report", sh_content)
-        self.assertIn("wnc_iconics_comparison.md", sh_content)
+        self.assertIn("wnc_iconic_price_trajectories.html", sh_content)
 
 
 if __name__ == "__main__":
