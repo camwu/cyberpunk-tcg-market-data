@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import statistics
 from typing import Any, List, Optional, Tuple
 
-from tracker.validation import CollectionValidationError, parse_multi_lot_notes
+from tracker.validation import CollectionValidationError, REQUIRED_COLUMNS, parse_multi_lot_notes
 
 
 def normalize_finish(raw_finish: str, default: str = "") -> str:
@@ -78,6 +78,9 @@ def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollec
     validated_rows: List[ValidatedCollectionRow] = []
     with open(collection_path, "r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
+        missing_columns = REQUIRED_COLUMNS - set(reader.fieldnames or [])
+        if missing_columns:
+            raise CollectionValidationError(f"Missing required columns: {sorted(missing_columns)}")
         for row in reader:
             exp = (row.get("expansion") or "").strip()
             pnum = (row.get("printNumber") or "").strip()
@@ -88,7 +91,13 @@ def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollec
             try:
                 qty = int(qty_str)
             except ValueError:
-                qty = 0
+                raise CollectionValidationError(
+                    f"Row {exp} #{pnum}: 'totalQtyOwned' must be an integer (got '{qty_str}')."
+                )
+            if qty < 0:
+                raise CollectionValidationError(
+                    f"Row {exp} #{pnum}: 'totalQtyOwned' must not be negative (got '{qty_str}')."
+                )
 
             lots: List[Tuple[Optional[str], int]] = []
             if qty > 0:

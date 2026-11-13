@@ -160,6 +160,9 @@ def handle_compare_iconics_subcommand(
             refresh_catalog=False,
         )
         sync_res = resolve_and_sync_collection(sync_args, cfg)
+        if args.sync_collection and sync_res.collection_source == "CardNexus API (fallback)":
+            print("Error: CardNexus collection synchronization failed.", file=sys.stderr)
+            return 1
         target_path = sync_res.collection_path
 
     if not os.path.isfile(target_path):

@@ -1054,6 +1054,75 @@ class TestIconicsCLI(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("CardNexus collection validation failed", stderr_buf.getvalue())
 
+    def test_load_validated_collection_rows_validates_columns_and_quantities(self):
+        missing_col_csv = self.test_dir / "missing_col.csv"
+        missing_col_csv.write_text(
+            "name,expansion,printNumber,finish\n"
+            "Card 1,Welcome to Night City - Beta,B141,Foil\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(CollectionValidationError):
+            load_validated_collection_rows(str(missing_col_csv))
+
+        empty_csv = self.test_dir / "empty_headerless.csv"
+        empty_csv.write_text("", encoding="utf-8")
+        with self.assertRaises(CollectionValidationError):
+            load_validated_collection_rows(str(empty_csv))
+
+        non_int_csv = self.test_dir / "non_int_qty.csv"
+        non_int_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "Card 1,Welcome to Night City - Beta,B141,Foil,oops\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(CollectionValidationError):
+            load_validated_collection_rows(str(non_int_csv))
+
+        neg_csv = self.test_dir / "negative_qty.csv"
+        neg_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "Card 1,Welcome to Night City - Beta,B141,Foil,-2\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(CollectionValidationError):
+            load_validated_collection_rows(str(neg_csv))
+
+        zero_csv = self.test_dir / "zero_qty.csv"
+        zero_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "Card 1,Welcome to Night City - Beta,B141,Foil,0\n",
+            encoding="utf-8",
+        )
+        rows = load_validated_collection_rows(str(zero_csv))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].qty, 0)
+
+    @patch("run_tracker.load_config")
+    @patch("run_tracker.resolve_and_sync_collection")
+    @patch("run_tracker.run_iconics_comparison")
+    def test_cli_forced_sync_fallback_exits_1_while_default_fallback_succeeds(self, mock_run, mock_resolve, mock_cfg):
+        mock_cfg.return_value = self.fake_cfg
+        mock_resolve.return_value = run_tracker.CollectionSyncResult(
+            collection_path=str(self.collection_file),
+            collection_source="CardNexus API (fallback)",
+            collection_updated=False,
+        )
+        mock_run.return_value = (0, "OK")
+
+        stderr_buf = io.StringIO()
+        with patch("sys.stderr", stderr_buf):
+            with self.assertRaises(SystemExit) as ctx:
+                run_tracker.main(["compare-iconics", "--sync-collection"])
+        self.assertEqual(ctx.exception.code, 1)
+        self.assertIn("CardNexus collection synchronization failed", stderr_buf.getvalue())
+        mock_run.assert_not_called()
+
+        with patch("sys.stdout", io.StringIO()):
+            with self.assertRaises(SystemExit) as ctx_default:
+                run_tracker.main(["compare-iconics"])
+        self.assertEqual(ctx_default.exception.code, 0)
+        mock_run.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
