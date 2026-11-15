@@ -482,7 +482,10 @@ def load_iconic_pairs(
     Returns (pairs, collection_file_name, collection_mtime_date).
     """
     ctx = _resolve_catalog_context(catalog_context, cards_path, prices_dir)
-    card_items, latest_prices, historical_files, snapshot_cache, _, _ = ctx
+    card_items = ctx.card_items
+    latest_prices = ctx.latest_prices
+    historical_files = ctx.historical_files
+    snapshot_cache = ctx.snapshot_cache
 
     iconic_records = _collect_validated_pair_group(
         card_items=card_items,
@@ -592,7 +595,10 @@ def load_ncb_cards(
     Returns [] when the catalog contains no cards for the set.
     """
     ctx = _resolve_catalog_context(catalog_context, cards_path, prices_dir)
-    card_items, latest_prices, historical_files, snapshot_cache, _, _ = ctx
+    card_items = ctx.card_items
+    latest_prices = ctx.latest_prices
+    historical_files = ctx.historical_files
+    snapshot_cache = ctx.snapshot_cache
 
     ncb_raw_cards: List[Tuple[str, dict]] = []
     for c in card_items:

@@ -1859,6 +1859,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       if (!activeBox || !group) return;
       const isHidden = activeBox.style.display === 'none' || !activeBox.style.display;
       applyTierStatsOpen(code, isHidden);
+      // Persist statsOpen before saveState(), which merges live DOM controls via readOutgoingControls().
       activeSetState = applySetTierStatsToggle(activeSetState, currentSet, code, isHidden, allowNcb);
       saveState();
     }
