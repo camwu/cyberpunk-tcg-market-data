@@ -1426,13 +1426,20 @@ class TestSetTrackerExpansionAndState(unittest.TestCase):
         )
         self.assertEqual(load_ncb_cards(cards_path=self.cards_file, prices_dir=self.prices_dir), [])
 
+        self.collection_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "Adam Smasher,Welcome to Night City - Beta,B141,Foil,1\n",
+            encoding="utf-8",
+        )
         out_html = self.test_dir / "minimal_wnc.html"
-        with patch("tracker.iconics.REPO_ROOT", self.test_dir):
+        with patch("tracker.iconics.REPO_ROOT", self.test_dir), \
+             patch("tracker.iconics.load_config", side_effect=AssertionError("unexpected load_config")):
             rc, summary = run_iconics_comparison(
                 output_path=str(out_html),
-                collection_path=None,
+                collection_path=str(self.collection_csv),
                 cards_path=self.cards_file,
                 prices_dir=self.prices_dir,
+                database_path=None,
             )
         self.assertEqual(rc, 0)
         self.assertNotIn("Night City Brawl S1", summary)
@@ -1929,14 +1936,21 @@ process.stdout.write(JSON.stringify(out));
             }),
             encoding="utf-8",
         )
+        self.collection_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "Adam Smasher,Welcome to Night City - Beta,B141,Foil,1\n",
+            encoding="utf-8",
+        )
         out_html = self.test_dir / "single_catalog_ctx.html"
         with patch("tracker.iconics.REPO_ROOT", self.test_dir), \
+             patch("tracker.iconics.load_config", side_effect=AssertionError("unexpected load_config")), \
              patch("tracker.iconics._load_catalog_and_price_context", wraps=_load_catalog_and_price_context) as mock_ctx:
             rc, _ = run_iconics_comparison(
                 output_path=str(out_html),
-                collection_path=None,
+                collection_path=str(self.collection_csv),
                 cards_path=self.cards_file,
                 prices_dir=self.prices_dir,
+                database_path=None,
             )
         self.assertEqual(rc, 0)
         self.assertEqual(mock_ctx.call_count, 1)
