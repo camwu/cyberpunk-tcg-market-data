@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 import statistics
 import sys
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from tracker.constants import (
     REPO_ROOT,
@@ -29,11 +29,21 @@ from tracker.iconics_common import (
 from tracker.iconics_html import generate_html_dashboard
 from tracker.valuation import sanitize_card_name
 
+WNC_BETA_GROUP = "Welcome to Night City - Beta"
+WNC_RETAIL_GROUP = "Welcome to Night City - Retail"
+WNC_BT_BETA_GROUP = "Box Toppers - Beta"
+WNC_BT_RETAIL_GROUP = "Box Toppers - Retail"
+NCB_S1_GROUP = "Night City Brawl Season 1"
+
 TIER_MAP: Dict[str, str] = {
     "IL": "Legends",
     "IO": "Others",
     "IS": "Secrets",
+    "BT": "Box Toppers",
 }
+
+_ICONIC_TIERS: Set[str] = {"IL", "IO", "IS"}
+_BOX_TOPPER_RAW_RARITIES: Set[str] = {"NR", "Nova Rare"}
 
 
 @dataclass
@@ -52,11 +62,27 @@ class IconicCardPair:
     retail_owned: int
     color: Optional[str] = None
     card_type: Optional[str] = None
+    beta_expansion: str = WNC_BETA_GROUP
+    retail_expansion: str = WNC_RETAIL_GROUP
 
     @property
     def pair_complete(self) -> bool:
         """Indicates whether at least one copy is owned in both Beta and Retail printings."""
         return self.beta_owned > 0 and self.retail_owned > 0
+
+
+@dataclass
+class PromoSetCard:
+    print_number: str
+    card_name: str
+    rarity: str
+    valid_finish: str
+    product_id: Optional[int]
+    price: Optional[float]
+    owned: int
+    color: Optional[str] = None
+    card_type: Optional[str] = None
+    expansion: str = NCB_S1_GROUP
 
 
 @dataclass
@@ -205,63 +231,18 @@ def resolve_card_price_unbounded(
     return None
 
 
-def load_iconic_pairs(
-    cards_path: Path = REPO_CARDS_FILE,
-    prices_dir: Path = REPO_PRICES_DIR,
-    collection_path: Optional[str] = None,
-    validated_rows: Optional[List[ValidatedCollectionRow]] = None,
-) -> Tuple[List[IconicCardPair], Optional[str], Optional[str]]:
-    """
-    Loads, dynamically validates, and pairs Welcome to Night City Iconic cards.
-    Derives card finishes strictly from price records and enforces Beta/Retail consistency.
-    Returns (pairs, collection_file_name, collection_mtime_date).
-    """
+def _load_catalog_and_price_context(
+    cards_path: Path,
+    prices_dir: Path,
+) -> Tuple[List[dict], Dict[str, Any], List[Path], Dict[Path, Dict[str, Any]]]:
+    """Loads catalog items and initializes latest/historical price caches."""
     if not cards_path.is_file():
         raise FileNotFoundError(f"Missing cards catalog at {cards_path}")
 
     with open(cards_path, "r", encoding="utf-8") as f:
         catalog = json.load(f)
 
-    # Filter catalog for WNC Iconic cards
     card_items = [v for k, v in catalog.items() if k != "_groups"]
-    beta_cards: Dict[str, dict] = {}
-    retail_cards: Dict[str, dict] = {}
-
-    for c in card_items:
-        grp = c.get("groupName") or ""
-        raw_rarity = c.get("rarity") or ""
-        if raw_rarity not in TIER_MAP:
-            continue
-        pnum = str(c.get("printNumber") or "").strip()
-        if not pnum:
-            continue
-
-        if grp == "Welcome to Night City - Beta":
-            clean_num = pnum.removeprefix("B")
-            beta_cards[clean_num] = c
-        elif grp == "Welcome to Night City - Retail":
-            retail_cards[pnum] = c
-
-    # Dynamic orphan validation
-    beta_keys = set(beta_cards.keys())
-    retail_keys = set(retail_cards.keys())
-
-    if not beta_keys and not retail_keys:
-        raise ValueError("No Welcome to Night City Iconic cards found in catalog.")
-
-    orphaned_beta = sorted(beta_keys - retail_keys)
-    orphaned_retail = sorted(retail_keys - beta_keys)
-    if orphaned_beta or orphaned_retail:
-        err_msg = []
-        if orphaned_beta:
-            err_msg.append(f"Orphaned Beta print numbers without Retail pair: {', '.join(orphaned_beta)}")
-        if orphaned_retail:
-            err_msg.append(f"Orphaned Retail print numbers without Beta pair: {', '.join(orphaned_retail)}")
-        raise ValueError("Iconic card pairing mismatch: " + "; ".join(err_msg))
-
-    matched_keys = sorted(beta_keys, key=lambda k: int(k) if k.isdigit() else k)
-
-    # Price resolution setup
     latest_path = resolve_latest_price_file(prices_dir)
     latest_prices: Dict[str, Any] = {}
     if latest_path and latest_path.is_file():
@@ -270,96 +251,258 @@ def load_iconic_pairs(
 
     historical_files = get_historical_price_files(prices_dir)
     snapshot_cache: Dict[Path, Dict[str, Any]] = {}
+    return card_items, latest_prices, historical_files, snapshot_cache
 
-    # Strict Beta/Retail Rarity & Finish Agreement
-    valid_finish_by_key: Dict[str, str] = {}
+
+def _collect_owned_counts(
+    collection_path: Optional[str],
+    validated_rows: Optional[List[ValidatedCollectionRow]],
+    expected_finishes: Dict[Tuple[str, str], str],
+    matched_expansions: Set[str],
+    empty_match_warning: Optional[str] = None,
+) -> Tuple[Dict[Tuple[str, str, str], int], Optional[str], Optional[str]]:
+    """Aggregates validated collection quantities and flags finish mismatches."""
+    owned_counts: Dict[Tuple[str, str, str], int] = {}
+    if not collection_path:
+        return owned_counts, None, None
+
+    if not os.path.isfile(collection_path):
+        raise FileNotFoundError(
+            f"Collection file not found: '{collection_path}'. "
+            "Run with --sync-collection to download active collection, or provide --collection."
+        )
+
+    col_name = Path(collection_path).name
+    mtime_ts = os.path.getmtime(collection_path)
+    col_mtime_date = datetime.date.fromtimestamp(mtime_ts).isoformat()
+
+    if validated_rows is None:
+        validated_rows = load_validated_collection_rows(collection_path)
+
+    total_rows = len(validated_rows)
+    matched_rows = 0
+
+    for vrow in validated_rows:
+        exp = vrow.expansion
+        pnum = vrow.print_number
+        if exp in matched_expansions:
+            matched_rows += 1
+
+        card_valid_finish = expected_finishes.get((exp, pnum))
+        if card_valid_finish is not None and vrow.norm_finish != card_valid_finish:
+            print(
+                f"Warning: Collection row for {exp} #{pnum} has finish '{vrow.raw_finish}' but card is {card_valid_finish}-only. Excluding.",
+                file=sys.stderr,
+            )
+            continue
+
+        key = (exp, pnum, vrow.norm_finish)
+        owned_counts[key] = owned_counts.get(key, 0) + vrow.qty
+
+    if empty_match_warning and total_rows > 0 and matched_rows == 0:
+        print(empty_match_warning, file=sys.stderr)
+
+    return owned_counts, col_name, col_mtime_date
+
+
+def _format_orphan_entries(keys: List[str], cards_by_key: Dict[str, dict], expansion: str) -> str:
+    """Formats orphaned card keys alongside card name and expansion details."""
+    details = []
+    for k in keys:
+        c = cards_by_key[k]
+        raw_pnum = str(c.get("printNumber") or k).strip()
+        cname = sanitize_card_name(c.get("name") or "")
+        details.append(f"#{raw_pnum} '{cname}' in {expansion}")
+    return f"{', '.join(keys)} ({'; '.join(details)})"
+
+
+def _collect_validated_pair_group(
+    card_items: List[dict],
+    beta_group: str,
+    retail_group: str,
+    rarity_normalizer: Callable[[dict, str], Optional[str]],
+    latest_prices: Dict[str, Any],
+    historical_files: List[Path],
+    snapshot_cache: Dict[Path, Dict[str, Any]],
+    required: bool,
+) -> List[Tuple[str, dict, dict, str, str]]:
+    """
+    Collects, pairs, and validates a Beta/Retail group pair independently.
+    Returns tuples of (key, beta_card, retail_card, canonical_rarity, valid_finish).
+    """
+    beta_cards: Dict[str, dict] = {}
+    retail_cards: Dict[str, dict] = {}
+    beta_rarities: Dict[str, str] = {}
+    retail_rarities: Dict[str, str] = {}
+
+    for c in card_items:
+        grp = c.get("groupName") or ""
+        if grp not in (beta_group, retail_group):
+            continue
+        pnum = str(c.get("printNumber") or "").strip()
+        if not pnum:
+            continue
+
+        norm_rarity = rarity_normalizer(c, grp)
+        if norm_rarity is None:
+            continue
+
+        if grp == beta_group:
+            clean_num = pnum.removeprefix("B")
+            beta_cards[clean_num] = c
+            beta_rarities[clean_num] = norm_rarity
+        else:
+            retail_cards[pnum] = c
+            retail_rarities[pnum] = norm_rarity
+
+    beta_keys = set(beta_cards.keys())
+    retail_keys = set(retail_cards.keys())
+
+    if not beta_keys and not retail_keys:
+        if required:
+            raise ValueError("No Welcome to Night City Iconic cards found in catalog.")
+        return []
+
+    orphaned_beta = sorted(beta_keys - retail_keys)
+    orphaned_retail = sorted(retail_keys - beta_keys)
+    if orphaned_beta or orphaned_retail:
+        err_msg = []
+        if orphaned_beta:
+            err_msg.append(
+                "Orphaned Beta print numbers without Retail pair: "
+                + _format_orphan_entries(orphaned_beta, beta_cards, beta_group)
+            )
+        if orphaned_retail:
+            err_msg.append(
+                "Orphaned Retail print numbers without Beta pair: "
+                + _format_orphan_entries(orphaned_retail, retail_cards, retail_group)
+            )
+        raise ValueError("Iconic card pairing mismatch: " + "; ".join(err_msg))
+
+    matched_keys = sorted(beta_keys, key=lambda k: int(k) if k.isdigit() else k)
+    validated_pairs: List[Tuple[str, dict, dict, str, str]] = []
+
     for k in matched_keys:
         b_card = beta_cards[k]
         r_card = retail_cards[k]
-
-        b_rarity = b_card.get("rarity")
-        r_rarity = r_card.get("rarity")
+        b_rarity = beta_rarities[k]
+        r_rarity = retail_rarities[k]
         card_name = sanitize_card_name(b_card.get("name") or r_card.get("name") or "")
 
         if b_rarity != r_rarity:
             raise ValueError(
-                f"Rarity mismatch between Beta ({b_rarity}) and Retail ({r_rarity}) for #{k} '{card_name}'"
+                f"Rarity mismatch between Beta ({b_rarity}) and Retail ({r_rarity}) "
+                f"for #{k} '{card_name}' ({beta_group} vs {retail_group})"
             )
         if b_rarity not in TIER_MAP:
             raise ValueError(f"Unrecognized Iconic rarity code '{b_rarity}' for #{k} '{card_name}'")
 
         b_pid = b_card.get("productId")
         r_pid = r_card.get("productId")
-
         b_finish = resolve_product_finish(
-            b_pid, f"Beta #{b_card.get('printNumber')} '{card_name}'", latest_prices, historical_files, snapshot_cache
+            b_pid,
+            f"{beta_group} #{b_card.get('printNumber')} '{card_name}'",
+            latest_prices,
+            historical_files,
+            snapshot_cache,
         )
         r_finish = resolve_product_finish(
-            r_pid, f"Retail #{r_card.get('printNumber')} '{card_name}'", latest_prices, historical_files, snapshot_cache
+            r_pid,
+            f"{retail_group} #{r_card.get('printNumber')} '{card_name}'",
+            latest_prices,
+            historical_files,
+            snapshot_cache,
         )
-
         if b_finish != r_finish:
             raise ValueError(
-                f"Finish mismatch between Beta ({b_finish}) and Retail ({r_finish}) for #{k} '{card_name}'"
+                f"Finish mismatch between Beta ({b_finish}) and Retail ({r_finish}) "
+                f"for #{k} '{card_name}' ({beta_group} vs {retail_group})"
             )
 
-        valid_finish_by_key[k] = b_finish
+        validated_pairs.append((k, b_card, r_card, b_rarity, b_finish))
 
-    # Collection ingestion & auditing
-    owned_counts: Dict[Tuple[str, str, str], int] = {}
-    col_name: Optional[str] = None
-    col_mtime_date: Optional[str] = None
+    return validated_pairs
 
-    if collection_path:
-        if not os.path.isfile(collection_path):
-            raise FileNotFoundError(
-                f"Collection file not found: '{collection_path}'. "
-                "Run with --sync-collection to download active collection, or provide --collection."
-            )
-        col_name = Path(collection_path).name
-        mtime_ts = os.path.getmtime(collection_path)
-        col_mtime_date = datetime.date.fromtimestamp(mtime_ts).isoformat()
 
-        if validated_rows is None:
-            validated_rows = load_validated_collection_rows(collection_path)
-        total_rows = len(validated_rows)
-        wnc_rows = 0
+def _normalize_iconic_rarity(card: dict, _expansion: str) -> Optional[str]:
+    raw_rarity = str(card.get("rarity") or "").strip()
+    return raw_rarity if raw_rarity in _ICONIC_TIERS else None
 
-        for vrow in validated_rows:
-            exp = vrow.expansion
-            pnum = vrow.print_number
-            if "Welcome to Night City" in exp:
-                wnc_rows += 1
 
-            clean_num = pnum.removeprefix("B")
-            if exp in ("Welcome to Night City - Beta", "Welcome to Night City - Retail") and clean_num in valid_finish_by_key:
-                card_valid_finish = valid_finish_by_key[clean_num]
-                if vrow.norm_finish != card_valid_finish:
-                    print(
-                        f"Warning: Collection row for {exp} #{pnum} has finish '{vrow.raw_finish}' but card is {card_valid_finish}-only. Excluding.",
-                        file=sys.stderr,
-                    )
-                    continue
+def _normalize_box_topper_rarity(card: dict, expansion: str) -> str:
+    raw_rarity = str(card.get("rarity") or "").strip()
+    if raw_rarity not in _BOX_TOPPER_RAW_RARITIES:
+        pnum = str(card.get("printNumber") or "").strip()
+        card_name = sanitize_card_name(card.get("name") or "")
+        raise ValueError(
+            f"Unrecognized Box Topper rarity '{raw_rarity}' in {expansion} for #{pnum} '{card_name}'"
+        )
+    return "BT"
 
-            key = (exp, pnum, vrow.norm_finish)
-            owned_counts[key] = owned_counts.get(key, 0) + vrow.qty
 
-        if total_rows > 0 and wnc_rows == 0:
-            print(
-                "Warning: Collection contains records but zero rows matched 'Welcome to Night City - Beta' or 'Welcome to Night City - Retail'.",
-                file=sys.stderr,
-            )
+def load_iconic_pairs(
+    cards_path: Path = REPO_CARDS_FILE,
+    prices_dir: Path = REPO_PRICES_DIR,
+    collection_path: Optional[str] = None,
+    validated_rows: Optional[List[ValidatedCollectionRow]] = None,
+) -> Tuple[List[IconicCardPair], Optional[str], Optional[str]]:
+    """
+    Loads, dynamically validates, and pairs Welcome to Night City Iconic and Box Topper cards.
+    Derives card finishes strictly from price records and enforces Beta/Retail consistency.
+    Returns (pairs, collection_file_name, collection_mtime_date).
+    """
+    card_items, latest_prices, historical_files, snapshot_cache = _load_catalog_and_price_context(
+        cards_path, prices_dir
+    )
 
-    # Build pairs
+    iconic_records = _collect_validated_pair_group(
+        card_items=card_items,
+        beta_group=WNC_BETA_GROUP,
+        retail_group=WNC_RETAIL_GROUP,
+        rarity_normalizer=_normalize_iconic_rarity,
+        latest_prices=latest_prices,
+        historical_files=historical_files,
+        snapshot_cache=snapshot_cache,
+        required=True,
+    )
+    box_topper_records = _collect_validated_pair_group(
+        card_items=card_items,
+        beta_group=WNC_BT_BETA_GROUP,
+        retail_group=WNC_BT_RETAIL_GROUP,
+        rarity_normalizer=_normalize_box_topper_rarity,
+        latest_prices=latest_prices,
+        historical_files=historical_files,
+        snapshot_cache=snapshot_cache,
+        required=False,
+    )
+    all_records = iconic_records + box_topper_records
+
+    expected_finishes: Dict[Tuple[str, str], str] = {}
+    for k, b_card, r_card, _rarity, valid_finish in all_records:
+        beta_exp = str(b_card.get("groupName") or WNC_BETA_GROUP)
+        retail_exp = str(r_card.get("groupName") or WNC_RETAIL_GROUP)
+        b_pnum = str(b_card.get("printNumber") or f"B{k}").strip()
+        r_pnum = str(r_card.get("printNumber") or k).strip()
+        expected_finishes[(beta_exp, b_pnum)] = valid_finish
+        expected_finishes[(retail_exp, r_pnum)] = valid_finish
+
+    owned_counts, col_name, col_mtime_date = _collect_owned_counts(
+        collection_path=collection_path,
+        validated_rows=validated_rows,
+        expected_finishes=expected_finishes,
+        matched_expansions={WNC_BETA_GROUP, WNC_RETAIL_GROUP, WNC_BT_BETA_GROUP, WNC_BT_RETAIL_GROUP},
+        empty_match_warning=(
+            "Warning: Collection contains records but zero rows matched "
+            "'Welcome to Night City - Beta', 'Welcome to Night City - Retail', "
+            "'Box Toppers - Beta', or 'Box Toppers - Retail'."
+        ),
+    )
+
     pairs: List[IconicCardPair] = []
-    for k in matched_keys:
-        b_card = beta_cards[k]
-        r_card = retail_cards[k]
-
+    for k, b_card, r_card, canonical_rarity, valid_finish in all_records:
         raw_name = b_card.get("name") or r_card.get("name") or ""
         card_name = sanitize_card_name(raw_name)
-        tier = TIER_MAP[b_card.get("rarity")]
-        valid_finish = valid_finish_by_key[k]
+        tier = TIER_MAP[canonical_rarity]
         color = b_card.get("color") or r_card.get("color")
         card_type = b_card.get("cardType") or r_card.get("cardType")
 
@@ -376,11 +519,13 @@ def load_iconic_pairs(
             spread = None
             beta_premium_pct = None
 
+        beta_exp = str(b_card.get("groupName") or WNC_BETA_GROUP)
+        retail_exp = str(r_card.get("groupName") or WNC_RETAIL_GROUP)
         b_pnum = str(b_card.get("printNumber") or f"B{k}").strip()
         r_pnum = str(r_card.get("printNumber") or k).strip()
 
-        b_owned = owned_counts.get(("Welcome to Night City - Beta", b_pnum, valid_finish), 0)
-        r_owned = owned_counts.get(("Welcome to Night City - Retail", r_pnum, valid_finish), 0)
+        b_owned = owned_counts.get((beta_exp, b_pnum, valid_finish), 0)
+        r_owned = owned_counts.get((retail_exp, r_pnum, valid_finish), 0)
 
         pairs.append(
             IconicCardPair(
@@ -398,10 +543,93 @@ def load_iconic_pairs(
                 retail_owned=r_owned,
                 color=color,
                 card_type=card_type,
+                beta_expansion=beta_exp,
+                retail_expansion=retail_exp,
             )
         )
 
     return pairs, col_name, col_mtime_date
+
+
+def load_ncb_cards(
+    cards_path: Path = REPO_CARDS_FILE,
+    prices_dir: Path = REPO_PRICES_DIR,
+    collection_path: Optional[str] = None,
+    validated_rows: Optional[List[ValidatedCollectionRow]] = None,
+) -> List[PromoSetCard]:
+    """
+    Dynamically loads single cards for Night City Brawl Season 1 ('Nova Rare').
+    Returns [] when the catalog contains no cards for the set.
+    """
+    card_items, latest_prices, historical_files, snapshot_cache = _load_catalog_and_price_context(
+        cards_path, prices_dir
+    )
+
+    ncb_raw_cards: List[Tuple[str, dict]] = []
+    for c in card_items:
+        if c.get("groupName") != NCB_S1_GROUP:
+            continue
+        pnum = str(c.get("printNumber") or "").strip()
+        if not pnum:
+            continue
+        raw_rarity = str(c.get("rarity") or "").strip()
+        card_name = sanitize_card_name(c.get("name") or "")
+        if raw_rarity != "Nova Rare":
+            raise ValueError(
+                f"Unrecognized rarity '{raw_rarity}' in {NCB_S1_GROUP} for #{pnum} '{card_name}'"
+            )
+        ncb_raw_cards.append((pnum, c))
+
+    if not ncb_raw_cards:
+        return []
+
+    ncb_raw_cards.sort(key=lambda item: (int(item[0]) if item[0].isdigit() else 9999, item[0]))
+
+    expected_finishes: Dict[Tuple[str, str], str] = {}
+    valid_finishes: Dict[str, str] = {}
+    for pnum, c in ncb_raw_cards:
+        card_name = sanitize_card_name(c.get("name") or "")
+        pid = c.get("productId")
+        valid_finish = resolve_product_finish(
+            pid,
+            f"{NCB_S1_GROUP} #{pnum} '{card_name}'",
+            latest_prices,
+            historical_files,
+            snapshot_cache,
+        )
+        valid_finishes[pnum] = valid_finish
+        expected_finishes[(NCB_S1_GROUP, pnum)] = valid_finish
+
+    owned_counts, _col_name, _col_mtime = _collect_owned_counts(
+        collection_path=collection_path,
+        validated_rows=validated_rows,
+        expected_finishes=expected_finishes,
+        matched_expansions={NCB_S1_GROUP},
+    )
+
+    promo_cards: List[PromoSetCard] = []
+    for pnum, c in ncb_raw_cards:
+        card_name = sanitize_card_name(c.get("name") or "")
+        valid_finish = valid_finishes[pnum]
+        pid = c.get("productId")
+        price = resolve_card_price_unbounded(pid, valid_finish, latest_prices, historical_files, snapshot_cache)
+        owned = owned_counts.get((NCB_S1_GROUP, pnum, valid_finish), 0)
+        promo_cards.append(
+            PromoSetCard(
+                print_number=pnum,
+                card_name=card_name,
+                rarity="Nova Rare",
+                valid_finish=valid_finish,
+                product_id=pid,
+                price=price,
+                owned=owned,
+                color=c.get("color"),
+                card_type=c.get("cardType"),
+                expansion=NCB_S1_GROUP,
+            )
+        )
+
+    return promo_cards
 
 
 def build_tier_summary(name: str, pairs_subset: List[IconicCardPair]) -> TierSummary:
@@ -482,6 +710,7 @@ def format_console_summary(
     output_path: str,
     collection_name: Optional[str] = None,
     collection_mtime_date: Optional[str] = None,
+    ncb_cards: Optional[List[PromoSetCard]] = None,
 ) -> str:
     """Renders the approved uncrowded 76-character console summary."""
     total_pairs_count = len(pairs)
@@ -526,13 +755,14 @@ def format_console_summary(
         cat_label = f"{ts.name} ({ts.total_cards})"
 
         lines.append(
-            f"{cat_label:<14}     {b_ratio}         {r_ratio}    {b_med_str}     {r_med_str}     {spread_str:>8}"
+            f"{cat_label:<19}{b_ratio}         {r_ratio}    {b_med_str}     {r_med_str}     {spread_str:>8}"
         )
 
     lines.append("----------------------------------------------------------------------------")
     tot_b_str = f"{total_beta_owned_distinct:>2}/{total_pairs_count}"
     tot_r_str = f"{total_retail_owned_distinct:>2}/{total_pairs_count}"
-    lines.append(f"Total ({total_pairs_count})         {tot_b_str}         {tot_r_str}")
+    tot_label = f"Total ({total_pairs_count})"
+    lines.append(f"{tot_label:<19}{tot_b_str}         {tot_r_str}")
     lines.append("")
     lines.append("Owned Iconics Value:")
     b_val_str = f"${beta_owned_val:,.2f}"
@@ -544,6 +774,29 @@ def format_console_summary(
     if unpriced_owned_count > 0:
         tot_line += f" (excludes {unpriced_owned_count} unpriced card(s))"
     lines.append(tot_line)
+
+    if ncb_cards:
+        ncb_total = len(ncb_cards)
+        ncb_owned_distinct = sum(1 for c in ncb_cards if c.owned > 0)
+        ncb_physical = sum(c.owned for c in ncb_cards)
+        ncb_priced = [c.price for c in ncb_cards if c.price is not None]
+        ncb_med = statistics.median(ncb_priced) if ncb_priced else None
+        ncb_set_total = sum(ncb_priced) if ncb_priced else None
+        ncb_owned_val = sum((c.price or 0.0) * c.owned for c in ncb_cards if c.price is not None)
+        ncb_unpriced_owned = sum(c.owned for c in ncb_cards if c.price is None and c.owned > 0)
+
+        ncb_owned_str = f"{ncb_owned_distinct}/{ncb_total} ({ncb_physical} cards)"
+        ncb_val_str = f"${ncb_owned_val:,.2f}"
+        ncb_med_str = f"${ncb_med:,.2f}" if ncb_med is not None else "N/A"
+        ncb_set_label = f"Set ({len(ncb_priced)}/{ncb_total} priced):"
+        ncb_set_str = f"${ncb_set_total:,.2f}" if ncb_set_total is not None else "N/A"
+
+        lines.append("")
+        lines.append(f"-------------------- Night City Brawl S1: Nova Rares ---------------------")
+        lines.append(f"  Owned:  {ncb_owned_str:<26}  Owned Value:      {ncb_val_str}")
+        lines.append(f"  Median: {ncb_med_str:<26}  {ncb_set_label:<20}{ncb_set_str}")
+        if ncb_unpriced_owned > 0:
+            lines.append(f"  Note: Owned value excludes {ncb_unpriced_owned} unpriced card(s)")
 
     lines.append("")
     if collection_name and collection_mtime_date:
@@ -563,7 +816,7 @@ def run_iconics_comparison(
     prices_dir: Path = REPO_PRICES_DIR,
     database_path: Optional[str] = None,
 ) -> Tuple[int, str]:
-    """Executes the WNC Iconic cards comparison pipeline end-to-end."""
+    """Executes the WNC Iconic and NCB Season 1 set trajectory pipeline end-to-end."""
     cfg = None
     if not collection_path or not output_path:
         cfg = load_config()
@@ -575,9 +828,9 @@ def run_iconics_comparison(
     if not target_output:
         if cfg and getattr(cfg, "output_report", None):
             parent = Path(cfg.output_report).parent
-            target_output = str(parent / "wnc_iconic_price_trajectories.html")
+            target_output = str(parent / "set_price_trajectories.html")
         else:
-            target_output = str(REPO_DATA_DIR / "wnc_iconic_price_trajectories.html")
+            target_output = str(REPO_DATA_DIR / "set_price_trajectories.html")
 
     target_db = database_path if database_path is not None else (getattr(cfg, "database_path", None) if cfg else None)
 
@@ -596,8 +849,14 @@ def run_iconics_comparison(
         collection_path=collection_path,
         validated_rows=validated_rows,
     )
+    ncb_cards = load_ncb_cards(
+        cards_path=cards_path,
+        prices_dir=prices_dir,
+        collection_path=collection_path,
+        validated_rows=validated_rows,
+    )
 
-    tier_order = ["Legends", "Others", "Secrets"]
+    tier_order = ["Legends", "Others", "Secrets", "Box Toppers"]
     tier_summaries: List[TierSummary] = []
     for tname in tier_order:
         subset = [p for p in pairs if p.tier == tname]
@@ -611,6 +870,7 @@ def run_iconics_comparison(
         output_path=target_output,
         database_path=target_db,
         validated_rows=validated_rows,
+        ncb_cards=ncb_cards,
     )
 
     summary_text = format_console_summary(
@@ -619,13 +879,14 @@ def run_iconics_comparison(
         output_path=target_output,
         collection_name=col_name,
         collection_mtime_date=col_mtime,
+        ncb_cards=ncb_cards,
     )
 
-    pointer_file = os.path.join(str(REPO_ROOT), ".latest_iconics_report")
+    pointer_file = os.path.join(str(REPO_ROOT), ".latest_sets_report")
     try:
         with open(pointer_file, "w", encoding="utf-8") as f:
             f.write(os.path.abspath(target_output))
     except OSError as e:
-        print(f"Warning: Could not write latest iconics report pointer to '{pointer_file}': {e}", file=sys.stderr)
+        print(f"Warning: Could not write latest sets report pointer to '{pointer_file}': {e}", file=sys.stderr)
 
     return 0, summary_text
