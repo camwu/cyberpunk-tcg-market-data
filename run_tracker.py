@@ -114,11 +114,11 @@ def build_add_manual_parser(
     return parser
 
 
-def build_compare_iconics_parser() -> argparse.ArgumentParser:
-    """Builds and returns the CLI parser for the compare-iconics subcommand."""
+def build_track_sets_parser() -> argparse.ArgumentParser:
+    """Builds and returns the CLI parser for the track-sets subcommand."""
     parser = argparse.ArgumentParser(
-        prog="run_tracker.py compare-iconics",
-        description="Compare market prices and collection ownership across Welcome to Night City Iconic card pairs.",
+        prog="run_tracker.py track-sets",
+        description="Track market prices and collection ownership across Cyberpunk TCG sets (WNC & NCB Season 1).",
     )
     parser.add_argument("--output", "-o", dest="output_path", help="Override destination path for the HTML comparison dashboard.")
     parser.add_argument("--collection", dest="collection_csv", help="Override active collection CSV path.")
@@ -132,7 +132,7 @@ def build_compare_iconics_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def handle_compare_iconics_subcommand(
+def handle_track_sets_subcommand(
     args: argparse.Namespace,
     root_config: Optional[argparse.Namespace] = None,
 ) -> int:
@@ -177,7 +177,7 @@ def handle_compare_iconics_subcommand(
     if not target_output:
         if cfg and getattr(cfg, "output_report", None):
             parent = Path(cfg.output_report).parent
-            target_output = str(parent / "wnc_iconic_price_trajectories.html")
+            target_output = str(parent / "set_price_trajectories.html")
 
     try:
         exit_code, summary_text = run_iconics_comparison(
@@ -473,10 +473,10 @@ def main(argv: Optional[List[str]] = None):
         manual_parser = build_add_manual_parser()
         manual_args = manual_parser.parse_args(remaining[1:])
         sys.exit(handle_add_manual_subcommand(args=manual_args, root_config=known_root, default_merchant="Manual Purchase"))
-    elif remaining and remaining[0] in ("compare-iconics", "compare-beta-retail"):
-        iconics_parser = build_compare_iconics_parser()
-        iconics_args = iconics_parser.parse_args(remaining[1:])
-        sys.exit(handle_compare_iconics_subcommand(args=iconics_args, root_config=known_root))
+    elif remaining and remaining[0] == "track-sets":
+        sets_parser = build_track_sets_parser()
+        sets_args = sets_parser.parse_args(remaining[1:])
+        sys.exit(handle_track_sets_subcommand(args=sets_args, root_config=known_root))
 
     parser = build_tracker_argument_parser()
     args = parser.parse_args(argv)

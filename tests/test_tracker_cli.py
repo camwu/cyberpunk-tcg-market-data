@@ -846,18 +846,20 @@ class TestLauncherScripts(unittest.TestCase):
         self.assertIn('if [ -d "$DIR/.git" ] || [ -f "$DIR/.git" ]; then', content)
         self.assertIn('git -C "$DIR" pull --ff-only 2>/dev/null || true', content)
 
-    def test_compare_iconics_launchers_auto_open(self):
-        bat_file = Path(__file__).resolve().parent.parent / "launchers" / "compare_iconics.bat"
-        sh_file = Path(__file__).resolve().parent.parent / "launchers" / "compare_iconics.sh"
+    def test_track_sets_launchers_auto_open(self):
+        bat_file = Path(__file__).resolve().parent.parent / "launchers" / "track_sets.bat"
+        sh_file = Path(__file__).resolve().parent.parent / "launchers" / "track_sets.sh"
         self.assertTrue(bat_file.is_file())
         self.assertTrue(sh_file.is_file())
         bat_content = bat_file.read_text(encoding="utf-8")
         sh_content = sh_file.read_text(encoding="utf-8")
-        self.assertIn(".latest_iconics_report", bat_content)
-        self.assertIn("wnc_iconic_price_trajectories.html", bat_content)
+        self.assertIn("track-sets", bat_content)
+        self.assertIn(".latest_sets_report", bat_content)
+        self.assertIn("set_price_trajectories.html", bat_content)
         self.assertIn('if defined REPORT start "" "%REPORT%"', bat_content)
-        self.assertIn(".latest_iconics_report", sh_content)
-        self.assertIn("wnc_iconic_price_trajectories.html", sh_content)
+        self.assertIn("track-sets", sh_content)
+        self.assertIn(".latest_sets_report", sh_content)
+        self.assertIn("set_price_trajectories.html", sh_content)
 
 
 if __name__ == "__main__":

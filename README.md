@@ -32,8 +32,8 @@ cyberpunk-tcg-market-data/
 ├── launchers/                 # Cross-platform 1-click CLI launchers (.bat, .sh)
     ├── update_portfolio.bat   # Windows 1-click execution launcher
     ├── update_portfolio.sh    # Unix 1-click execution launcher
-    ├── compare_iconics.bat    # Windows Beta vs. Retail Iconics dashboard launcher
-    └── compare_iconics.sh     # Unix Beta vs. Retail Iconics dashboard launcher
+    ├── track_sets.bat         # Windows WNC & NCB Set Tracker dashboard launcher
+    └── track_sets.sh          # Unix WNC & NCB Set Tracker dashboard launcher
 └── data/                      # Local private data directory (gitignored)
     ├── price_history.db       # Historical portfolio valuation SQLite database
     ├── my_collection.csv      # CardNexus collection export (auto-discovered)
@@ -181,10 +181,10 @@ pytest
 - `--purchase-cache <path>`: Custom path to document SHA-256 fingerprint cache (default: sibling `purchase_history_cache.json`).
 - `--reparse-purchases`: Force re-parsing of all purchase receipt documents, bypassing the SHA-256 cache and updating the CSV ledger while preserving custom ledger descriptions.
 
-### Iconic Set Comparison (`compare-iconics`)
-Run `python run_tracker.py compare-iconics` (or `launchers/compare_iconics.bat` on Windows and `launchers/compare_iconics.sh` on macOS/Linux) to generate a self-contained interactive HTML dashboard (`wnc_iconic_price_trajectories.html`) comparing Beta and Retail Welcome to Night City Iconic cards across daily price trajectories, 5-number distributions, and owned set totals.
+### Set Trajectory Tracker (`track-sets`)
+Run `python run_tracker.py track-sets` (or `launchers/track_sets.bat` on Windows and `launchers/track_sets.sh` on macOS/Linux) to generate a self-contained interactive HTML dashboard (`set_price_trajectories.html`) tracking Welcome to Night City Iconic and Box Topper cards (Beta vs. Retail comparisons, 5-number distributions, and owned set totals) alongside Night City Brawl Season 1 Nova Rare cards.
 
-- `--output <path>`, `-o <path>`: Override destination path for the HTML comparison dashboard (defaults to `wnc_iconic_price_trajectories.html` next to `output_report` or under `data/`).
+- `--output <path>`, `-o <path>`: Override destination path for the HTML set tracker dashboard (defaults to `set_price_trajectories.html` next to `output_report` or under `data/`).
 - `--collection <path>`: Read an explicit offline collection CSV file (cannot be combined with `--sync-collection`).
 - `--sync-collection`: Force a fresh CardNexus API collection synchronization before generating the dashboard (when omitted and `CARDNEXUS_API_KEY` is configured, uses the standard 24-hour cached collection).
 
@@ -232,11 +232,11 @@ python run_tracker.py --reparse-purchases
 # Use custom configuration file
 python run_tracker.py --config custom_config.json
 
-# Generate Beta vs. Retail WNC Iconic interactive HTML dashboard
-python run_tracker.py compare-iconics
+# Generate unified WNC & NCB Season 1 interactive HTML dashboard
+python run_tracker.py track-sets
 
-# Generate Iconic dashboard against an explicit offline CSV export
-python run_tracker.py compare-iconics --collection path/to/export.csv
+# Generate Set Tracker dashboard against an explicit offline CSV export
+python run_tracker.py track-sets --collection path/to/export.csv
 ```
 
 ---

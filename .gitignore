@@ -26,11 +26,11 @@ logs/
 # Local portfolio report artifacts
 portfolio_summary.md
 wnc_iconics_comparison.md
-wnc_iconic_price_trajectories.html
+set_price_trajectories.html
 LATEST_PORTFOLIO_SUMMARY.md
 WNC_ICONICS_COMPARISON.md
 .latest_report
-.latest_iconics_report
+.latest_sets_report
 
 # Local agent instructions
 AGENTS.md

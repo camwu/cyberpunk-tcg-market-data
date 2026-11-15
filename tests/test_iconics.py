@@ -7,7 +7,9 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
@@ -15,22 +17,27 @@ from unittest.mock import patch, MagicMock
 import run_tracker
 from tracker.config import TrackerConfig
 from tracker.iconics import (
+    _load_catalog_and_price_context,
     compute_quantiles,
     extract_finish_price,
     format_currency_diff,
     format_console_summary,
     load_iconic_pairs,
+    load_ncb_cards,
     build_tier_summary,
     resolve_card_price_unbounded,
     resolve_product_finish,
     run_iconics_comparison,
     IconicCardPair,
+    PromoSetCard,
     TierSummary,
     TIER_MAP,
 )
 from tracker.iconics_common import load_validated_collection_rows
 from tracker.iconics_html import (
+    _SET_STATE_JS,
     build_edition_trajectories,
+    build_ncb_trajectories,
     generate_html_dashboard,
     load_collection_acquisitions,
     serialize_json_for_script,
@@ -352,10 +359,11 @@ class TestIconicsEngine(unittest.TestCase):
                 76,
                 f"Line {idx} exceeds 76 columns ({len(line)} chars): '{line}'",
             )
+        self.assertIn("=============== Welcome to Night City: Iconics & Box Toppers ===============", summary)
         self.assertIn("Collection: active_collection.csv", summary)
 
     def test_run_iconics_comparison_writes_latest_pointer(self):
-        out_html = self.test_dir / "wnc_iconic_price_trajectories.html"
+        out_html = self.test_dir / "set_price_trajectories.html"
         with patch("tracker.iconics.REPO_ROOT", self.test_dir):
             rc, _ = run_iconics_comparison(
                 output_path=str(out_html),
@@ -365,7 +373,7 @@ class TestIconicsEngine(unittest.TestCase):
             )
         self.assertEqual(rc, 0)
         self.assertTrue(out_html.is_file())
-        pointer_file = self.test_dir / ".latest_iconics_report"
+        pointer_file = self.test_dir / ".latest_sets_report"
         self.assertTrue(pointer_file.is_file())
         self.assertEqual(pointer_file.read_text(encoding="utf-8"), str(out_html.resolve()))
 
@@ -387,8 +395,8 @@ class TestIconicsEngine(unittest.TestCase):
         )
 
         content = out_html.read_text(encoding="utf-8")
-        self.assertIn("Welcome to Night City &ndash; Iconic Price Trajectories", content)
-        self.assertIn("Iconics Set Value (0/1 pairs)", content)
+        self.assertIn("Welcome to Night City &ndash; Iconic &amp; Promo Price Trajectories", content)
+        self.assertIn("WNC Set Value (0/1 pairs)", content)
         self.assertIn("Total (0/1 pairs)", content)
         self.assertIn('<span id="dist-b-med" class="comp-distro-med-val">N/A</span>', content)
         self.assertIn("Card 1", content)
@@ -432,7 +440,7 @@ class TestIconicsEngine(unittest.TestCase):
         )
         content = out_incomplete.read_text(encoding="utf-8")
         # Paired subset sums strictly over p1 ($100.00 / $80.00), excluding unpaired $58.41
-        self.assertIn("Iconics Set Value (1/2 pairs)", content)
+        self.assertIn("WNC Set Value (1/2 pairs)", content)
         self.assertIn('<span style="color:#58a6ff;" id="set-val-beta">$100.00</span>', content)
         self.assertIn('<span style="color:#8b949e;" id="set-val-retail">$80.00</span>', content)
         self.assertIn('id="total-label-IL">Total (1/2 pairs)</td>', content)
@@ -452,8 +460,8 @@ class TestIconicsEngine(unittest.TestCase):
             earliest_retail_date=None,
         )
         complete_content = out_complete.read_text(encoding="utf-8")
-        self.assertIn('<div class="comp-card-title" id="set-val-title">Iconics Set Value</div>', complete_content)
-        self.assertIn('<div class="comp-card-title">Owned Iconics Value</div>', complete_content)
+        self.assertIn('<div class="comp-card-title" id="set-val-title">WNC Set Value</div>', complete_content)
+        self.assertIn('<div class="comp-card-title">Owned WNC Value</div>', complete_content)
         self.assertIn('id="total-label-IL">Total</td>', complete_content)
         complete_html_body = complete_content.split("<script>")[0]
         self.assertNotIn("pairs)", complete_html_body)
@@ -704,7 +712,7 @@ class TestIconicsEngine(unittest.TestCase):
         summary = format_console_summary(
             tier_summaries=[legends_sum, others_sum],
             pairs=[p1, p_unpriced],
-            output_path="wnc_iconic_price_trajectories.html",
+            output_path="set_price_trajectories.html",
         )
 
         lines = summary.split("\n")
@@ -715,8 +723,8 @@ class TestIconicsEngine(unittest.TestCase):
         self.assertIn("    N/A", others_line)
         self.assertEqual(len(legends_line), len(others_line))
 
-        # Check Owned Iconics Value block
-        self.assertIn("Owned Iconics Value:", summary)
+        # Check Owned WNC Value block
+        self.assertIn("Owned WNC Value:", summary)
         beta_line = next(l for l in lines if l.startswith("  Beta (27 cards):"))
         retail_line = next(l for l in lines if l.startswith("  Retail (0 cards):"))
         total_line = next(l for l in lines if l.startswith("  Total:"))
@@ -829,7 +837,7 @@ class TestIconicsEngine(unittest.TestCase):
         )
         content = out_html.read_text(encoding="utf-8")
         # Comparison view still reflects paired console summary totals ($100.00 / $60.00)
-        self.assertIn("Iconics Set Value (1/2 pairs)", content)
+        self.assertIn("WNC Set Value (1/2 pairs)", content)
         self.assertIn('id="set-val-beta">$100.00</span>', content)
         self.assertIn('id="set-val-retail">$60.00</span>', content)
         # Unpriced trajectory tile uses empty nullable numeric data attributes for bottom sorting
@@ -891,11 +899,11 @@ class TestIconicsCLI(unittest.TestCase):
         stdout_buf = io.StringIO()
         with patch("sys.stdout", stdout_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics"])
+                run_tracker.main(["track-sets"])
 
         self.assertEqual(ctx.exception.code, 0)
         mock_run.assert_called_once_with(
-            output_path=str(self.test_dir / "wnc_iconic_price_trajectories.html"),
+            output_path=str(self.test_dir / "set_price_trajectories.html"),
             collection_path=str(self.collection_file),
             database_path=str(self.test_dir / "test.db"),
         )
@@ -915,7 +923,7 @@ class TestIconicsCLI(unittest.TestCase):
 
         with patch("sys.stdout", io.StringIO()):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics"])
+                run_tracker.main(["track-sets"])
 
         self.assertEqual(ctx.exception.code, 0)
         mock_resolve.assert_called_once()
@@ -938,7 +946,7 @@ class TestIconicsCLI(unittest.TestCase):
 
         with patch("sys.stdout", io.StringIO()):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics", "--sync-collection"])
+                run_tracker.main(["track-sets", "--sync-collection"])
 
         self.assertEqual(ctx.exception.code, 0)
         mock_resolve.assert_called_once()
@@ -952,7 +960,7 @@ class TestIconicsCLI(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics", "--sync-collection", "--collection", "custom.csv"])
+                run_tracker.main(["track-sets", "--sync-collection", "--collection", "custom.csv"])
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("Cannot specify --sync-collection together with an explicit --collection path", stderr_buf.getvalue())
 
@@ -967,7 +975,7 @@ class TestIconicsCLI(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics"])
+                run_tracker.main(["track-sets"])
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("Run with --sync-collection to download active collection", stderr_buf.getvalue())
 
@@ -980,7 +988,7 @@ class TestIconicsCLI(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics"])
+                run_tracker.main(["track-sets"])
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("Error: Catalog pairing mismatch", stderr_buf.getvalue())
 
@@ -993,7 +1001,7 @@ class TestIconicsCLI(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics"])
+                run_tracker.main(["track-sets"])
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("Error: Missing collection file", stderr_buf.getvalue())
 
@@ -1006,7 +1014,7 @@ class TestIconicsCLI(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics"])
+                run_tracker.main(["track-sets"])
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("Error: Lot mismatch", stderr_buf.getvalue())
 
@@ -1020,11 +1028,11 @@ class TestIconicsCLI(unittest.TestCase):
 
         with patch("sys.stdout", io.StringIO()):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics", "--sync-collection"])
+                run_tracker.main(["track-sets", "--sync-collection"])
         self.assertEqual(ctx.exception.code, 0)
         mock_sync.assert_called_once()
         mock_run.assert_called_once_with(
-            output_path=str(self.test_dir / "wnc_iconic_price_trajectories.html"),
+            output_path=str(self.test_dir / "set_price_trajectories.html"),
             collection_path=str(self.collection_file),
             database_path=str(self.test_dir / "test.db"),
         )
@@ -1039,7 +1047,7 @@ class TestIconicsCLI(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics", "--sync-collection"])
+                run_tracker.main(["track-sets", "--sync-collection"])
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("CardNexus API sync failed", stderr_buf.getvalue())
 
@@ -1052,7 +1060,7 @@ class TestIconicsCLI(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics", "--sync-collection"])
+                run_tracker.main(["track-sets", "--sync-collection"])
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("CardNexus collection validation failed", stderr_buf.getvalue())
 
@@ -1114,16 +1122,930 @@ class TestIconicsCLI(unittest.TestCase):
         stderr_buf = io.StringIO()
         with patch("sys.stderr", stderr_buf):
             with self.assertRaises(SystemExit) as ctx:
-                run_tracker.main(["compare-iconics", "--sync-collection"])
+                run_tracker.main(["track-sets", "--sync-collection"])
         self.assertEqual(ctx.exception.code, 1)
         self.assertIn("CardNexus collection synchronization failed", stderr_buf.getvalue())
         mock_run.assert_not_called()
 
         with patch("sys.stdout", io.StringIO()):
             with self.assertRaises(SystemExit) as ctx_default:
-                run_tracker.main(["compare-iconics"])
+                run_tracker.main(["track-sets"])
         self.assertEqual(ctx_default.exception.code, 0)
         mock_run.assert_called_once()
+
+
+class TestSetTrackerExpansionAndState(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.test_dir = Path(self.temp_dir.name)
+        self.prices_dir = self.test_dir / "prices"
+        self.prices_dir.mkdir(parents=True, exist_ok=True)
+        self.cards_file = self.test_dir / "cards.json"
+        self.collection_csv = self.test_dir / "collection.csv"
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def _base_wnc_iconic_catalog_entries(self):
+        return {
+            "1": {"name": "Welcome to Night City - Beta"},
+            "2": {"name": "Welcome to Night City - Retail"},
+            "3": {"name": "Box Toppers - Beta"},
+            "4": {"name": "Box Toppers - Retail"},
+            "5": {"name": "Night City Brawl Season 1"},
+        }
+
+    def test_box_topper_pairing_normalization_and_expansion_metadata(self):
+        catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "101": {
+                "productId": 101,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B141",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+            },
+            "102": {
+                "productId": 102,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "141",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+            },
+            "201": {
+                "productId": 201,
+                "name": "David Martinez (Topper)",
+                "groupName": "Box Toppers - Beta",
+                "printNumber": "B001",
+                "rarity": "NR",
+                "color": "Yellow",
+                "cardType": "Legend",
+            },
+            "202": {
+                "productId": 202,
+                "name": "David Martinez (Topper)",
+                "groupName": "Box Toppers - Retail",
+                "printNumber": "001",
+                "rarity": "Nova Rare",
+                "color": "Yellow",
+                "cardType": "Legend",
+            },
+            "203": {
+                "productId": 203,
+                "name": "Lucy Kushinada (Topper)",
+                "groupName": "Box Toppers - Beta",
+                "printNumber": "B002",
+                "rarity": "NR",
+                "color": "Blue",
+                "cardType": "Unit",
+            },
+            "204": {
+                "productId": 204,
+                "name": "Lucy Kushinada (Topper)",
+                "groupName": "Box Toppers - Retail",
+                "printNumber": "002",
+                "rarity": "Nova Rare",
+                "color": "Blue",
+                "cardType": "Unit",
+            },
+            "205": {
+                "productId": 205,
+                "name": "Rebecca (Topper)",
+                "groupName": "Box Toppers - Beta",
+                "printNumber": "B003",
+                "rarity": "Nova Rare",
+                "color": "Red",
+                "cardType": "Unit",
+            },
+            "206": {
+                "productId": 206,
+                "name": "Rebecca (Topper)",
+                "groupName": "Box Toppers - Retail",
+                "printNumber": "003",
+                "rarity": "Nova Rare",
+                "color": "Red",
+                "cardType": "Unit",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+
+        prices = {
+            "101": {"Foil": {"marketPrice": 50.0}},
+            "102": {"Foil": {"marketPrice": 25.0}},
+            "201": {"Foil": {"marketPrice": 80.0}},
+            "202": {"Foil": {"marketPrice": 35.0}},
+            "203": {"Foil": {"marketPrice": 60.0}},
+            "204": {"Foil": {"marketPrice": 22.0}},
+            "205": {"Foil": {"marketPrice": 45.0}},
+            "206": {"Foil": {"marketPrice": 18.0}},
+        }
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({"date": "2026-11-09", "prices": prices}), encoding="utf-8"
+        )
+        self.collection_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "David Martinez (Topper),Box Toppers - Beta,B001,Foil,2\n"
+            "Lucy Kushinada (Topper),Box Toppers - Retail,002,Foil,1\n",
+            encoding="utf-8",
+        )
+
+        pairs, _, _ = load_iconic_pairs(
+            cards_path=self.cards_file,
+            prices_dir=self.prices_dir,
+            collection_path=str(self.collection_csv),
+        )
+
+        bt_pairs = [p for p in pairs if p.tier == TIER_MAP["BT"]]
+        self.assertEqual(len(bt_pairs), 3)
+        self.assertEqual([p.print_number for p in bt_pairs], ["001", "002", "003"])
+        for p in bt_pairs:
+            self.assertEqual(p.beta_expansion, "Box Toppers - Beta")
+            self.assertEqual(p.retail_expansion, "Box Toppers - Retail")
+            self.assertEqual(p.valid_finish, "Foil")
+
+        self.assertEqual(bt_pairs[0].beta_owned, 2)
+        self.assertEqual(bt_pairs[0].retail_owned, 0)
+        self.assertEqual(bt_pairs[1].beta_owned, 0)
+        self.assertEqual(bt_pairs[1].retail_owned, 1)
+
+    def test_unpaired_box_topper_price_excluded_from_comparative_totals(self):
+        p_paired = IconicCardPair(
+            "001", "Topper One", "Box Toppers", "Foil",
+            201, 202, 40.0, 15.0, 25.0, 166.7, 1, 0,
+            color="Yellow", card_type="Legend",
+            beta_expansion="Box Toppers - Beta",
+            retail_expansion="Box Toppers - Retail",
+        )
+        p_unpaired = IconicCardPair(
+            "002", "Topper Unpaired", "Box Toppers", "Foil",
+            203, 204, 100.0, None, None, None, 0, 0,
+            color="Blue", card_type="Unit",
+            beta_expansion="Box Toppers - Beta",
+            retail_expansion="Box Toppers - Retail",
+        )
+        summary = build_tier_summary("Box Toppers", [p_paired, p_unpaired])
+        self.assertEqual(summary.total_cards, 2)
+        self.assertEqual(summary.priced_pairs_count, 1)
+        self.assertEqual(summary.beta_set_total, 40.0)
+        self.assertEqual(summary.retail_set_total, 15.0)
+        self.assertEqual(summary.beta_median, 40.0)
+        self.assertEqual(summary.spread, 25.0)
+
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({
+                "date": "2026-11-09",
+                "prices": {
+                    "201": {"Foil": {"marketPrice": 40.0}},
+                    "202": {"Foil": {"marketPrice": 15.0}},
+                    "203": {"Foil": {"marketPrice": 100.0}},
+                    "204": {},
+                },
+            }),
+            encoding="utf-8",
+        )
+        out_html = self.test_dir / "bt_unpaired.html"
+        generate_html_dashboard(
+            pairs=[p_paired, p_unpaired],
+            prices_dir=self.prices_dir,
+            collection_path=None,
+            output_path=str(out_html),
+            earliest_beta_date=None,
+            earliest_retail_date=None,
+        )
+        html_text = out_html.read_text(encoding="utf-8")
+        self.assertIn("WNC Set Value (1/2 pairs)", html_text)
+        self.assertIn('id="pill-tier-BT"', html_text)
+        self.assertIn('id="section-BT"', html_text)
+        self.assertIn("Total (1/2 pairs)", html_text)
+
+    def test_unrecognized_box_topper_rarity_raises_value_error(self):
+        catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "101": {
+                "productId": 101,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B141",
+                "rarity": "IL",
+            },
+            "102": {
+                "productId": 102,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "141",
+                "rarity": "IL",
+            },
+            "201": {
+                "productId": 201,
+                "name": "Maine Topper",
+                "groupName": "Box Toppers - Beta",
+                "printNumber": "B001",
+                "rarity": "NR",
+            },
+            "202": {
+                "productId": 202,
+                "name": "Maine Topper",
+                "groupName": "Box Toppers - Retail",
+                "printNumber": "001",
+                "rarity": "R",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({
+                "date": "2026-11-09",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 10.0}},
+                    "102": {"Foil": {"marketPrice": 5.0}},
+                    "201": {"Foil": {"marketPrice": 20.0}},
+                    "202": {"Foil": {"marketPrice": 10.0}},
+                },
+            }),
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(ValueError) as ctx:
+            load_iconic_pairs(cards_path=self.cards_file, prices_dir=self.prices_dir)
+
+        msg = str(ctx.exception)
+        self.assertIn("Box Toppers - Retail", msg)
+        self.assertIn("Maine Topper", msg)
+        self.assertIn("001", msg)
+        self.assertIn("R", msg)
+
+        ncb_bad_catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "301": {
+                "productId": 301,
+                "name": "Bad Promo",
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "001",
+                "rarity": "SR",
+            },
+        }
+        bad_cards = self.test_dir / "bad_ncb_cards.json"
+        bad_cards.write_text(json.dumps(ncb_bad_catalog), encoding="utf-8")
+        with self.assertRaises(ValueError) as ncb_ctx:
+            load_ncb_cards(cards_path=bad_cards, prices_dir=self.prices_dir)
+        self.assertIn("Night City Brawl Season 1", str(ncb_ctx.exception))
+        self.assertIn("SR", str(ncb_ctx.exception))
+
+    def test_minimal_catalog_without_ncb_or_bt_and_late_earliest_ncb_date(self):
+        catalog = {
+            "_groups": {"1": {"name": "Welcome to Night City - Beta"}, "2": {"name": "Welcome to Night City - Retail"}},
+            "101": {
+                "productId": 101,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B141",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+            },
+            "102": {
+                "productId": 102,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "141",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({
+                "date": "2026-11-09",
+                "prices": {"101": {"Foil": {"marketPrice": 25.0}}, "102": {"Foil": {"marketPrice": 10.0}}},
+            }),
+            encoding="utf-8",
+        )
+        self.assertEqual(load_ncb_cards(cards_path=self.cards_file, prices_dir=self.prices_dir), [])
+
+        self.collection_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "Adam Smasher,Welcome to Night City - Beta,B141,Foil,1\n",
+            encoding="utf-8",
+        )
+        out_html = self.test_dir / "minimal_wnc.html"
+        with patch("tracker.iconics.REPO_ROOT", self.test_dir), \
+             patch("tracker.iconics.load_config", side_effect=AssertionError("unexpected load_config")):
+            rc, summary = run_iconics_comparison(
+                output_path=str(out_html),
+                collection_path=str(self.collection_csv),
+                cards_path=self.cards_file,
+                prices_dir=self.prices_dir,
+                database_path=None,
+            )
+        self.assertEqual(rc, 0)
+        self.assertNotIn("Night City Brawl S1", summary)
+        html_text = out_html.read_text(encoding="utf-8")
+        self.assertNotIn('id="section-BT"', html_text)
+        self.assertNotIn('id="pill-tier-BT"', html_text)
+        self.assertNotIn('id="set-toggle"', html_text)
+        self.assertNotIn('id="section-NR"', html_text)
+        self.assertIn("var hasNcb = false;", html_text)
+
+        late_html = self.test_dir / "late_ncb.html"
+        promo = PromoSetCard("001", "Late Promo", "Nova Rare", "Foil", 901, 50.0, 1, color="Red", card_type="Unit")
+        generate_html_dashboard(
+            pairs=[IconicCardPair("141", "Adam Smasher", "Legends", "Foil", 101, 102, 25.0, 10.0, 15.0, 150.0, 0, 0)],
+            prices_dir=self.prices_dir,
+            collection_path=None,
+            output_path=str(late_html),
+            earliest_beta_date=None,
+            earliest_retail_date=None,
+            earliest_ncb_date="2099-01-01",
+            ncb_cards=[promo],
+        )
+        late_text = late_html.read_text(encoding="utf-8")
+        self.assertIn('id="set-toggle"', late_text)
+        self.assertIn('id="section-NR"', late_text)
+        self.assertIn("var hasNcb = true;", late_text)
+        self.assertIn("activeSetState = applySetTierStatsToggle(", late_text)
+        nr_section = late_text.split('id="section-NR"', 1)[1].split('id="view-comparison"', 1)[0]
+        self.assertIn("Nova Rares (1)", nr_section)
+        self.assertIn('<span class="price-main">N/A</span>', nr_section)
+        self.assertIn('data-price=""', nr_section)
+
+    def test_load_ncb_cards_and_trajectories_baseline_carry_forward_and_clamping(self):
+        catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "301": {
+                "productId": 301,
+                "name": "Chrome Anticipation",
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "001",
+                "rarity": "Nova Rare",
+                "color": "Red",
+                "cardType": "Program",
+            },
+            "302": {
+                "productId": 302,
+                "name": "Kiroshi Optics",
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "002",
+                "rarity": "Nova Rare",
+                "color": "Blue",
+                "cardType": "Gear",
+            },
+            "310": {
+                "productId": 310,
+                "name": "Cyberware Calibration",
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "010",
+                "rarity": "Nova Rare",
+                "color": "Green",
+                "cardType": "Program",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+
+        snapshots = {
+            "2026-11-05": {"301": {"Foil": {"marketPrice": 99.0}}, "302": {}, "310": {"Foil": {"marketPrice": 5.0}}},
+            "2026-11-06": {"301": {"Foil": {"marketPrice": 10.0}}, "302": {"Foil": {"marketPrice": 0.0}}, "310": {"Foil": {"marketPrice": 8.0}}},
+            "2026-11-07": {"301": {}, "302": {"Foil": {"marketPrice": 0.0}}, "310": {"Foil": {"marketPrice": 9.0}}},
+            "2026-11-08": {"301": {"Foil": {"marketPrice": 14.0}}, "302": {"Foil": {"marketPrice": 30.0}}, "310": {"Foil": {"marketPrice": 10.0}}},
+            "2026-11-09": {"302": {"Foil": {"marketPrice": 36.0}}, "310": {"Foil": {"marketPrice": 12.0}}},
+        }
+        for d, p in snapshots.items():
+            (self.prices_dir / f"{d}.json").write_text(json.dumps({"date": d, "prices": p}), encoding="utf-8")
+
+        self.collection_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            "Chrome Anticipation,Night City Brawl Season 1,001,Foil,2,2026-10-01\n",
+            encoding="utf-8",
+        )
+
+        ncb_cards = load_ncb_cards(
+            cards_path=self.cards_file,
+            prices_dir=self.prices_dir,
+            collection_path=str(self.collection_csv),
+        )
+        self.assertEqual([c.print_number for c in ncb_cards], ["001", "002", "010"])
+        self.assertEqual(ncb_cards[0].price, 14.0)
+        self.assertEqual(ncb_cards[0].owned, 2)
+        self.assertEqual(ncb_cards[1].price, 36.0)
+
+        ncb_dates = ["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09"]
+        price_by_date = {d: snapshots[d] for d in ncb_dates}
+        acqs = load_collection_acquisitions(
+            collection_path=str(self.collection_csv),
+            database_path=None,
+            earliest_beta_date="2026-09-13",
+            earliest_retail_date="2026-10-30",
+            earliest_ncb_date="2026-11-06",
+        )
+        self.assertEqual(acqs[("Night City Brawl Season 1", "001", "Foil")]["date"], "2026-11-06")
+
+        trajs = build_ncb_trajectories(
+            ncb_cards=ncb_cards,
+            dates=ncb_dates,
+            price_by_date=price_by_date,
+            acquisitions=acqs,
+        )
+        t001, t002 = trajs[0], trajs[1]
+        self.assertEqual(t001["points"], [("2026-11-06", 10.0), ("2026-11-07", 10.0), ("2026-11-08", 14.0), ("2026-11-09", 14.0)])
+        self.assertEqual(t001["acqDate"], "2026-11-06")
+        self.assertEqual(t001["acqCost"], 10.0)
+        self.assertEqual(t001["acqDeltaDollar"], 4.0)
+
+        self.assertEqual(t002["baselineDate"], "2026-11-08")
+        self.assertEqual(t002["baselinePrice"], 30.0)
+        self.assertEqual(t002["changeAll"], 6.0)
+        self.assertAlmostEqual(t002["changeAllPct"], 20.0)
+
+    def _require_node(self) -> str:
+        node_bin = shutil.which("node")
+        if not node_bin:
+            if os.environ.get("REQUIRE_NODE"):
+                self.fail("node is required when REQUIRE_NODE is set")
+            self.skipTest("node not installed")
+        return node_bin
+
+    def test_pure_js_set_state_migration_isolation_and_full_descriptor(self):
+        node_bin = self._require_node()
+        driver = f"""
+const vm = require('vm');
+const context = {{}};
+vm.createContext(context);
+vm.runInContext({json.dumps(_SET_STATE_JS)}, context);
+
+const meta = {{
+  totalCardCount: 37,
+  ncbCardCount: 18,
+  wncBetaRangeLabel: 'B001 \\u2192 B171',
+  wncRetailRangeLabel: '001 \\u2192 171',
+  ncbRangeLabel: '001 \\u2192 018'
+}};
+
+const defFilters = context.defaultSetFilters();
+const fresh = context.normalizeSavedFilterState(null);
+const legacyFlat = context.normalizeSavedFilterState({{
+  edition: 'comparison',
+  anchor: 'l7d',
+  q: 'Panam',
+  o: ['owned'],
+  r: ['IL'],
+  c: ['Red'],
+  t: ['Legend'],
+  s: 'price-desc',
+  b: 'IL',
+  statsOpen: true
+}});
+const legacyLong = context.normalizeSavedFilterState({{
+  edition: 'retail',
+  search: 'Judy',
+  ownership: ['unowned'],
+  rarity: ['IS'],
+  sort: 'price-asc'
+}});
+const afterToNcb = context.switchSetFilterState(
+  {{ set: 'wnc', edition: 'retail', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
+  'ncb',
+  {{ q: 'Smasher', o: ['owned'], r: ['IL'], c: ['Red'], t: ['Legend'], s: 'price-desc', b: 'IL', statsOpen: {{ IL: true, BT: false }} }}
+);
+const backToWnc = context.switchSetFilterState(
+  afterToNcb,
+  'wnc',
+  {{ q: 'Chrome', o: [], r: [], c: ['Blue'], t: ['Program'], s: 'gain-desc', b: 'all', statsOpen: {{ NR: false }} }}
+);
+const clampedSavedNcb = context.normalizeSavedFilterState(
+  {{ set: 'ncb', edition: 'retail', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
+  false
+);
+const clampedSwitchNcb = context.switchSetFilterState(
+  {{ set: 'wnc', edition: 'beta', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
+  'ncb',
+  {{ q: 'Smasher', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{ IL: false }} }},
+  false
+);
+const emptyRangeWnc = context.computeSetViewState('wnc', 'beta', {{
+  totalCardCount: 0,
+  ncbCardCount: 0,
+  wncBetaRangeLabel: '',
+  wncRetailRangeLabel: '',
+  ncbRangeLabel: ''
+}});
+const resolvedStats = {{
+  ilExplicitFalseOnWide: context.resolveTierStatsOpen({{ IL: false, BT: true }}, 'IL', true),
+  btExplicitTrueOnNarrow: context.resolveTierStatsOpen({{ IL: false, BT: true }}, 'BT', false),
+  ioUnsetOnWide: context.resolveTierStatsOpen({{ IL: false, BT: true }}, 'IO', true),
+  isUnsetOnNarrow: context.resolveTierStatsOpen({{ IL: false, BT: true }}, 'IS', false),
+  nrUnsetOnWide: context.resolveTierStatsOpen({{}}, 'NR', true),
+  nrExplicitFalseOnWide: context.resolveTierStatsOpen({{ NR: false }}, 'NR', true),
+}};
+const toggledWncStep1 = context.applySetTierStatsToggle(
+  {{ set: 'wnc', edition: 'beta', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
+  'wnc',
+  'IL',
+  false,
+  true
+);
+const toggledWncStep2 = context.applySetTierStatsToggle(toggledWncStep1, 'wnc', 'BT', true, true);
+const afterFilterSave = context.switchSetFilterState(
+  toggledWncStep2,
+  'ncb',
+  Object.assign({{}}, toggledWncStep2.filtersBySet.wnc, {{ q: 'Smasher' }}),
+  true
+);
+const toggledNcb = context.applySetTierStatsToggle(afterFilterSave, 'ncb', 'NR', false, true);
+const roundTripped = context.normalizeSavedFilterState(JSON.parse(JSON.stringify(toggledNcb)), true);
+const out = {{
+  defFilters,
+  fresh,
+  legacyFlat,
+  legacyLong,
+  afterToNcb,
+  backToWnc,
+  clampedSavedNcb,
+  clampedSwitchNcb,
+  emptyRangeWnc,
+  resolvedStats,
+  roundTripped,
+  descriptors: {{
+    wncBeta: context.computeSetViewState('wnc', 'beta', meta),
+    wncRetail: context.computeSetViewState('wnc', 'retail', meta),
+    wncComparison: context.computeSetViewState('wnc', 'comparison', meta),
+    ncbBeta: context.computeSetViewState('ncb', 'beta', meta),
+    ncbRetail: context.computeSetViewState('ncb', 'retail', meta),
+    ncbComparison: context.computeSetViewState('ncb', 'comparison', meta),
+  }}
+}};
+process.stdout.write(JSON.stringify(out));
+"""
+        proc = subprocess.run(
+            [node_bin, "-e", driver],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        res = json.loads(proc.stdout)
+
+        clean_default = {"q": "", "o": [], "r": [], "c": [], "t": [], "s": "num", "b": "all", "statsOpen": {}}
+        self.assertEqual(res["defFilters"], clean_default)
+        self.assertEqual(res["fresh"]["set"], "wnc")
+        self.assertEqual(res["fresh"]["edition"], "beta")
+        self.assertEqual(res["fresh"]["filtersBySet"]["ncb"], clean_default)
+
+        self.assertEqual(res["legacyFlat"]["set"], "wnc")
+        self.assertEqual(res["legacyFlat"]["edition"], "comparison")
+        self.assertEqual(res["legacyFlat"]["anchor"], "l7d")
+        self.assertEqual(res["legacyFlat"]["filtersBySet"]["wnc"], {
+            "q": "Panam", "o": ["owned"], "r": ["IL"], "c": ["Red"], "t": ["Legend"], "s": "price-desc", "b": "IL", "statsOpen": {},
+        })
+        self.assertEqual(res["legacyFlat"]["filtersBySet"]["ncb"], clean_default)
+
+        self.assertEqual(res["legacyLong"]["set"], "wnc")
+        self.assertEqual(res["legacyLong"]["edition"], "retail")
+        self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["q"], "Judy")
+        self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["o"], ["unowned"])
+        self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["r"], ["IS"])
+        self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["s"], "price-asc")
+
+        self.assertEqual(res["afterToNcb"]["set"], "ncb")
+        self.assertEqual(res["afterToNcb"]["edition"], "retail")
+        self.assertEqual(res["afterToNcb"]["filtersBySet"]["wnc"]["q"], "Smasher")
+        self.assertEqual(res["afterToNcb"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": True, "BT": False})
+        self.assertEqual(res["afterToNcb"]["filtersBySet"]["ncb"], clean_default)
+
+        self.assertEqual(res["backToWnc"]["set"], "wnc")
+        self.assertEqual(res["backToWnc"]["edition"], "retail")
+        self.assertEqual(res["backToWnc"]["filtersBySet"]["wnc"]["q"], "Smasher")
+        self.assertEqual(res["backToWnc"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": True, "BT": False})
+        self.assertEqual(res["backToWnc"]["filtersBySet"]["ncb"]["q"], "Chrome")
+        self.assertEqual(res["backToWnc"]["filtersBySet"]["ncb"]["c"], ["Blue"])
+        self.assertEqual(res["backToWnc"]["filtersBySet"]["ncb"]["statsOpen"], {"NR": False})
+
+        self.assertEqual(res["clampedSavedNcb"]["set"], "wnc")
+        self.assertEqual(res["clampedSwitchNcb"]["set"], "wnc")
+        self.assertEqual(res["clampedSwitchNcb"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": False})
+        self.assertEqual(res["emptyRangeWnc"]["sortNumLabel"], "Print #")
+        self.assertEqual(res["resolvedStats"], {
+            "ilExplicitFalseOnWide": False,
+            "btExplicitTrueOnNarrow": True,
+            "ioUnsetOnWide": True,
+            "isUnsetOnNarrow": False,
+            "nrUnsetOnWide": True,
+            "nrExplicitFalseOnWide": False,
+        })
+        self.assertEqual(res["roundTripped"]["filtersBySet"]["wnc"]["q"], "Smasher")
+        self.assertEqual(res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": False, "BT": True})
+        self.assertNotIn("IO", res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"])
+        self.assertNotIn("IS", res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"])
+        self.assertEqual(res["roundTripped"]["filtersBySet"]["ncb"]["statsOpen"], {"NR": False})
+
+        descriptors = res["descriptors"]
+        expected_keys = {
+            "title",
+            "showClusterView",
+            "showMsRarity",
+            "showLegendTypeItem",
+            "showSectionNR",
+            "showWncTiers",
+            "showComparisonView",
+            "showBasisCluster",
+            "sortNumLabel",
+            "countDenominator",
+        }
+        for k, desc in descriptors.items():
+            self.assertEqual(set(desc.keys()), expected_keys, msg=f"Key mismatch for {k}")
+
+        self.assertEqual(descriptors["wncBeta"], {
+            "title": "Welcome to Night City \u2013 Iconic & Promo Price Trajectories",
+            "showClusterView": True,
+            "showMsRarity": True,
+            "showLegendTypeItem": True,
+            "showSectionNR": False,
+            "showWncTiers": True,
+            "showComparisonView": False,
+            "showBasisCluster": True,
+            "sortNumLabel": "Print # (B001 \u2192 B171)",
+            "countDenominator": 37,
+        })
+        self.assertEqual(descriptors["wncRetail"], {
+            "title": "Welcome to Night City \u2013 Iconic & Promo Price Trajectories",
+            "showClusterView": True,
+            "showMsRarity": True,
+            "showLegendTypeItem": True,
+            "showSectionNR": False,
+            "showWncTiers": True,
+            "showComparisonView": False,
+            "showBasisCluster": True,
+            "sortNumLabel": "Print # (001 \u2192 171)",
+            "countDenominator": 37,
+        })
+        self.assertEqual(descriptors["wncComparison"], {
+            "title": "Welcome to Night City \u2013 Iconic & Promo Price Trajectories",
+            "showClusterView": True,
+            "showMsRarity": True,
+            "showLegendTypeItem": True,
+            "showSectionNR": False,
+            "showWncTiers": False,
+            "showComparisonView": True,
+            "showBasisCluster": False,
+            "sortNumLabel": "Print # (001 \u2192 171)",
+            "countDenominator": 37,
+        })
+        expected_ncb = {
+            "title": "Night City Brawl Season 1 \u2013 Nova Rare Price Trajectories",
+            "showClusterView": False,
+            "showMsRarity": False,
+            "showLegendTypeItem": False,
+            "showSectionNR": True,
+            "showWncTiers": False,
+            "showComparisonView": False,
+            "showBasisCluster": True,
+            "sortNumLabel": "Print # (001 \u2192 018)",
+            "countDenominator": 18,
+        }
+        self.assertEqual(descriptors["ncbBeta"], expected_ncb)
+        self.assertEqual(descriptors["ncbRetail"], expected_ncb)
+        self.assertEqual(descriptors["ncbComparison"], expected_ncb)
+
+    def test_console_summary_76_col_width_with_box_toppers_and_ncb(self):
+        summaries = [
+            TierSummary("Legends", 10, 10, 4, 8, 125.00, 45.00, 80.00),
+            TierSummary("Others", 14, 14, 2, 10, 75.50, 22.00, 53.50),
+            TierSummary("Secrets", 7, 7, 1, 5, 199.99, 65.00, 134.99),
+            TierSummary("Box Toppers", 6, 6, 6, 0, 140.00, 40.00, 100.00),
+        ]
+        pairs = [
+            IconicCardPair(f"{i:03d}", f"Card {i}", "Legends", "Foil", i, i + 100, 50.0, 20.0, 30.0, 150.0, 1, 1)
+            for i in range(1, 38)
+        ]
+        ncb_cards = [
+            PromoSetCard(f"{i:03d}", f"NCB {i}", "Nova Rare", "Foil", 500 + i, 25.0 if i <= 16 else None, 1 if i <= 8 else 0)
+            for i in range(1, 19)
+        ]
+        summary = format_console_summary(
+            tier_summaries=summaries,
+            pairs=pairs,
+            output_path="set_price_trajectories.html",
+            collection_name="active_collection.csv",
+            collection_mtime_date="2026-11-14",
+            ncb_cards=ncb_cards,
+        )
+        lines = summary.splitlines()
+        self.assertLessEqual(max(len(line) for line in lines), 76)
+        self.assertIn("=============== Welcome to Night City: Iconics & Box Toppers ===============", summary)
+        self.assertIn("Owned WNC Value:", summary)
+        self.assertIn("Box Toppers (6)     6/6          0/6", summary)
+        self.assertIn("Night City Brawl S1: Nova Rares", summary)
+        self.assertIn("8/18 (8 cards)", summary)
+        self.assertIn("Set (16/18 priced):", summary)
+
+    def test_overlapping_print_numbers_across_rarities_do_not_collide_in_comparison(self):
+        il_pair = IconicCardPair(
+            "001", "Iconic Overlap", "Legends", "Foil",
+            101, 102, 120.0, 55.0, 65.0, 118.2, 3, 2,
+            color="Red", card_type="Legend",
+            beta_expansion="Welcome to Night City - Beta",
+            retail_expansion="Welcome to Night City - Retail",
+        )
+        bt_pair = IconicCardPair(
+            "001", "Box Topper Overlap", "Box Toppers", "Foil",
+            201, 202, 85.0, 30.0, 55.0, 183.3, 1, 4,
+            color="Blue", card_type="Unit",
+            beta_expansion="Box Toppers - Beta",
+            retail_expansion="Box Toppers - Retail",
+        )
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({
+                "date": "2026-11-09",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 120.0}},
+                    "102": {"Foil": {"marketPrice": 55.0}},
+                    "201": {"Foil": {"marketPrice": 85.0}},
+                    "202": {"Foil": {"marketPrice": 30.0}},
+                },
+            }),
+            encoding="utf-8",
+        )
+        out_html = self.test_dir / "overlap_comp.html"
+        generate_html_dashboard(
+            pairs=[il_pair, bt_pair],
+            prices_dir=self.prices_dir,
+            collection_path=None,
+            output_path=str(out_html),
+            earliest_beta_date=None,
+            earliest_retail_date=None,
+        )
+        html_text = out_html.read_text(encoding="utf-8")
+        table_il = html_text.split('id="table-IL"', 1)[1].split("</table>", 1)[0]
+        table_bt = html_text.split('id="table-BT"', 1)[1].split("</table>", 1)[0]
+        self.assertIn("Iconic Overlap", table_il)
+        self.assertIn("$120.00", table_il)
+        self.assertIn("$55.00", table_il)
+        self.assertIn('id="total-b-owned-IL">3</td>', table_il)
+        self.assertIn('id="total-r-owned-IL">2</td>', table_il)
+        self.assertNotIn("Box Topper Overlap", table_il)
+
+        self.assertIn("Box Topper Overlap", table_bt)
+        self.assertIn("$85.00", table_bt)
+        self.assertIn("$30.00", table_bt)
+        self.assertIn('id="total-b-owned-BT">1</td>', table_bt)
+        self.assertIn('id="total-r-owned-BT">4</td>', table_bt)
+        self.assertNotIn("Iconic Overlap", table_bt)
+
+    def test_run_iconics_comparison_loads_catalog_context_once(self):
+        catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "101": {
+                "productId": 101,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B141",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+            },
+            "102": {
+                "productId": 102,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "141",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+            },
+            "301": {
+                "productId": 301,
+                "name": "Chrome Anticipation",
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "001",
+                "rarity": "Nova Rare",
+                "color": "Red",
+                "cardType": "Program",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({
+                "date": "2026-11-09",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 25.0}},
+                    "102": {"Foil": {"marketPrice": 10.0}},
+                    "301": {"Foil": {"marketPrice": 15.0}},
+                },
+            }),
+            encoding="utf-8",
+        )
+        self.collection_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "Adam Smasher,Welcome to Night City - Beta,B141,Foil,1\n",
+            encoding="utf-8",
+        )
+        out_html = self.test_dir / "single_catalog_ctx.html"
+        with patch("tracker.iconics.REPO_ROOT", self.test_dir), \
+             patch("tracker.iconics.load_config", side_effect=AssertionError("unexpected load_config")), \
+             patch("tracker.iconics._load_catalog_and_price_context", wraps=_load_catalog_and_price_context) as mock_ctx:
+            rc, _ = run_iconics_comparison(
+                output_path=str(out_html),
+                collection_path=str(self.collection_csv),
+                cards_path=self.cards_file,
+                prices_dir=self.prices_dir,
+                database_path=None,
+            )
+        self.assertEqual(rc, 0)
+        self.assertEqual(mock_ctx.call_count, 1)
+
+    def test_catalog_context_validates_bound_paths(self):
+        catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "101": {
+                "productId": 101,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B141",
+                "rarity": "IL",
+            },
+            "102": {
+                "productId": 102,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "141",
+                "rarity": "IL",
+            },
+            "301": {
+                "productId": 301,
+                "name": "Chrome Anticipation",
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "001",
+                "rarity": "Nova Rare",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({
+                "date": "2026-11-09",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 25.0}},
+                    "102": {"Foil": {"marketPrice": 10.0}},
+                    "301": {"Foil": {"marketPrice": 15.0}},
+                },
+            }),
+            encoding="utf-8",
+        )
+        ctx = _load_catalog_and_price_context(self.cards_file, self.prices_dir)
+        pairs, _, _ = load_iconic_pairs(cards_path=self.cards_file, prices_dir=self.prices_dir, catalog_context=ctx)
+        ncb_cards = load_ncb_cards(cards_path=self.cards_file, prices_dir=self.prices_dir, catalog_context=ctx)
+        self.assertEqual(len(pairs), 1)
+        self.assertEqual(len(ncb_cards), 1)
+
+        other_cards = self.test_dir / "other_cards.json"
+        other_prices = self.test_dir / "other_prices"
+        with self.assertRaises(ValueError):
+            load_iconic_pairs(cards_path=other_cards, prices_dir=self.prices_dir, catalog_context=ctx)
+        with self.assertRaises(ValueError):
+            load_ncb_cards(cards_path=self.cards_file, prices_dir=other_prices, catalog_context=ctx)
+
+    def test_empty_wnc_collection_match_emits_four_group_warning(self):
+        catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "101": {
+                "productId": 101,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B141",
+                "rarity": "IL",
+            },
+            "102": {
+                "productId": 102,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "141",
+                "rarity": "IL",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({"date": "2026-11-09", "prices": {"101": {"Foil": {"marketPrice": 25.0}}, "102": {"Foil": {"marketPrice": 10.0}}}}),
+            encoding="utf-8",
+        )
+        self.collection_csv.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned\n"
+            "Chrome Anticipation,Night City Brawl Season 1,001,Foil,1\n",
+            encoding="utf-8",
+        )
+        stderr_buf = io.StringIO()
+        with patch("sys.stderr", stderr_buf):
+            load_iconic_pairs(
+                cards_path=self.cards_file,
+                prices_dir=self.prices_dir,
+                collection_path=str(self.collection_csv),
+            )
+        self.assertIn(
+            "Warning: Collection contains records but zero rows matched "
+            "'Welcome to Night City - Beta', 'Welcome to Night City - Retail', "
+            "'Box Toppers - Beta', or 'Box Toppers - Retail'.",
+            stderr_buf.getvalue(),
+        )
 
 
 if __name__ == "__main__":
