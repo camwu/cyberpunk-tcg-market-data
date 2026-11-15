@@ -33,13 +33,22 @@ NCB_S1_GROUP_NAME = "Night City Brawl Season 1"
 
 # Pure JS state, migration, and view-descriptor helpers embedded verbatim in <head> and tested under Node vm.
 _SET_STATE_JS = r"""    function defaultSetFilters() {
-      return { q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: false };
+      return { q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {} };
     }
 
     function _cloneStrArray(val) {
       if (Array.isArray(val)) return val.map(v => String(v));
       if (typeof val === 'string' && val) return [val];
       return [];
+    }
+
+    function _normalizeStatsOpenMap(raw) {
+      var out = {};
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+      Object.keys(raw).forEach(function(k) {
+        if (typeof raw[k] === 'boolean') out[k] = raw[k];
+      });
+      return out;
     }
 
     function _normalizeFilterObj(src) {
@@ -53,11 +62,12 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       var rawSort = typeof src.s === 'string' ? src.s : (typeof src.sort === 'string' ? src.sort : 'num');
       var s = rawSort || 'num';
       var b = typeof src.b === 'string' && src.b ? src.b : 'all';
-      var statsOpen = typeof src.statsOpen === 'boolean' ? src.statsOpen : false;
+      var statsOpen = _normalizeStatsOpenMap(src.statsOpen);
       return { q: q, o: o, r: r, c: c, t: t, s: s, b: b, statsOpen: statsOpen };
     }
 
-    function normalizeSavedFilterState(saved) {
+    function normalizeSavedFilterState(saved, hasNcb) {
+      var allowNcb = hasNcb !== false;
       var base = {
         set: 'wnc',
         edition: 'beta',
@@ -71,7 +81,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       var ed = (saved.edition === 'retail' || saved.edition === 'beta' || saved.edition === 'comparison') ? saved.edition : 'beta';
       var anc = (saved.anchor === 'lifetime' || saved.anchor === 'acq' || saved.anchor === 'l7d') ? saved.anchor : 'acq';
       if (saved.filtersBySet && typeof saved.filtersBySet === 'object') {
-        var activeSet = saved.set === 'ncb' ? 'ncb' : 'wnc';
+        var activeSet = (allowNcb && saved.set === 'ncb') ? 'ncb' : 'wnc';
         return {
           set: activeSet,
           edition: ed,
@@ -93,10 +103,11 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       };
     }
 
-    function switchSetFilterState(state, nextSet, outgoingControls) {
-      var normalized = normalizeSavedFilterState(state);
+    function switchSetFilterState(state, nextSet, outgoingControls, hasNcb) {
+      var allowNcb = hasNcb !== false;
+      var normalized = normalizeSavedFilterState(state, allowNcb);
       var prevSet = normalized.set === 'ncb' ? 'ncb' : 'wnc';
-      var targetSet = nextSet === 'ncb' ? 'ncb' : 'wnc';
+      var targetSet = (allowNcb && nextSet === 'ncb') ? 'ncb' : 'wnc';
       var nextWnc = _normalizeFilterObj(normalized.filtersBySet.wnc);
       var nextNcb = _normalizeFilterObj(normalized.filtersBySet.ncb);
       if (outgoingControls && typeof outgoingControls === 'object') {
@@ -524,7 +535,10 @@ def build_edition_trajectories(
     acquisitions: Dict[Tuple[str, str, str], Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
-    Builds chronological daily price series and return metrics for one WNC Iconic/Box Topper edition.
+    Builds chronological daily price series and return metrics for one WNC Iconic or Box Topper edition.
+    Establishes lifetime baselines from the first non-zero ($0.00+) market price, carries forward the
+    latest known price across missing or $0.00 scrapes, and clamps pre-history acquisition dates to
+    the earliest available market date for each card.
     """
     is_beta = edition == "beta"
     reverse_tier_map = {"Legends": "IL", "Others": "IO", "Secrets": "IS", "Box Toppers": "BT"}
@@ -540,8 +554,7 @@ def build_edition_trajectories(
         display_pnum = f"B{pair.print_number}" if (is_beta and not str(pair.print_number).startswith("B")) else str(pair.print_number)
         rarity_code = reverse_tier_map.get(pair.tier, "IL")
         owned_qty = pair.beta_owned if is_beta else pair.retail_owned
-        default_exp = WNC_BETA_GROUP_NAME if is_beta else WNC_RETAIL_GROUP_NAME
-        expansion_name = getattr(pair, "beta_expansion" if is_beta else "retail_expansion", default_exp)
+        expansion_name = pair.beta_expansion if is_beta else pair.retail_expansion
 
         trajectories.append(
             _build_card_trajectory(
@@ -580,7 +593,7 @@ def build_ncb_trajectories(
     trajectories: List[Dict[str, Any]] = []
     for card in sorted_cards:
         pnum = str(card.print_number)
-        expansion_name = getattr(card, "expansion", NCB_S1_GROUP_NAME)
+        expansion_name = card.expansion
         trajectories.append(
             _build_card_trajectory(
                 pid=card.product_id,
@@ -1623,8 +1636,8 @@ _DASHBOARD_CSS = """    :root {
 
 
 _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !== 'undefined' && initialFilterState)
-      ? normalizeSavedFilterState(initialFilterState)
-      : normalizeSavedFilterState(null);
+      ? normalizeSavedFilterState(initialFilterState, typeof hasNcb !== 'undefined' ? hasNcb : true)
+      : normalizeSavedFilterState(null, typeof hasNcb !== 'undefined' ? hasNcb : true);
     let currentSet = activeSetState.set;
     let currentEdition = activeSetState.edition;
     let currentAnchor = activeSetState.anchor;
@@ -1710,8 +1723,8 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
       const titleEl = document.getElementById('set-val-title');
       if (titleEl) {
         titleEl.textContent = (pairedRows.length < visibleTierRows.length)
-          ? `Iconics Set Value (${pairedRows.length}/${visibleTierRows.length} pairs)`
-          : 'Iconics Set Value';
+          ? `WNC Set Value (${pairedRows.length}/${visibleTierRows.length} pairs)`
+          : 'WNC Set Value';
       }
 
       const bEl = document.getElementById('set-val-beta');
@@ -1793,15 +1806,29 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
       }
     }
 
-    function applyStatsOpenForCurrentSet(isOpen) {
-      const targetCodes = currentSet === 'ncb' ? ['NR'] : tierCodes;
-      targetCodes.forEach(code => applyTierStatsOpen(code, isOpen));
+    function resolveTierStatsOpen(statsOpenMap, code) {
+      if (statsOpenMap && typeof statsOpenMap === 'object' && !Array.isArray(statsOpenMap) && typeof statsOpenMap[code] === 'boolean') {
+        return statsOpenMap[code];
+      }
+      return window.innerWidth >= 768;
     }
 
-    function getActiveSetStatsOpen() {
-      const targetCode = currentSet === 'ncb' ? 'NR' : tierCodes[0];
-      const group = targetCode ? document.getElementById(`stats-group-${targetCode}`) : null;
-      return group ? !group.classList.contains('is-collapsed') : false;
+    function applyStatsOpenForCurrentSet(statsOpenMap) {
+      const targetCodes = currentSet === 'ncb' ? ['NR'] : tierCodes;
+      targetCodes.forEach(code => applyTierStatsOpen(code, resolveTierStatsOpen(statsOpenMap, code)));
+    }
+
+    function getActiveSetStatsOpenMap() {
+      const currentFilters = activeSetState.filtersBySet && activeSetState.filtersBySet[currentSet];
+      const out = _normalizeStatsOpenMap(currentFilters ? currentFilters.statsOpen : null);
+      const targetCodes = currentSet === 'ncb' ? ['NR'] : tierCodes;
+      targetCodes.forEach(code => {
+        const group = document.getElementById(`stats-group-${code}`);
+        if (group) {
+          out[code] = !group.classList.contains('is-collapsed');
+        }
+      });
+      return out;
     }
 
     function toggleTierStats(code) {
@@ -1815,7 +1842,8 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
       const isHidden = activeBox.style.display === 'none' || !activeBox.style.display;
       applyTierStatsOpen(code, isHidden);
       if (activeSetState.filtersBySet[currentSet]) {
-        activeSetState.filtersBySet[currentSet].statsOpen = isHidden;
+        activeSetState.filtersBySet[currentSet].statsOpen = _normalizeStatsOpenMap(activeSetState.filtersBySet[currentSet].statsOpen);
+        activeSetState.filtersBySet[currentSet].statsOpen[code] = isHidden;
       }
       saveState();
     }
@@ -1877,7 +1905,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
         t: getSelected('type'),
         s: rawSort === 'num-asc' ? 'num' : rawSort,
         b: activePricedSetTier || 'all',
-        statsOpen: getActiveSetStatsOpen()
+        statsOpen: getActiveSetStatsOpenMap()
       };
     }
 
@@ -1978,10 +2006,11 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
     }
 
     function setActiveSet(nextSet, save = true) {
-      const targetSet = nextSet === 'ncb' ? 'ncb' : 'wnc';
+      const allowNcb = typeof hasNcb !== 'undefined' ? hasNcb : true;
+      const targetSet = (allowNcb && nextSet === 'ncb') ? 'ncb' : 'wnc';
       if (targetSet !== currentSet) {
         const outgoing = readOutgoingControls();
-        activeSetState = switchSetFilterState(activeSetState, targetSet, outgoing);
+        activeSetState = switchSetFilterState(activeSetState, targetSet, outgoing, allowNcb);
         currentSet = activeSetState.set;
         applyControlsFromFilterObj(activeSetState.filtersBySet[currentSet]);
       } else {
@@ -2005,12 +2034,12 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
           searchInput.placeholder = 'Search by card name or number (e.g. 001, Chrome, Brawl)...';
         }
         const ncbFilters = activeSetState.filtersBySet.ncb || defaultSetFilters();
-        applyStatsOpenForCurrentSet(Boolean(ncbFilters.statsOpen));
+        applyStatsOpenForCurrentSet(ncbFilters.statsOpen);
         applyFilters();
       } else {
         setEdition(currentEdition, false);
         const wncFilters = activeSetState.filtersBySet.wnc || defaultSetFilters();
-        applyStatsOpenForCurrentSet(Boolean(wncFilters.statsOpen));
+        applyStatsOpenForCurrentSet(wncFilters.statsOpen);
       }
 
       if (typeof syncStickyNavHeight === 'function') syncStickyNavHeight();
@@ -2117,7 +2146,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
       }
     });
 
-    function tileMatchesFilters(tile, q, r, c, t, o, checkRarity) {
+    function tileMatchesFilters(tile, q, r, c, t, o) {
       const name = tile.dataset.name;
       const num = tile.dataset.num.toLowerCase();
       const cleanNum = num.replace(/^b/, '');
@@ -2127,7 +2156,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
       const isOwned = (parseInt(tile.dataset.ownedQty, 10) || 0) > 0;
 
       const matchesQ = !q || name.includes(q) || num.includes(q) || cleanNum.includes(q);
-      const matchesR = !checkRarity || r.length === 0 || r.includes(rarity);
+      const matchesR = r.length === 0 || r.includes(rarity);
       const matchesC = c.length === 0 || c.includes(color);
       const matchesT = t.length === 0 || t.includes(cardType);
       const matchesO = o.length === 0 || (o.includes('owned') && isOwned) || (o.includes('unowned') && !isOwned);
@@ -2164,7 +2193,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
 
     function applyFilters() {
       const q = searchInput.value.trim().toLowerCase();
-      const r = currentSet === 'ncb' ? [] : getSelected('rarity');
+      const r = getSelected('rarity');
       const c = getSelected('color');
       const t = getSelected('type');
       const o = getSelected('ownership');
@@ -2180,7 +2209,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
         if (gridNR) {
           const tiles = Array.from(gridNR.getElementsByClassName('card-tile'));
           tiles.forEach(tile => {
-            if (tileMatchesFilters(tile, q, r, c, t, o, false)) {
+            if (tileMatchesFilters(tile, q, r, c, t, o)) {
               tile.style.display = 'flex';
               totalVisible++;
             } else {
@@ -2333,7 +2362,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
             return;
           }
 
-          if (tileMatchesFilters(tile, q, r, c, t, o, true)) {
+          if (tileMatchesFilters(tile, q, r, c, t, o)) {
             tile.style.display = 'flex';
             sectionVisible++;
             totalVisible++;
@@ -2379,14 +2408,8 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
 
     function initFilters() {
       const rawSaved = loadState();
-      activeSetState = normalizeSavedFilterState(rawSaved);
-      const isWideViewport = window.innerWidth >= 768;
-      if (!rawSaved) {
-        activeSetState.filtersBySet.wnc.statsOpen = isWideViewport;
-        activeSetState.filtersBySet.ncb.statsOpen = isWideViewport;
-      } else if (!rawSaved.filtersBySet && typeof rawSaved.statsOpen !== 'boolean') {
-        activeSetState.filtersBySet.wnc.statsOpen = isWideViewport;
-      }
+      const allowNcb = typeof hasNcb !== 'undefined' ? hasNcb : true;
+      activeSetState = normalizeSavedFilterState(rawSaved, allowNcb);
       currentSet = activeSetState.set;
       currentEdition = activeSetState.edition;
       currentAnchor = activeSetState.anchor;
@@ -2707,9 +2730,9 @@ def _render_comparison_view(comp_pairs: List[Dict[str, Any]]) -> str:
 
     paired_all = [p for p in comp_pairs if p["is_paired"]]
     title_str = (
-        f"Iconics Set Value ({len(paired_all)}/{len(comp_pairs)} pairs)"
+        f"WNC Set Value ({len(paired_all)}/{len(comp_pairs)} pairs)"
         if len(paired_all) < len(comp_pairs)
-        else "Iconics Set Value"
+        else "WNC Set Value"
     )
     if paired_all:
         b_sum = sum(p["beta_price"] for p in paired_all)
@@ -2793,7 +2816,7 @@ def _render_comparison_view(comp_pairs: List[Dict[str, Any]]) -> str:
         </div>
       </div>
       <div class="comp-card">
-        <div class="comp-card-title">Owned Iconics Value</div>
+        <div class="comp-card-title">Owned WNC Value</div>
         <div class="comp-card-val">${b_total_owned_val + r_total_owned_val:,.2f} <span style="font-size:13px;color:var(--text-muted);font-weight:normal;">({b_total_owned_cards + r_total_owned_cards} total)</span></div>
         <div class="comp-card-sub">
           <div>Beta: {b_total_owned_cards} cards (${b_total_owned_val:,.2f})</div>
@@ -3014,13 +3037,15 @@ def generate_html_dashboard(
     }
     nr_stats = _compute_tier_stats(ncb_trajectories)
 
-    pair_by_num = {str(p.print_number): p for p in pairs}
-    r_by_num = {t["cleanNumber"]: t for t in retail_trajectories}
+    reverse_tier_map = {"Legends": "IL", "Others": "IO", "Secrets": "IS", "Box Toppers": "BT"}
+    pair_by_key = {(reverse_tier_map.get(p.tier, "IL"), str(p.print_number)): p for p in pairs}
+    r_by_key = {(t["rarity"], t["cleanNumber"]): t for t in retail_trajectories}
     comp_pairs: List[Dict[str, Any]] = []
     for b in beta_trajectories:
         cnum = b["cleanNumber"]
-        r = r_by_num.get(cnum)
-        pair_obj = pair_by_num.get(cnum)
+        comp_key = (b["rarity"], cnum)
+        r = r_by_key.get(comp_key)
+        pair_obj = pair_by_key.get(comp_key)
         b_p = pair_obj.beta_price if pair_obj is not None else (b["currentPrice"] if b.get("hasPrice") else None)
         r_p = pair_obj.retail_price if pair_obj is not None else (r["currentPrice"] if (r and r.get("hasPrice")) else None)
         is_paired = (b_p is not None and r_p is not None)
@@ -3060,14 +3085,16 @@ def generate_html_dashboard(
         "ncb": f"{ncb_count} market snapshots ({ncb_date_range})",
     }
 
+    has_ncb = len(ncb_trajectories) > 0
     tier_sections_html = _render_tier_sections(retail_trajectories, beta_trajectories, r_stats, b_stats)
-    ncb_section_html = _render_ncb_section(ncb_trajectories, nr_stats)
+    ncb_section_html = _render_ncb_section(ncb_trajectories, nr_stats) if has_ncb else ""
     comp_view_html = _render_comparison_view(comp_pairs)
     total_card_count = len(beta_trajectories)
     ncb_card_count = len(ncb_trajectories)
-    wnc_beta_range_label = _format_print_range(beta_trajectories) or "B141 \u2192 B171"
-    wnc_retail_range_label = _format_print_range(retail_trajectories) or "141 \u2192 171"
+    wnc_beta_range_label = _format_print_range(beta_trajectories)
+    wnc_retail_range_label = _format_print_range(retail_trajectories)
     ncb_range_label = _format_print_range(ncb_trajectories)
+    initial_sort_num_label = f"Print # ({wnc_beta_range_label})" if wnc_beta_range_label else "Print #"
     set_view_meta = {
         "totalCardCount": total_card_count,
         "ncbCardCount": ncb_card_count,
@@ -3075,6 +3102,14 @@ def generate_html_dashboard(
         "wncRetailRangeLabel": wnc_retail_range_label,
         "ncbRangeLabel": ncb_range_label,
     }
+    set_toggle_html = (
+        """        <div class="edition-toggle" id="set-toggle" role="tablist" aria-label="Set">
+          <button type="button" class="toggle-btn active" id="btn-set-wnc" onclick="setActiveSet('wnc')">WNC</button>
+          <button type="button" class="toggle-btn" id="btn-set-ncb" onclick="setActiveSet('ncb')">NCB S1</button>
+        </div>\n"""
+        if has_ncb
+        else ""
+    )
     bt_rarity_option_html = (
         '\n          <label class="multiselect-item"><input type="checkbox" value="BT" /><span class="multiselect-item-label">Nova Box Topper (BT)</span></label>'
         if has_box_toppers
@@ -3089,13 +3124,14 @@ def generate_html_dashboard(
   <title>Welcome to Night City &ndash; Iconic &amp; Promo Price Trajectories</title>
   <script>
 {_SET_STATE_JS}
+    var hasNcb = {'true' if has_ncb else 'false'};
     var initialFilterState = (function() {{
       try {{
         var raw = localStorage.getItem('wnc_iconics_filter_state');
         var parsed = raw ? JSON.parse(raw) : null;
-        return normalizeSavedFilterState(parsed);
+        return normalizeSavedFilterState(parsed, hasNcb);
       }} catch (e) {{
-        return normalizeSavedFilterState(null);
+        return normalizeSavedFilterState(null, hasNcb);
       }}
     }})();
     (function() {{
@@ -3117,11 +3153,7 @@ def generate_html_dashboard(
   <div class="header">
     <div class="title-group">
       <div class="set-switcher-row">
-        <div class="edition-toggle" id="set-toggle" role="tablist" aria-label="Set">
-          <button type="button" class="toggle-btn active" id="btn-set-wnc" onclick="setActiveSet('wnc')">WNC</button>
-          <button type="button" class="toggle-btn" id="btn-set-ncb" onclick="setActiveSet('ncb')">NCB S1</button>
-        </div>
-        <h1 id="dashboard-title">Welcome to Night City &ndash; Iconic &amp; Promo Price Trajectories</h1>
+{set_toggle_html}        <h1 id="dashboard-title">Welcome to Night City &ndash; Iconic &amp; Promo Price Trajectories</h1>
       </div>
     </div>
     <div class="header-meta">
@@ -3211,7 +3243,7 @@ def generate_html_dashboard(
     <div class="control-cluster">
       <span class="cluster-label">Sort</span>
       <select id="sort-select" class="filter-select">
-        <option value="num-asc">Print # ({html.escape(wnc_beta_range_label)})</option>
+        <option value="num-asc">{html.escape(initial_sort_num_label)}</option>
         <option value="price-desc">Price: High to Low</option>
         <option value="price-asc">Price: Low to High</option>
         <option value="gain-desc">7-Day Change %</option>

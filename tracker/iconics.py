@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 import statistics
 import sys
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple
 
 from tracker.constants import (
     REPO_ROOT,
@@ -231,10 +231,17 @@ def resolve_card_price_unbounded(
     return None
 
 
+class CatalogContext(NamedTuple):
+    card_items: List[dict]
+    latest_prices: Dict[str, Any]
+    historical_files: List[Path]
+    snapshot_cache: Dict[Path, Dict[str, Any]]
+
+
 def _load_catalog_and_price_context(
     cards_path: Path,
     prices_dir: Path,
-) -> Tuple[List[dict], Dict[str, Any], List[Path], Dict[Path, Dict[str, Any]]]:
+) -> CatalogContext:
     """Loads catalog items and initializes latest/historical price caches."""
     if not cards_path.is_file():
         raise FileNotFoundError(f"Missing cards catalog at {cards_path}")
@@ -251,7 +258,7 @@ def _load_catalog_and_price_context(
 
     historical_files = get_historical_price_files(prices_dir)
     snapshot_cache: Dict[Path, Dict[str, Any]] = {}
-    return card_items, latest_prices, historical_files, snapshot_cache
+    return CatalogContext(card_items, latest_prices, historical_files, snapshot_cache)
 
 
 def _collect_owned_counts(
@@ -445,15 +452,15 @@ def load_iconic_pairs(
     prices_dir: Path = REPO_PRICES_DIR,
     collection_path: Optional[str] = None,
     validated_rows: Optional[List[ValidatedCollectionRow]] = None,
+    catalog_context: Optional[CatalogContext] = None,
 ) -> Tuple[List[IconicCardPair], Optional[str], Optional[str]]:
     """
     Loads, dynamically validates, and pairs Welcome to Night City Iconic and Box Topper cards.
     Derives card finishes strictly from price records and enforces Beta/Retail consistency.
     Returns (pairs, collection_file_name, collection_mtime_date).
     """
-    card_items, latest_prices, historical_files, snapshot_cache = _load_catalog_and_price_context(
-        cards_path, prices_dir
-    )
+    ctx = catalog_context or _load_catalog_and_price_context(cards_path, prices_dir)
+    card_items, latest_prices, historical_files, snapshot_cache = ctx
 
     iconic_records = _collect_validated_pair_group(
         card_items=card_items,
@@ -556,14 +563,14 @@ def load_ncb_cards(
     prices_dir: Path = REPO_PRICES_DIR,
     collection_path: Optional[str] = None,
     validated_rows: Optional[List[ValidatedCollectionRow]] = None,
+    catalog_context: Optional[CatalogContext] = None,
 ) -> List[PromoSetCard]:
     """
     Dynamically loads single cards for Night City Brawl Season 1 ('Nova Rare').
     Returns [] when the catalog contains no cards for the set.
     """
-    card_items, latest_prices, historical_files, snapshot_cache = _load_catalog_and_price_context(
-        cards_path, prices_dir
-    )
+    ctx = catalog_context or _load_catalog_and_price_context(cards_path, prices_dir)
+    card_items, latest_prices, historical_files, snapshot_cache = ctx
 
     ncb_raw_cards: List[Tuple[str, dict]] = []
     for c in card_items:
@@ -740,7 +747,7 @@ def format_console_summary(
     out_name = Path(output_path).name
 
     lines = [
-        "===================== Welcome to Night City: Iconics =====================",
+        "=============== Welcome to Night City: Iconics & Box Toppers ===============",
         "",
         "Category       Beta Owned  Retail Owned   Beta Med  Retail Med   Med Spread",
         "----------------------------------------------------------------------------",
@@ -764,7 +771,7 @@ def format_console_summary(
     tot_label = f"Total ({total_pairs_count})"
     lines.append(f"{tot_label:<19}{tot_b_str}         {tot_r_str}")
     lines.append("")
-    lines.append("Owned Iconics Value:")
+    lines.append("Owned WNC Value:")
     b_val_str = f"${beta_owned_val:,.2f}"
     r_val_str = f"${retail_owned_val:,.2f}"
     tot_val_str = f"${total_owned_val:,.2f}"
@@ -843,17 +850,20 @@ def run_iconics_comparison(
             )
         validated_rows = load_validated_collection_rows(collection_path)
 
+    catalog_context = _load_catalog_and_price_context(cards_path, prices_dir)
     pairs, col_name, col_mtime = load_iconic_pairs(
         cards_path=cards_path,
         prices_dir=prices_dir,
         collection_path=collection_path,
         validated_rows=validated_rows,
+        catalog_context=catalog_context,
     )
     ncb_cards = load_ncb_cards(
         cards_path=cards_path,
         prices_dir=prices_dir,
         collection_path=collection_path,
         validated_rows=validated_rows,
+        catalog_context=catalog_context,
     )
 
     tier_order = ["Legends", "Others", "Secrets", "Box Toppers"]
