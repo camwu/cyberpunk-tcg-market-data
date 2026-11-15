@@ -1459,6 +1459,7 @@ class TestSetTrackerExpansionAndState(unittest.TestCase):
         self.assertIn('id="set-toggle"', late_text)
         self.assertIn('id="section-NR"', late_text)
         self.assertIn("var hasNcb = true;", late_text)
+        self.assertIn("activeSetState = applySetTierStatsToggle(", late_text)
         nr_section = late_text.split('id="section-NR"', 1)[1].split('id="view-comparison"', 1)[0]
         self.assertIn("Nova Rares (1)", nr_section)
         self.assertIn('<span class="price-main">N/A</span>', nr_section)
@@ -1551,8 +1552,16 @@ class TestSetTrackerExpansionAndState(unittest.TestCase):
         self.assertEqual(t002["changeAll"], 6.0)
         self.assertAlmostEqual(t002["changeAllPct"], 20.0)
 
-    @unittest.skipUnless(shutil.which("node"), "node not installed")
+    def _require_node(self) -> str:
+        node_bin = shutil.which("node")
+        if not node_bin:
+            if os.environ.get("REQUIRE_NODE"):
+                self.fail("node is required when REQUIRE_NODE is set")
+            self.skipTest("node not installed")
+        return node_bin
+
     def test_pure_js_set_state_migration_isolation_and_full_descriptor(self):
+        node_bin = self._require_node()
         driver = f"""
 const vm = require('vm');
 const context = {{}};
@@ -1615,6 +1624,30 @@ const emptyRangeWnc = context.computeSetViewState('wnc', 'beta', {{
   wncRetailRangeLabel: '',
   ncbRangeLabel: ''
 }});
+const resolvedStats = {{
+  ilExplicitFalseOnWide: context.resolveTierStatsOpen({{ IL: false, BT: true }}, 'IL', true),
+  btExplicitTrueOnNarrow: context.resolveTierStatsOpen({{ IL: false, BT: true }}, 'BT', false),
+  ioUnsetOnWide: context.resolveTierStatsOpen({{ IL: false, BT: true }}, 'IO', true),
+  isUnsetOnNarrow: context.resolveTierStatsOpen({{ IL: false, BT: true }}, 'IS', false),
+  nrUnsetOnWide: context.resolveTierStatsOpen({{}}, 'NR', true),
+  nrExplicitFalseOnWide: context.resolveTierStatsOpen({{ NR: false }}, 'NR', true),
+}};
+const toggledWncStep1 = context.applySetTierStatsToggle(
+  {{ set: 'wnc', edition: 'beta', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
+  'wnc',
+  'IL',
+  false,
+  true
+);
+const toggledWncStep2 = context.applySetTierStatsToggle(toggledWncStep1, 'wnc', 'BT', true, true);
+const afterFilterSave = context.switchSetFilterState(
+  toggledWncStep2,
+  'ncb',
+  Object.assign({{}}, toggledWncStep2.filtersBySet.wnc, {{ q: 'Smasher' }}),
+  true
+);
+const toggledNcb = context.applySetTierStatsToggle(afterFilterSave, 'ncb', 'NR', false, true);
+const roundTripped = context.normalizeSavedFilterState(JSON.parse(JSON.stringify(toggledNcb)), true);
 const out = {{
   defFilters,
   fresh,
@@ -1625,6 +1658,8 @@ const out = {{
   clampedSavedNcb,
   clampedSwitchNcb,
   emptyRangeWnc,
+  resolvedStats,
+  roundTripped,
   descriptors: {{
     wncBeta: context.computeSetViewState('wnc', 'beta', meta),
     wncRetail: context.computeSetViewState('wnc', 'retail', meta),
@@ -1637,7 +1672,7 @@ const out = {{
 process.stdout.write(JSON.stringify(out));
 """
         proc = subprocess.run(
-            ["node", "-e", driver],
+            [node_bin, "-e", driver],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -1684,6 +1719,19 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(res["clampedSwitchNcb"]["set"], "wnc")
         self.assertEqual(res["clampedSwitchNcb"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": False})
         self.assertEqual(res["emptyRangeWnc"]["sortNumLabel"], "Print #")
+        self.assertEqual(res["resolvedStats"], {
+            "ilExplicitFalseOnWide": False,
+            "btExplicitTrueOnNarrow": True,
+            "ioUnsetOnWide": True,
+            "isUnsetOnNarrow": False,
+            "nrUnsetOnWide": True,
+            "nrExplicitFalseOnWide": False,
+        })
+        self.assertEqual(res["roundTripped"]["filtersBySet"]["wnc"]["q"], "Smasher")
+        self.assertEqual(res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": False, "BT": True})
+        self.assertNotIn("IO", res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"])
+        self.assertNotIn("IS", res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"])
+        self.assertEqual(res["roundTripped"]["filtersBySet"]["ncb"]["statsOpen"], {"NR": False})
 
         descriptors = res["descriptors"]
         expected_keys = {
@@ -1892,6 +1940,56 @@ process.stdout.write(JSON.stringify(out));
             )
         self.assertEqual(rc, 0)
         self.assertEqual(mock_ctx.call_count, 1)
+
+    def test_catalog_context_validates_bound_paths(self):
+        catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "101": {
+                "productId": 101,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B141",
+                "rarity": "IL",
+            },
+            "102": {
+                "productId": 102,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "141",
+                "rarity": "IL",
+            },
+            "301": {
+                "productId": 301,
+                "name": "Chrome Anticipation",
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "001",
+                "rarity": "Nova Rare",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+        (self.prices_dir / "2026-11-09.json").write_text(
+            json.dumps({
+                "date": "2026-11-09",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 25.0}},
+                    "102": {"Foil": {"marketPrice": 10.0}},
+                    "301": {"Foil": {"marketPrice": 15.0}},
+                },
+            }),
+            encoding="utf-8",
+        )
+        ctx = _load_catalog_and_price_context(self.cards_file, self.prices_dir)
+        pairs, _, _ = load_iconic_pairs(cards_path=self.cards_file, prices_dir=self.prices_dir, catalog_context=ctx)
+        ncb_cards = load_ncb_cards(cards_path=self.cards_file, prices_dir=self.prices_dir, catalog_context=ctx)
+        self.assertEqual(len(pairs), 1)
+        self.assertEqual(len(ncb_cards), 1)
+
+        other_cards = self.test_dir / "other_cards.json"
+        other_prices = self.test_dir / "other_prices"
+        with self.assertRaises(ValueError):
+            load_iconic_pairs(cards_path=other_cards, prices_dir=self.prices_dir, catalog_context=ctx)
+        with self.assertRaises(ValueError):
+            load_ncb_cards(cards_path=self.cards_file, prices_dir=other_prices, catalog_context=ctx)
 
     def test_empty_wnc_collection_match_emits_four_group_warning(self):
         catalog = {

@@ -51,6 +51,21 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       return out;
     }
 
+    function resolveTierStatsOpen(statsOpenMap, code, isWideViewport) {
+      if (statsOpenMap && typeof statsOpenMap === 'object' && !Array.isArray(statsOpenMap) && typeof statsOpenMap[code] === 'boolean') {
+        return statsOpenMap[code];
+      }
+      return Boolean(isWideViewport);
+    }
+
+    function updateTierStatsOpenMap(statsOpenMap, code, isOpen) {
+      var out = _normalizeStatsOpenMap(statsOpenMap);
+      if (typeof code === 'string' && code) {
+        out[code] = Boolean(isOpen);
+      }
+      return out;
+    }
+
     function _normalizeFilterObj(src) {
       var def = defaultSetFilters();
       if (!src || typeof src !== 'object') return def;
@@ -116,6 +131,27 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
         } else {
           nextNcb = _normalizeFilterObj(outgoingControls);
         }
+      }
+      return {
+        set: targetSet,
+        edition: normalized.edition,
+        anchor: normalized.anchor,
+        filtersBySet: {
+          wnc: nextWnc,
+          ncb: nextNcb
+        }
+      };
+    }
+
+    function applySetTierStatsToggle(state, activeSet, code, isOpen, hasNcb) {
+      var normalized = normalizeSavedFilterState(state, hasNcb);
+      var targetSet = (hasNcb !== false && activeSet === 'ncb') ? 'ncb' : 'wnc';
+      var nextWnc = _normalizeFilterObj(normalized.filtersBySet.wnc);
+      var nextNcb = _normalizeFilterObj(normalized.filtersBySet.ncb);
+      if (targetSet === 'ncb') {
+        nextNcb.statsOpen = updateTierStatsOpenMap(nextNcb.statsOpen, code, isOpen);
+      } else {
+        nextWnc.statsOpen = updateTierStatsOpenMap(nextWnc.statsOpen, code, isOpen);
       }
       return {
         set: targetSet,
@@ -1635,9 +1671,10 @@ _DASHBOARD_CSS = """    :root {
     html.preload-ncb #btn-set-ncb { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }"""
 
 
-_DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !== 'undefined' && initialFilterState)
-      ? normalizeSavedFilterState(initialFilterState, typeof hasNcb !== 'undefined' ? hasNcb : true)
-      : normalizeSavedFilterState(null, typeof hasNcb !== 'undefined' ? hasNcb : true);
+_DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? hasNcb : true;
+    let activeSetState = (typeof initialFilterState !== 'undefined' && initialFilterState)
+      ? normalizeSavedFilterState(initialFilterState, allowNcb)
+      : normalizeSavedFilterState(null, allowNcb);
     let currentSet = activeSetState.set;
     let currentEdition = activeSetState.edition;
     let currentAnchor = activeSetState.anchor;
@@ -1806,29 +1843,10 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
       }
     }
 
-    function resolveTierStatsOpen(statsOpenMap, code) {
-      if (statsOpenMap && typeof statsOpenMap === 'object' && !Array.isArray(statsOpenMap) && typeof statsOpenMap[code] === 'boolean') {
-        return statsOpenMap[code];
-      }
-      return window.innerWidth >= 768;
-    }
-
     function applyStatsOpenForCurrentSet(statsOpenMap) {
       const targetCodes = currentSet === 'ncb' ? ['NR'] : tierCodes;
-      targetCodes.forEach(code => applyTierStatsOpen(code, resolveTierStatsOpen(statsOpenMap, code)));
-    }
-
-    function getActiveSetStatsOpenMap() {
-      const currentFilters = activeSetState.filtersBySet && activeSetState.filtersBySet[currentSet];
-      const out = _normalizeStatsOpenMap(currentFilters ? currentFilters.statsOpen : null);
-      const targetCodes = currentSet === 'ncb' ? ['NR'] : tierCodes;
-      targetCodes.forEach(code => {
-        const group = document.getElementById(`stats-group-${code}`);
-        if (group) {
-          out[code] = !group.classList.contains('is-collapsed');
-        }
-      });
-      return out;
+      const isWideViewport = window.innerWidth >= 768;
+      targetCodes.forEach(code => applyTierStatsOpen(code, resolveTierStatsOpen(statsOpenMap, code, isWideViewport)));
     }
 
     function toggleTierStats(code) {
@@ -1841,10 +1859,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
       if (!activeBox || !group) return;
       const isHidden = activeBox.style.display === 'none' || !activeBox.style.display;
       applyTierStatsOpen(code, isHidden);
-      if (activeSetState.filtersBySet[currentSet]) {
-        activeSetState.filtersBySet[currentSet].statsOpen = _normalizeStatsOpenMap(activeSetState.filtersBySet[currentSet].statsOpen);
-        activeSetState.filtersBySet[currentSet].statsOpen[code] = isHidden;
-      }
+      activeSetState = applySetTierStatsToggle(activeSetState, currentSet, code, isHidden, allowNcb);
       saveState();
     }
 
@@ -1897,6 +1912,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
 
     function readOutgoingControls() {
       const rawSort = sortSelect ? sortSelect.value : 'num-asc';
+      const currentFilters = activeSetState.filtersBySet && activeSetState.filtersBySet[currentSet];
       return {
         q: searchInput ? searchInput.value : '',
         o: getSelected('ownership'),
@@ -1905,7 +1921,7 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
         t: getSelected('type'),
         s: rawSort === 'num-asc' ? 'num' : rawSort,
         b: activePricedSetTier || 'all',
-        statsOpen: getActiveSetStatsOpenMap()
+        statsOpen: _normalizeStatsOpenMap(currentFilters ? currentFilters.statsOpen : null)
       };
     }
 
@@ -2006,7 +2022,6 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
     }
 
     function setActiveSet(nextSet, save = true) {
-      const allowNcb = typeof hasNcb !== 'undefined' ? hasNcb : true;
       const targetSet = (allowNcb && nextSet === 'ncb') ? 'ncb' : 'wnc';
       if (targetSet !== currentSet) {
         const outgoing = readOutgoingControls();
@@ -2408,7 +2423,6 @@ _DASHBOARD_JS_BODY = r"""    let activeSetState = (typeof initialFilterState !==
 
     function initFilters() {
       const rawSaved = loadState();
-      const allowNcb = typeof hasNcb !== 'undefined' ? hasNcb : true;
       activeSetState = normalizeSavedFilterState(rawSaved, allowNcb);
       currentSet = activeSetState.set;
       currentEdition = activeSetState.edition;

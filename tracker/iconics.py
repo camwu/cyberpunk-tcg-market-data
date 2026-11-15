@@ -236,6 +236,8 @@ class CatalogContext(NamedTuple):
     latest_prices: Dict[str, Any]
     historical_files: List[Path]
     snapshot_cache: Dict[Path, Dict[str, Any]]
+    cards_path: Path
+    prices_dir: Path
 
 
 def _load_catalog_and_price_context(
@@ -258,7 +260,27 @@ def _load_catalog_and_price_context(
 
     historical_files = get_historical_price_files(prices_dir)
     snapshot_cache: Dict[Path, Dict[str, Any]] = {}
-    return CatalogContext(card_items, latest_prices, historical_files, snapshot_cache)
+    return CatalogContext(card_items, latest_prices, historical_files, snapshot_cache, cards_path, prices_dir)
+
+
+def _resolve_catalog_context(
+    catalog_context: Optional[CatalogContext],
+    cards_path: Path,
+    prices_dir: Path,
+) -> CatalogContext:
+    """Validates an injected CatalogContext against target paths or loads a fresh one."""
+    if catalog_context is None:
+        return _load_catalog_and_price_context(cards_path, prices_dir)
+    if (catalog_context.cards_path.resolve(), catalog_context.prices_dir.resolve()) != (
+        cards_path.resolve(),
+        prices_dir.resolve(),
+    ):
+        raise ValueError(
+            "CatalogContext path mismatch: "
+            f"context=({catalog_context.cards_path}, {catalog_context.prices_dir}) "
+            f"vs requested=({cards_path}, {prices_dir})"
+        )
+    return catalog_context
 
 
 def _collect_owned_counts(
@@ -459,8 +481,8 @@ def load_iconic_pairs(
     Derives card finishes strictly from price records and enforces Beta/Retail consistency.
     Returns (pairs, collection_file_name, collection_mtime_date).
     """
-    ctx = catalog_context or _load_catalog_and_price_context(cards_path, prices_dir)
-    card_items, latest_prices, historical_files, snapshot_cache = ctx
+    ctx = _resolve_catalog_context(catalog_context, cards_path, prices_dir)
+    card_items, latest_prices, historical_files, snapshot_cache, _, _ = ctx
 
     iconic_records = _collect_validated_pair_group(
         card_items=card_items,
@@ -569,8 +591,8 @@ def load_ncb_cards(
     Dynamically loads single cards for Night City Brawl Season 1 ('Nova Rare').
     Returns [] when the catalog contains no cards for the set.
     """
-    ctx = catalog_context or _load_catalog_and_price_context(cards_path, prices_dir)
-    card_items, latest_prices, historical_files, snapshot_cache = ctx
+    ctx = _resolve_catalog_context(catalog_context, cards_path, prices_dir)
+    card_items, latest_prices, historical_files, snapshot_cache, _, _ = ctx
 
     ncb_raw_cards: List[Tuple[str, dict]] = []
     for c in card_items:
