@@ -36,9 +36,12 @@ from tracker.iconics import (
 from tracker.iconics_common import load_validated_collection_rows
 from tracker.iconics_html import (
     _SET_STATE_JS,
+    _build_card_trajectory,
+    _render_card_tile,
     build_edition_trajectories,
     build_ncb_trajectories,
     generate_html_dashboard,
+    generate_svg_chart,
     load_collection_acquisitions,
     serialize_json_for_script,
 )
@@ -2046,6 +2049,109 @@ process.stdout.write(JSON.stringify(out));
             "'Box Toppers - Beta', or 'Box Toppers - Retail'.",
             stderr_buf.getvalue(),
         )
+
+    def test_extract_finish_price_low_price_field(self):
+        p_data = {
+            "Normal": {"marketPrice": 12.0, "lowPrice": 9.5},
+            "Foil": {"marketPrice": 34.0, "lowPrice": 15.13},
+        }
+        self.assertEqual(extract_finish_price(p_data, "Standard", field="lowPrice"), 9.5)
+        self.assertEqual(extract_finish_price(p_data, "Normal", field="lowPrice"), 9.5)
+        self.assertEqual(extract_finish_price(p_data, "Foil", field="lowPrice"), 15.13)
+        self.assertIsNone(extract_finish_price({"Foil": {"marketPrice": 10.0, "lowPrice": 0.0}}, "Foil", field="lowPrice"))
+
+    def test_build_card_trajectory_populates_latest_day_low_price_only(self):
+        dates = ["2026-11-13", "2026-11-14", "2026-11-15"]
+        price_by_date = {
+            "2026-11-13": {"714306": {"Foil": {"marketPrice": 107.55, "lowPrice": 99.00}}},
+            "2026-11-14": {"714306": {"Foil": {"marketPrice": 107.03, "lowPrice": 99.50}}},
+            "2026-11-15": {"714306": {"Foil": {"marketPrice": 107.03, "lowPrice": 98.80}}},
+        }
+        traj = _build_card_trajectory(
+            pid=714306,
+            name="V - Streetkid (ILegend)",
+            display_pnum="B144",
+            clean_pnum="144",
+            rarity_code="IL",
+            color="Red",
+            card_type="Legend",
+            valid_finish="Foil",
+            owned_qty=1,
+            expansion_name="Welcome to Night City - Beta",
+            dates=dates,
+            price_by_date=price_by_date,
+            acquisitions={},
+        )
+        self.assertEqual(traj["currentPrice"], 107.03)
+        self.assertEqual(traj["currentLowPrice"], 98.80)
+        self.assertEqual(traj["minPrice"], 107.03)
+        self.assertEqual(traj["maxPrice"], 107.55)
+
+        # Missing lowPrice on the latest day must remain None without carrying forward prior days
+        price_by_date["2026-11-15"]["714306"]["Foil"] = {"marketPrice": 107.03}
+        traj_no_latest_low = _build_card_trajectory(
+            pid=714306,
+            name="V - Streetkid (ILegend)",
+            display_pnum="B144",
+            clean_pnum="144",
+            rarity_code="IL",
+            color="Red",
+            card_type="Legend",
+            valid_finish="Foil",
+            owned_qty=1,
+            expansion_name="Welcome to Night City - Beta",
+            dates=dates,
+            price_by_date=price_by_date,
+            acquisitions={},
+        )
+        self.assertIsNone(traj_no_latest_low["currentLowPrice"])
+
+    def test_generate_svg_chart_renders_low_price_endpoint_and_expands_y_axis(self):
+        points = [("2026-11-06", 20.0), ("2026-11-09", 34.0), ("2026-11-15", 34.0)]
+        svg = generate_svg_chart(points, card_id="n_719700", low_price=15.13)
+        self.assertIn(">$34</text>", svg)
+        self.assertIn(">$15</text>", svg)
+        self.assertIn('class="low-price-connector"', svg)
+        self.assertIn('class="low-price-dot"', svg)
+        self.assertIn('data-low="true"', svg)
+        self.assertIn('data-price="$15.13"', svg)
+        self.assertIn('data-low-price="$15.13"', svg)
+
+        svg_no_low = generate_svg_chart(points, card_id="n_719700")
+        self.assertIn(">$20</text>", svg_no_low)
+        self.assertNotIn("low-price-connector", svg_no_low)
+
+    def test_render_card_tile_shows_low_badge_and_preserves_acq_row(self):
+        tile_html = _render_card_tile(
+            {
+                "productId": "714306",
+                "name": "V - Streetkid (ILegend)",
+                "printNumber": "B144",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+                "currentPrice": 107.03,
+                "currentLowPrice": 98.80,
+                "hasPrice": True,
+                "ownedQty": 1,
+                "change7d": -5.40,
+                "change7dPct": -4.8,
+                "changeAll": 27.54,
+                "changeAllPct": 34.6,
+                "hasAcquisition": True,
+                "acqDate": "2026-10-13",
+                "acqCost": 125.56,
+                "acqDeltaDollar": -18.53,
+                "acqDeltaPct": -14.8,
+                "svgChart": "<svg></svg>",
+            },
+            edition_name="beta",
+            initial_display="flex",
+        )
+        self.assertIn("Low: $98.80", tile_html)
+        self.assertIn("Acq base:", tile_html)
+        self.assertIn("$125.56", tile_html)
+        self.assertIn("-$18.53 (-14.8%)", tile_html)
 
 
 if __name__ == "__main__":

@@ -43,8 +43,8 @@ def compute_quantiles(
     return v_min, None, v_med, None, v_max
 
 
-def extract_finish_price(p_data: Any, preferred_finish: str) -> Optional[float]:
-    """Extracts non-zero market price strictly for preferred_finish, accepting Normal/Standard aliases."""
+def extract_finish_price(p_data: Any, preferred_finish: str, field: str = "marketPrice") -> Optional[float]:
+    """Extracts non-zero price field strictly for preferred_finish, accepting Normal/Standard aliases."""
     if not isinstance(p_data, dict):
         return None
     finish_variants = [preferred_finish]
@@ -56,7 +56,7 @@ def extract_finish_price(p_data: Any, preferred_finish: str) -> Optional[float]:
     for finish_key in finish_variants:
         sub = p_data.get(finish_key)
         if isinstance(sub, dict):
-            mp = sub.get("marketPrice")
+            mp = sub.get(field)
             if mp is not None and isinstance(mp, (int, float)) and float(mp) > 0.0:
                 return float(mp)
 
