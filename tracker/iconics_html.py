@@ -458,12 +458,6 @@ def _build_card_trajectory(
         elif last_known_price is not None:
             clean_points.append((d, last_known_price))
 
-    current_low_price: Optional[float] = None
-    if dates and pid_str:
-        latest_p_data = price_by_date.get(dates[-1], {}).get(pid_str)
-        if latest_p_data is not None:
-            current_low_price = extract_finish_price(latest_p_data, valid_finish, field="lowPrice")
-
     if not clean_points:
         current_price = 0.0
         price_change_1d = 0.0
@@ -497,6 +491,12 @@ def _build_card_trajectory(
         base = baseline_price or current_price
         price_change_all = current_price - base
         price_change_all_pct = (price_change_all / base * 100.0) if base > 0 else 0.0
+
+    current_low_price: Optional[float] = None
+    if clean_points and current_price > 0.0 and dates and pid_str:
+        latest_p_data = price_by_date.get(dates[-1], {}).get(pid_str)
+        if latest_p_data is not None:
+            current_low_price = extract_finish_price(latest_p_data, valid_finish, field="lowPrice")
 
     acq = acquisitions.get((expansion_name, display_pnum, valid_finish))
     if acq and acq.get("date") and owned_qty > 0:
@@ -681,10 +681,10 @@ def generate_svg_chart(
     plot_w = width - padding_left - padding_right
     plot_h = height - padding_top - padding_bottom
 
-    has_low_price = low_price is not None and low_price > 0.0
+    valid_low: Optional[float] = float(low_price) if (low_price is not None and low_price > 0.0) else None
     prices = [p[1] for p in points]
-    p_min = min(min(prices), low_price) if (has_low_price and low_price is not None) else min(prices)
-    p_max = max(max(prices), low_price) if (has_low_price and low_price is not None) else max(prices)
+    p_min = min(min(prices), valid_low) if valid_low is not None else min(prices)
+    p_max = max(max(prices), valid_low) if valid_low is not None else max(prices)
 
     if p_max == p_min:
         y_min = max(0.0, p_min - 1.0)
@@ -836,19 +836,26 @@ def generate_svg_chart(
     )
 
     low_y: Optional[float] = None
-    if has_low_price and low_price is not None:
-        _, low_y = get_coords(n - 1, low_price)
+    low_gap: float = 0.0
+    if valid_low is not None:
+        _, low_y = get_coords(n - 1, valid_low)
         _, last_y = coords[-1]
-        svg_parts.append(
-            f'<line x1="{last_x}" y1="{last_y}" x2="{last_x}" y2="{low_y}" '
-            f'stroke="#bc8cff" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" class="low-price-connector" />'
-        )
+        low_gap = abs(low_y - last_y)
+        if low_gap >= 5.0:
+            svg_parts.append(
+                f'<line x1="{last_x}" y1="{last_y}" x2="{last_x}" y2="{low_y}" '
+                f'stroke="#bc8cff" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" class="low-price-connector" />'
+            )
+        else:
+            svg_parts.append(
+                f'<circle cx="{last_x}" cy="{low_y}" r="5.0" class="low-price-dot" fill="none" stroke="#bc8cff" stroke-width="1.5" />'
+            )
 
     for i, ((x, y), (d, val)) in enumerate(zip(coords, points)):
         is_acq = i == acq_idx
         is_last = i == n - 1
-        low_attr = f' data-low-price="${low_price:.2f}"' if (is_last and has_low_price and low_price is not None) else ""
-        hit_r = 6 if (is_last and low_y is not None) else 9
+        low_attr = f' data-low-price="${valid_low:.2f}"' if (is_last and valid_low is not None) else ""
+        hit_r: float = min(6.0, round(low_gap / 2.0, 1)) if (is_last and valid_low is not None and low_gap >= 8.0) else 9
         if is_acq and acq_info:
             acq_cost_val = acq_info.get("cost", 0.0)
             acq_attr = f' data-acq="true" data-acq-cost="${acq_cost_val:.2f}"'
@@ -865,14 +872,18 @@ def generate_svg_chart(
             f'<circle cx="{x}" cy="{y}" r="{hit_r}" class="chart-hit-point" fill="transparent" data-date="{html.escape(d)}" data-price="${val:.2f}"{acq_attr}{low_attr} style="cursor: crosshair; pointer-events: all;" />'
         )
 
-    if has_low_price and low_price is not None and low_y is not None:
-        last_date = points[-1][0]
+    if valid_low is not None and low_y is not None and low_gap >= 5.0:
         svg_parts.append(
             f'<circle cx="{last_x}" cy="{low_y}" r="3.0" class="low-price-dot" fill="#0d1117" stroke="#bc8cff" stroke-width="1.5" />'
-            f'<circle cx="{last_x}" cy="{low_y}" r="6" class="chart-hit-point low-hit-point" fill="transparent" '
-            f'data-date="{html.escape(last_date)}" data-price="${low_price:.2f}" data-low="true" '
-            f'style="cursor: crosshair; pointer-events: all;" />'
         )
+        if low_gap >= 8.0:
+            last_date = points[-1][0]
+            low_hit_r = min(6.0, round(low_gap / 2.0, 1))
+            svg_parts.append(
+                f'<circle cx="{last_x}" cy="{low_y}" r="{low_hit_r}" class="chart-hit-point low-hit-point" fill="transparent" '
+                f'data-date="{html.escape(last_date)}" data-price="${valid_low:.2f}" data-low="true" '
+                f'style="cursor: crosshair; pointer-events: all;" />'
+            )
 
     svg_parts.append("</svg>")
     return "".join(svg_parts)
@@ -2170,6 +2181,20 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       if (save) saveState();
     }
 
+    function positionChartTooltip(e) {
+      if (!tooltip || tooltip.style.display !== 'block') return;
+      const tipW = tooltip.offsetWidth || 220;
+      const tipH = tooltip.offsetHeight || 28;
+      let left = e.clientX + 12;
+      let top = e.clientY - tipH - 8;
+      if (top < 8) top = e.clientY + 16;
+      if (left + tipW + 8 > window.innerWidth) {
+        left = Math.max(8, e.clientX - tipW - 12);
+      }
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    }
+
     document.addEventListener('mouseover', (e) => {
       const hit = e.target.closest('.chart-hit-point');
       if (hit) {
@@ -2184,6 +2209,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
           tooltip.textContent = `${hit.dataset.date}: ${hit.dataset.price}`;
         }
         tooltip.style.display = 'block';
+        positionChartTooltip(e);
         const dot = hit.previousElementSibling;
         if (dot && dot.classList.contains('chart-dot')) {
           dot.setAttribute('r', '4.5');
@@ -2194,16 +2220,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       }
     });
 
-    document.addEventListener('mousemove', (e) => {
-      if (tooltip && tooltip.style.display === 'block') {
-        let left = e.clientX + 12;
-        let top = e.clientY - 32;
-        if (top < 10) top = e.clientY + 16;
-        if (left + 220 > window.innerWidth) left = e.clientX - 210;
-        tooltip.style.left = left + 'px';
-        tooltip.style.top = top + 'px';
-      }
-    });
+    document.addEventListener('mousemove', positionChartTooltip);
 
     document.addEventListener('mouseout', (e) => {
       const hit = e.target.closest('.chart-hit-point');

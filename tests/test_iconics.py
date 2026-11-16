@@ -2106,6 +2106,30 @@ process.stdout.write(JSON.stringify(out));
         )
         self.assertIsNone(traj_no_latest_low["currentLowPrice"])
 
+        # Unpriced cards (hasPrice == False) must not expose an orphan lowPrice
+        unpriced_by_date = {
+            "2026-11-13": {},
+            "2026-11-14": {},
+            "2026-11-15": {"729825": {"Foil": {"marketPrice": None, "lowPrice": 199.99}}},
+        }
+        traj_unpriced = _build_card_trajectory(
+            pid=729825,
+            name="V - Streetkid (ILegend)",
+            display_pnum="144",
+            clean_pnum="144",
+            rarity_code="IL",
+            color="Red",
+            card_type="Legend",
+            valid_finish="Foil",
+            owned_qty=0,
+            expansion_name="Welcome to Night City - Retail",
+            dates=dates,
+            price_by_date=unpriced_by_date,
+            acquisitions={},
+        )
+        self.assertFalse(traj_unpriced["hasPrice"])
+        self.assertIsNone(traj_unpriced["currentLowPrice"])
+
     def test_generate_svg_chart_renders_low_price_endpoint_and_expands_y_axis(self):
         points = [("2026-11-06", 20.0), ("2026-11-09", 34.0), ("2026-11-15", 34.0)]
         svg = generate_svg_chart(points, card_id="n_719700", low_price=15.13)
@@ -2116,6 +2140,27 @@ process.stdout.write(JSON.stringify(out));
         self.assertIn('data-low="true"', svg)
         self.assertIn('data-price="$15.13"', svg)
         self.assertIn('data-low-price="$15.13"', svg)
+
+        # Overlapping lowPrice == marketPrice on latest-day acquisition keeps market/acq hover reachable and unoccluded
+        svg_overlap = generate_svg_chart(
+            points,
+            card_id="n_719700",
+            acq_info={"date": "2026-11-15", "cost": 34.0},
+            low_price=34.0,
+        )
+        self.assertNotIn("low-price-connector", svg_overlap)
+        self.assertNotIn('data-low="true"', svg_overlap)
+        self.assertIn('class="low-price-dot" fill="none"', svg_overlap)
+        self.assertIn('data-acq="true" data-acq-cost="$34.00" data-low-price="$34.00"', svg_overlap)
+        self.assertLess(svg_overlap.index('class="low-price-dot"'), svg_overlap.index('class="acq-dot-core"'))
+
+        # Close-but-separate gap (5.0 <= gap < 8.0) renders dot and connector without overlapping hit target
+        # For 20..34, y_range = 17.36 and plot_h = 82 => 1.3 price diff is ~6.1px
+        svg_mid_gap = generate_svg_chart(points, card_id="n_719700", low_price=32.70)
+        self.assertIn('class="low-price-connector"', svg_mid_gap)
+        self.assertIn('class="low-price-dot" fill="#0d1117"', svg_mid_gap)
+        self.assertNotIn('data-low="true"', svg_mid_gap)
+        self.assertIn('data-low-price="$32.70"', svg_mid_gap)
 
         svg_no_low = generate_svg_chart(points, card_id="n_719700")
         self.assertIn(">$20</text>", svg_no_low)
