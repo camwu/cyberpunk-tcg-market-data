@@ -707,10 +707,10 @@ def generate_svg_chart(
 
     first_p = points[0][1]
     last_p = points[-1][1]
-    if last_p > first_p * 1.01:
+    if last_p > first_p:
         stroke_color = "#3fb950"
         gradient_stop = "#3fb950"
-    elif last_p < first_p * 0.99:
+    elif last_p < first_p:
         stroke_color = "#f85149"
         gradient_stop = "#f85149"
     else:
@@ -3377,9 +3377,9 @@ def generate_html_dashboard(
     </div>
   </div>
   <div class="chart-legend" id="chart-legend">
-    <span class="legend-item"><span class="legend-line" style="background:#3fb950;"></span>Up (&gt; 1%)</span>
-    <span class="legend-item"><span class="legend-line" style="background:#f85149;"></span>Down (&gt; 1%)</span>
-    <span class="legend-item"><span class="legend-line" style="background:#58a6ff;"></span>Flat (&plusmn;1%)</span>
+    <span class="legend-item"><span class="legend-line" style="background:#3fb950;"></span>Up</span>
+    <span class="legend-item"><span class="legend-line" style="background:#f85149;"></span>Down</span>
+    <span class="legend-item"><span class="legend-line" style="background:#58a6ff;"></span>Flat (0%)</span>
     <span class="legend-item"><span class="legend-dot" style="background:#d29922;"></span>Acquisition date</span>
     <span class="legend-item"><span class="legend-dot" style="background:#0d1117;border:1.5px solid #bc8cff;"></span>Current TCG Low (excl. shipping)</span>
   </div>

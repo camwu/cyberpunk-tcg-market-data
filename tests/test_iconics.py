@@ -404,6 +404,9 @@ class TestIconicsEngine(unittest.TestCase):
         self.assertIn('<span id="dist-b-med" class="comp-distro-med-val">N/A</span>', content)
         self.assertIn("Card 1", content)
         self.assertIn('id="chart-legend"', content)
+        self.assertIn(">Up</span>", content)
+        self.assertIn(">Down</span>", content)
+        self.assertIn(">Flat (0%)</span>", content)
         self.assertIn("Acquisition date", content)
         self.assertIn("Current TCG Low (excl. shipping)", content)
         # Strictly self-contained assets: no external scripts or stylesheets
@@ -2173,6 +2176,11 @@ process.stdout.write(JSON.stringify(out));
         svg_no_low = generate_svg_chart(points, card_id="n_719700")
         self.assertIn(">$20</text>", svg_no_low)
         self.assertNotIn("low-price-connector", svg_no_low)
+
+        # Initial SVG line color matches setAnchor() strict sign thresholds (>0, <0, ==0)
+        self.assertIn('stroke="#3fb950"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 100.5)], card_id="up"))
+        self.assertIn('stroke="#f85149"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 99.5)], card_id="dn"))
+        self.assertIn('stroke="#58a6ff"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 100.0)], card_id="fl"))
 
     def test_render_card_tile_shows_low_tooltip_and_preserves_acq_row(self):
         tile_html = _render_card_tile(
