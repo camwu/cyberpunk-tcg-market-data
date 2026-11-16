@@ -848,7 +848,7 @@ def generate_svg_chart(
             )
         else:
             svg_parts.append(
-                f'<circle cx="{last_x}" cy="{low_y}" r="5.0" class="low-price-dot" fill="none" stroke="#bc8cff" stroke-width="1.5" />'
+                f'<circle cx="{last_x}" cy="{last_y}" r="6.5" class="low-price-dot" fill="none" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;" />'
             )
 
     for i, ((x, y), (d, val)) in enumerate(zip(coords, points)):

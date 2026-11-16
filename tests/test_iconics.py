@@ -2151,8 +2151,15 @@ process.stdout.write(JSON.stringify(out));
         self.assertNotIn("low-price-connector", svg_overlap)
         self.assertNotIn('data-low="true"', svg_overlap)
         self.assertIn('class="low-price-dot" fill="none"', svg_overlap)
+        self.assertIn('r="6.5"', svg_overlap)
         self.assertIn('data-acq="true" data-acq-cost="$34.00" data-low-price="$34.00"', svg_overlap)
         self.assertLess(svg_overlap.index('class="low-price-dot"'), svg_overlap.index('class="acq-dot-core"'))
+
+        # Small non-zero gap (0 < gap < 5.0) centers the r=6.5 violet ring at last_y (concentric with market dot)
+        svg_tiny_gap = generate_svg_chart(points, card_id="n_719700", low_price=33.50)
+        self.assertNotIn("low-price-connector", svg_tiny_gap)
+        self.assertIn('cy="23.9" r="6.5" class="low-price-dot" fill="none"', svg_tiny_gap)
+        self.assertIn('cy="23.9" r="2.5" class="chart-dot"', svg_tiny_gap)
 
         # Close-but-separate gap (5.0 <= gap < 8.0) renders dot and connector without overlapping hit target
         # For 20..34, y_range = 17.36 and plot_h = 82 => 1.3 price diff is ~6.1px
