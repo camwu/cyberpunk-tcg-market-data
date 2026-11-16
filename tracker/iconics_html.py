@@ -492,6 +492,12 @@ def _build_card_trajectory(
         price_change_all = current_price - base
         price_change_all_pct = (price_change_all / base * 100.0) if base > 0 else 0.0
 
+    current_low_price: Optional[float] = None
+    if clean_points and current_price > 0.0 and dates and pid_str:
+        latest_p_data = price_by_date.get(dates[-1], {}).get(pid_str)
+        if latest_p_data is not None:
+            current_low_price = extract_finish_price(latest_p_data, valid_finish, field="lowPrice")
+
     acq = acquisitions.get((expansion_name, display_pnum, valid_finish))
     if acq and acq.get("date") and owned_qty > 0:
         earliest_card_date = clean_points[0][0] if clean_points else None
@@ -541,6 +547,7 @@ def _build_card_trajectory(
         "cardType": resolved_type,
         "finish": valid_finish,
         "currentPrice": current_price,
+        "currentLowPrice": current_low_price,
         "hasPrice": bool(clean_points) and current_price > 0.0,
         "ownedQty": owned_qty,
         "ownedValue": round(owned_qty * current_price, 2) if current_price > 0.0 else 0.0,
@@ -656,6 +663,7 @@ def generate_svg_chart(
     width: int = 340,
     height: int = 120,
     acq_info: Optional[Dict[str, Any]] = None,
+    low_price: Optional[float] = None,
 ) -> str:
     """Renders a responsive standalone SVG line chart for a series of (date, price) points."""
     if not points or len(points) < 2:
@@ -673,9 +681,10 @@ def generate_svg_chart(
     plot_w = width - padding_left - padding_right
     plot_h = height - padding_top - padding_bottom
 
+    valid_low: Optional[float] = float(low_price) if (low_price is not None and low_price > 0.0) else None
     prices = [p[1] for p in points]
-    p_min = min(prices)
-    p_max = max(prices)
+    p_min = min(min(prices), valid_low) if valid_low is not None else min(prices)
+    p_max = max(max(prices), valid_low) if valid_low is not None else max(prices)
 
     if p_max == p_min:
         y_min = max(0.0, p_min - 1.0)
@@ -826,8 +835,27 @@ def generate_svg_chart(
         f'<polyline class="chart-line" points="{polyline_pts}" fill="none" stroke="{stroke_color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />'
     )
 
+    low_y: Optional[float] = None
+    low_gap: float = 0.0
+    if valid_low is not None:
+        _, low_y = get_coords(n - 1, valid_low)
+        _, last_y = coords[-1]
+        low_gap = abs(low_y - last_y)
+        if low_gap >= 5.0:
+            svg_parts.append(
+                f'<line x1="{last_x}" y1="{last_y}" x2="{last_x}" y2="{low_y}" '
+                f'stroke="#bc8cff" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" class="low-price-connector" />'
+            )
+        else:
+            svg_parts.append(
+                f'<circle cx="{last_x}" cy="{last_y}" r="6.5" class="low-price-dot" fill="none" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;" />'
+            )
+
     for i, ((x, y), (d, val)) in enumerate(zip(coords, points)):
         is_acq = i == acq_idx
+        is_last = i == n - 1
+        low_attr = f' data-low-price="${valid_low:.2f}"' if (is_last and valid_low is not None) else ""
+        hit_r: float = min(6.0, round(low_gap / 2.0, 1)) if (is_last and valid_low is not None and low_gap >= 8.0) else 9
         if is_acq and acq_info:
             acq_cost_val = acq_info.get("cost", 0.0)
             acq_attr = f' data-acq="true" data-acq-cost="${acq_cost_val:.2f}"'
@@ -841,8 +869,21 @@ def generate_svg_chart(
                 f'<circle cx="{x}" cy="{y}" r="2.5" class="chart-dot" fill="#0d1117" stroke="{stroke_color}" stroke-width="1.5" />'
             )
         svg_parts.append(
-            f'<circle cx="{x}" cy="{y}" r="9" class="chart-hit-point" fill="transparent" data-date="{html.escape(d)}" data-price="${val:.2f}"{acq_attr} style="cursor: crosshair; pointer-events: all;" />'
+            f'<circle cx="{x}" cy="{y}" r="{hit_r}" class="chart-hit-point" fill="transparent" data-date="{html.escape(d)}" data-price="${val:.2f}"{acq_attr}{low_attr} style="cursor: crosshair; pointer-events: all;" />'
         )
+
+    if valid_low is not None and low_y is not None and low_gap >= 5.0:
+        svg_parts.append(
+            f'<circle cx="{last_x}" cy="{low_y}" r="3.0" class="low-price-dot" fill="#0d1117" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;" />'
+        )
+        if low_gap >= 8.0:
+            last_date = points[-1][0]
+            low_hit_r = min(6.0, round(low_gap / 2.0, 1))
+            svg_parts.append(
+                f'<circle cx="{last_x}" cy="{low_y}" r="{low_hit_r}" class="chart-hit-point low-hit-point" fill="transparent" '
+                f'data-date="{html.escape(last_date)}" data-price="${valid_low:.2f}" data-low="true" '
+                f'style="cursor: crosshair; pointer-events: all;" />'
+            )
 
     svg_parts.append("</svg>")
     return "".join(svg_parts)
@@ -1290,7 +1331,25 @@ _DASHBOARD_CSS = """    :root {
     .price-row-main {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .price-left {
+      display: flex;
       align-items: baseline;
+      gap: 8px;
+    }
+    .price-low-badge {
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: #bc8cff;
+      background: rgba(188, 140, 255, 0.12);
+      border: 1px solid rgba(188, 140, 255, 0.35);
+      border-radius: 4px;
+      padding: 1px 6px;
+      white-space: nowrap;
     }
     .price-row-sub {
       display: flex;
@@ -1330,7 +1389,7 @@ _DASHBOARD_CSS = """    :root {
       z-index: 200;
     }
     .acq-base-label:hover::after { opacity: 1; visibility: visible; }
-    .acq-dot-halo, .acq-dot-core { pointer-events: none; }
+    .acq-dot-halo, .acq-dot-core, .low-price-dot { pointer-events: none; }
     .price-main { font-size: 22px; font-weight: 600; font-family: var(--font-mono); }
     .price-change { font-size: 12px; font-family: var(--font-mono); font-weight: 600; }
     .metric-l7d, .metric-sub {
@@ -1379,7 +1438,7 @@ _DASHBOARD_CSS = """    :root {
       z-index: 10000;
       white-space: nowrap;
     }
-    .chart-dot { transition: r 0.12s ease, opacity 0.12s ease; }
+    .chart-dot, .low-price-dot { transition: r 0.12s ease, opacity 0.12s ease; }
     .chart-svg.is-dense .chart-dot { opacity: 0; }
     .chart-svg.is-dense .chart-dot.is-active { opacity: 1; }
     .chart-hit-point { cursor: crosshair; }
@@ -2122,33 +2181,46 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       if (save) saveState();
     }
 
+    function positionChartTooltip(e) {
+      if (!tooltip || tooltip.style.display !== 'block') return;
+      const tipW = tooltip.offsetWidth || 220;
+      const tipH = tooltip.offsetHeight || 28;
+      let left = e.clientX + 12;
+      let top = e.clientY - tipH - 8;
+      if (top < 8) top = e.clientY + 16;
+      if (left + tipW + 8 > window.innerWidth) {
+        left = Math.max(8, e.clientX - tipW - 12);
+      }
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    }
+
     document.addEventListener('mouseover', (e) => {
       const hit = e.target.closest('.chart-hit-point');
       if (hit) {
-        if (hit.dataset.acq) {
-          tooltip.textContent = `${hit.dataset.date} (Acq base: ${hit.dataset.acqCost}): ${hit.dataset.price}`;
+        if (hit.dataset.low === 'true') {
+          tooltip.textContent = `${hit.dataset.date} (TCG Low): ${hit.dataset.price}`;
+        } else if (hit.dataset.acq) {
+          const suffix = hit.dataset.lowPrice ? ` | Low: ${hit.dataset.lowPrice}` : '';
+          tooltip.textContent = `${hit.dataset.date} (Acq base: ${hit.dataset.acqCost}): ${hit.dataset.price}${suffix}`;
+        } else if (hit.dataset.lowPrice) {
+          tooltip.textContent = `${hit.dataset.date}: ${hit.dataset.price} | Low: ${hit.dataset.lowPrice}`;
         } else {
           tooltip.textContent = `${hit.dataset.date}: ${hit.dataset.price}`;
         }
         tooltip.style.display = 'block';
+        positionChartTooltip(e);
         const dot = hit.previousElementSibling;
         if (dot && dot.classList.contains('chart-dot')) {
           dot.setAttribute('r', '4.5');
           dot.classList.add('is-active');
+        } else if (dot && dot.classList.contains('low-price-dot')) {
+          dot.setAttribute('r', '4.5');
         }
       }
     });
 
-    document.addEventListener('mousemove', (e) => {
-      if (tooltip && tooltip.style.display === 'block') {
-        let left = e.clientX + 12;
-        let top = e.clientY - 32;
-        if (top < 10) top = e.clientY + 16;
-        if (left + 160 > window.innerWidth) left = e.clientX - 150;
-        tooltip.style.left = left + 'px';
-        tooltip.style.top = top + 'px';
-      }
-    });
+    document.addEventListener('mousemove', positionChartTooltip);
 
     document.addEventListener('mouseout', (e) => {
       const hit = e.target.closest('.chart-hit-point');
@@ -2158,6 +2230,8 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         if (dot && dot.classList.contains('chart-dot')) {
           dot.setAttribute('r', '2.5');
           dot.classList.remove('is-active');
+        } else if (dot && dot.classList.contains('low-price-dot')) {
+          dot.setAttribute('r', '3.0');
         }
       }
     });
@@ -2566,6 +2640,8 @@ def _render_card_tile(t: Dict[str, Any], edition_name: str, initial_display: str
     chg_sign = "+" if t["change7d"] > 0 else ""
     disp_style = f' style="display:{initial_display};"' if initial_display == "none" else ""
     price_display = f"${t['currentPrice']:.2f}" if t.get("hasPrice") else "N/A"
+    low_val = t.get("currentLowPrice")
+    low_display = f"${low_val:.2f}" if (low_val is not None and low_val > 0.0) else "N/A"
     chg_display = (
         f"{_fmt_currency_delta(t['change7d'])} ({chg_sign}{t['change7dPct']:.1f}%)"
         if t.get("hasPrice")
@@ -2628,7 +2704,10 @@ def _render_card_tile(t: Dict[str, Any], edition_name: str, initial_display: str
         <div>
           <div class="price-block">
             <div class="price-row-main">
-              <span class="price-main">{price_display}</span>
+              <div class="price-left">
+                <span class="price-main">{price_display}</span>
+                <span class="price-low-badge" title="Current lowest TCGplayer listing price (excludes shipping)">Low: {low_display}</span>
+              </div>
               <div class="price-change metric-l7d"><span style="color:var(--text-muted);">7d:</span> <span class="{chg_class}">{chg_display}</span></div>
             </div>
             <div class="price-row-sub">
@@ -3031,13 +3110,19 @@ def generate_html_dashboard(
 
     for t in retail_trajectories:
         acq_info = {"date": t["acqDate"], "cost": t["acqCost"]} if t.get("hasAcquisition") else None
-        t["svgChart"] = generate_svg_chart(t["points"], card_id=f"r_{t['productId']}", acq_info=acq_info)
+        t["svgChart"] = generate_svg_chart(
+            t["points"], card_id=f"r_{t['productId']}", acq_info=acq_info, low_price=t.get("currentLowPrice")
+        )
     for t in beta_trajectories:
         acq_info = {"date": t["acqDate"], "cost": t["acqCost"]} if t.get("hasAcquisition") else None
-        t["svgChart"] = generate_svg_chart(t["points"], card_id=f"b_{t['productId']}", acq_info=acq_info)
+        t["svgChart"] = generate_svg_chart(
+            t["points"], card_id=f"b_{t['productId']}", acq_info=acq_info, low_price=t.get("currentLowPrice")
+        )
     for t in ncb_trajectories:
         acq_info = {"date": t["acqDate"], "cost": t["acqCost"]} if t.get("hasAcquisition") else None
-        t["svgChart"] = generate_svg_chart(t["points"], card_id=f"n_{t['productId']}", acq_info=acq_info)
+        t["svgChart"] = generate_svg_chart(
+            t["points"], card_id=f"n_{t['productId']}", acq_info=acq_info, low_price=t.get("currentLowPrice")
+        )
 
     has_box_toppers = any(t["rarity"] == "BT" for t in beta_trajectories)
     wnc_tier_codes = ["IL", "IO", "IS", "BT"] if has_box_toppers else ["IL", "IO", "IS"]
