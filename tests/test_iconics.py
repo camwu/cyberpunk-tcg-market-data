@@ -403,6 +403,12 @@ class TestIconicsEngine(unittest.TestCase):
         self.assertIn("Total (0/1 pairs)", content)
         self.assertIn('<span id="dist-b-med" class="comp-distro-med-val">N/A</span>', content)
         self.assertIn("Card 1", content)
+        self.assertIn('id="chart-legend"', content)
+        self.assertIn(">Up</span>", content)
+        self.assertIn(">Down</span>", content)
+        self.assertIn(">Flat (0%)</span>", content)
+        self.assertIn("Acquisition date", content)
+        self.assertIn("Current TCG Low (excl. shipping)", content)
         # Strictly self-contained assets: no external scripts or stylesheets
         self.assertNotIn("<script src=", content)
         self.assertNotIn('<link rel="stylesheet"', content)
@@ -2141,7 +2147,7 @@ process.stdout.write(JSON.stringify(out));
         self.assertIn('data-price="$15.13"', svg)
         self.assertIn('data-low-price="$15.13"', svg)
 
-        # Overlapping lowPrice == marketPrice on latest-day acquisition keeps market/acq hover reachable and unoccluded
+        # Overlapping lowPrice == marketPrice on latest-day acquisition omits .low-price-dot so gold acq core stays unoccluded
         svg_overlap = generate_svg_chart(
             points,
             card_id="n_719700",
@@ -2150,16 +2156,14 @@ process.stdout.write(JSON.stringify(out));
         )
         self.assertNotIn("low-price-connector", svg_overlap)
         self.assertNotIn('data-low="true"', svg_overlap)
-        self.assertIn('class="low-price-dot" fill="none"', svg_overlap)
-        self.assertIn('r="6.5"', svg_overlap)
+        self.assertNotIn('class="low-price-dot"', svg_overlap)
         self.assertIn('data-acq="true" data-acq-cost="$34.00" data-low-price="$34.00"', svg_overlap)
-        self.assertLess(svg_overlap.index('class="low-price-dot"'), svg_overlap.index('class="acq-dot-core"'))
 
-        # Small non-zero gap (0 < gap < 5.0) centers the r=6.5 violet ring at last_y (concentric with market dot)
+        # Small non-zero gap (0 < gap < 5.0) on non-acquisition day uses standard r=3.0 violet dot (not r=6.5)
         svg_tiny_gap = generate_svg_chart(points, card_id="n_719700", low_price=33.50)
         self.assertNotIn("low-price-connector", svg_tiny_gap)
-        self.assertIn('cy="23.9" r="6.5" class="low-price-dot" fill="none"', svg_tiny_gap)
-        self.assertIn('cy="23.9" r="2.5" class="chart-dot"', svg_tiny_gap)
+        self.assertNotIn('r="6.5"', svg_tiny_gap)
+        self.assertIn('r="3.0" class="low-price-dot"', svg_tiny_gap)
 
         # Close-but-separate gap (5.0 <= gap < 8.0) renders dot and connector without overlapping hit target
         # For 20..34, y_range = 17.36 and plot_h = 82 => 1.3 price diff is ~6.1px
@@ -2173,7 +2177,12 @@ process.stdout.write(JSON.stringify(out));
         self.assertIn(">$20</text>", svg_no_low)
         self.assertNotIn("low-price-connector", svg_no_low)
 
-    def test_render_card_tile_shows_low_badge_and_preserves_acq_row(self):
+        # Initial SVG line color matches setAnchor() strict sign thresholds (>0, <0, ==0)
+        self.assertIn('stroke="#3fb950"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 100.5)], card_id="up"))
+        self.assertIn('stroke="#f85149"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 99.5)], card_id="dn"))
+        self.assertIn('stroke="#58a6ff"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 100.0)], card_id="fl"))
+
+    def test_render_card_tile_shows_low_tooltip_and_preserves_acq_row(self):
         tile_html = _render_card_tile(
             {
                 "productId": "714306",
@@ -2200,10 +2209,38 @@ process.stdout.write(JSON.stringify(out));
             edition_name="beta",
             initial_display="flex",
         )
-        self.assertIn("Low: $98.80", tile_html)
+        self.assertIn('class="price-main price-low-tooltip"', tile_html)
+        self.assertIn('data-tooltip="Current TCG Low (excl. shipping): $98.80"', tile_html)
+        self.assertNotIn("price-low-badge", tile_html)
         self.assertIn("Acq base:", tile_html)
         self.assertIn("$125.56", tile_html)
         self.assertIn("-$18.53 (-14.8%)", tile_html)
+
+        # Unpriced or missing-low tile keeps plain .price-main without tooltip
+        unpriced_tile = _render_card_tile(
+            {
+                "productId": "714306",
+                "name": "V - Streetkid (ILegend)",
+                "printNumber": "B144",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+                "currentPrice": 0.0,
+                "currentLowPrice": None,
+                "hasPrice": False,
+                "ownedQty": 0,
+                "change7d": 0.0,
+                "change7dPct": 0.0,
+                "changeAll": 0.0,
+                "changeAllPct": 0.0,
+                "hasAcquisition": False,
+                "svgChart": "<svg></svg>",
+            },
+            edition_name="beta",
+            initial_display="flex",
+        )
+        self.assertIn('<span class="price-main">N/A</span>', unpriced_tile)
+        self.assertNotIn("price-low-tooltip", unpriced_tile)
 
 
 if __name__ == "__main__":

@@ -707,10 +707,10 @@ def generate_svg_chart(
 
     first_p = points[0][1]
     last_p = points[-1][1]
-    if last_p > first_p * 1.01:
+    if last_p > first_p:
         stroke_color = "#3fb950"
         gradient_stop = "#3fb950"
-    elif last_p < first_p * 0.99:
+    elif last_p < first_p:
         stroke_color = "#f85149"
         gradient_stop = "#f85149"
     else:
@@ -846,10 +846,6 @@ def generate_svg_chart(
                 f'<line x1="{last_x}" y1="{last_y}" x2="{last_x}" y2="{low_y}" '
                 f'stroke="#bc8cff" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" class="low-price-connector" />'
             )
-        else:
-            svg_parts.append(
-                f'<circle cx="{last_x}" cy="{last_y}" r="6.5" class="low-price-dot" fill="none" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;" />'
-            )
 
     for i, ((x, y), (d, val)) in enumerate(zip(coords, points)):
         is_acq = i == acq_idx
@@ -872,7 +868,7 @@ def generate_svg_chart(
             f'<circle cx="{x}" cy="{y}" r="{hit_r}" class="chart-hit-point" fill="transparent" data-date="{html.escape(d)}" data-price="${val:.2f}"{acq_attr}{low_attr} style="cursor: crosshair; pointer-events: all;" />'
         )
 
-    if valid_low is not None and low_y is not None and low_gap >= 5.0:
+    if valid_low is not None and low_y is not None and not (acq_idx == n - 1 and low_gap < 5.0):
         svg_parts.append(
             f'<circle cx="{last_x}" cy="{low_y}" r="3.0" class="low-price-dot" fill="#0d1117" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;" />'
         )
@@ -952,7 +948,7 @@ _DASHBOARD_CSS = """    :root {
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       padding-top: 16px;
-      padding-bottom: 16px;
+      padding-bottom: 12px;
       margin-top: -24px;
       margin-left: -24px;
       margin-right: -24px;
@@ -1331,25 +1327,7 @@ _DASHBOARD_CSS = """    :root {
     .price-row-main {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .price-left {
-      display: flex;
       align-items: baseline;
-      gap: 8px;
-    }
-    .price-low-badge {
-      font-size: 11px;
-      font-weight: 600;
-      font-family: var(--font-mono);
-      color: #bc8cff;
-      background: rgba(188, 140, 255, 0.12);
-      border: 1px solid rgba(188, 140, 255, 0.35);
-      border-radius: 4px;
-      padding: 1px 6px;
-      white-space: nowrap;
     }
     .price-row-sub {
       display: flex;
@@ -1360,12 +1338,15 @@ _DASHBOARD_CSS = """    :root {
       color: var(--text-muted);
     }
     .price-sub-val { color: #c9d1d9; font-weight: 500; }
-    .acq-base-label {
+    .acq-base-label,
+    .price-low-tooltip {
       position: relative;
       text-decoration: underline dotted var(--text-muted);
       cursor: help;
     }
-    .acq-base-label::after {
+    .price-low-tooltip { text-underline-offset: 4px; }
+    .acq-base-label::after,
+    .price-low-tooltip::after {
       content: attr(data-tooltip);
       position: absolute;
       bottom: calc(100% + 6px);
@@ -1388,7 +1369,38 @@ _DASHBOARD_CSS = """    :root {
       transition: opacity 0.1s ease, visibility 0.1s ease;
       z-index: 200;
     }
-    .acq-base-label:hover::after { opacity: 1; visibility: visible; }
+    .acq-base-label:hover::after,
+    .price-low-tooltip:hover::after { opacity: 1; visibility: visible; }
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 14px;
+      margin-top: 12px;
+      padding: 0 17px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #c9d1d9;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .legend-line {
+      display: inline-block;
+      width: 12px;
+      height: 2px;
+      border-radius: 1px;
+    }
+    .legend-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      box-sizing: border-box;
+    }
     .acq-dot-halo, .acq-dot-core, .low-price-dot { pointer-events: none; }
     .price-main { font-size: 22px; font-weight: 600; font-family: var(--font-mono); }
     .price-change { font-size: 12px; font-family: var(--font-mono); font-weight: 600; }
@@ -1707,7 +1719,8 @@ _DASHBOARD_CSS = """    :root {
     html.preload-comparison #cluster-basis + .cluster-divider { display: none !important; }
     html.preload-comparison #btn-beta { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
     html.preload-comparison #btn-comparison { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }
-    html.preload-comparison #meta-snapshots { display: none !important; }
+    html.preload-comparison #meta-snapshots,
+    html.preload-comparison #chart-legend { display: none !important; }
     html.preload-retail .card-tile[data-edition="beta"] { display: none !important; }
     html.preload-retail .card-tile[data-edition="retail"] { display: flex !important; }
     html.preload-retail .edition-stats-beta { display: none !important; }
@@ -1726,6 +1739,7 @@ _DASHBOARD_CSS = """    :root {
     html.preload-ncb #section-NR { display: block !important; }
     html.preload-ncb #cluster-basis { display: inline-flex !important; }
     html.preload-ncb #meta-snapshots { display: block !important; }
+    html.preload-ncb #chart-legend { display: flex !important; }
     html.preload-ncb #btn-set-wnc { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
     html.preload-ncb #btn-set-ncb { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }"""
 
@@ -1757,6 +1771,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     const btnAnchorAcq = document.getElementById('btn-anchor-acq');
     const btnAnchorL7d = document.getElementById('btn-anchor-l7d');
     const metaSnapshots = document.getElementById('meta-snapshots');
+    const chartLegend = document.getElementById('chart-legend');
     const searchInput = document.getElementById('search-input');
     const sortSelect = document.getElementById('sort-select');
     const countDisplay = document.getElementById('count-display');
@@ -2105,6 +2120,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
           metaSnapshots.style.display = 'block';
           metaSnapshots.textContent = snapshotTemplates.ncb || '';
         }
+        if (chartLegend) chartLegend.style.display = 'flex';
         if (searchInput) {
           searchInput.placeholder = 'Search by card name or number (e.g. 001, Chrome, Brawl)...';
         }
@@ -2139,6 +2155,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
 
       if (edition === 'comparison') {
         if (metaSnapshots) metaSnapshots.style.display = 'none';
+        if (chartLegend) chartLegend.style.display = 'none';
         searchInput.placeholder = 'Search by card name or number (e.g. 141, Panam, Judy, Smasher)...';
         tierCodes.forEach(code => {
           const s = document.getElementById(`section-${code}`);
@@ -2146,6 +2163,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         });
       } else {
         if (metaSnapshots) metaSnapshots.style.display = 'block';
+        if (chartLegend) chartLegend.style.display = 'flex';
         tierCodes.forEach(code => {
           const s = document.getElementById(`section-${code}`);
           if (s) s.style.display = 'block';
@@ -2178,6 +2196,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
 
       applyFilters();
       if (typeof syncClusterDividers === 'function') syncClusterDividers();
+      if (typeof syncStickyNavHeight === 'function') syncStickyNavHeight();
       if (save) saveState();
     }
 
@@ -2641,7 +2660,13 @@ def _render_card_tile(t: Dict[str, Any], edition_name: str, initial_display: str
     disp_style = f' style="display:{initial_display};"' if initial_display == "none" else ""
     price_display = f"${t['currentPrice']:.2f}" if t.get("hasPrice") else "N/A"
     low_val = t.get("currentLowPrice")
-    low_display = f"${low_val:.2f}" if (low_val is not None and low_val > 0.0) else "N/A"
+    if low_val is not None and low_val > 0.0:
+        price_main_html = (
+            f'<span class="price-main price-low-tooltip" '
+            f'data-tooltip="Current TCG Low (excl. shipping): ${low_val:.2f}">{price_display}</span>'
+        )
+    else:
+        price_main_html = f'<span class="price-main">{price_display}</span>'
     chg_display = (
         f"{_fmt_currency_delta(t['change7d'])} ({chg_sign}{t['change7dPct']:.1f}%)"
         if t.get("hasPrice")
@@ -2704,10 +2729,7 @@ def _render_card_tile(t: Dict[str, Any], edition_name: str, initial_display: str
         <div>
           <div class="price-block">
             <div class="price-row-main">
-              <div class="price-left">
-                <span class="price-main">{price_display}</span>
-                <span class="price-low-badge" title="Current lowest TCGplayer listing price (excludes shipping)">Low: {low_display}</span>
-              </div>
+              {price_main_html}
               <div class="price-change metric-l7d"><span style="color:var(--text-muted);">7d:</span> <span class="{chg_class}">{chg_display}</span></div>
             </div>
             <div class="price-row-sub">
@@ -3353,6 +3375,13 @@ def generate_html_dashboard(
       <div id="count-display" class="count-badge">Showing {total_card_count} cards</div>
       <button type="button" id="btn-reset-filters" class="reset-btn" onclick="resetAllFilters()">Reset</button>
     </div>
+  </div>
+  <div class="chart-legend" id="chart-legend">
+    <span class="legend-item"><span class="legend-line" style="background:#3fb950;"></span>Up</span>
+    <span class="legend-item"><span class="legend-line" style="background:#f85149;"></span>Down</span>
+    <span class="legend-item"><span class="legend-line" style="background:#58a6ff;"></span>Flat (0%)</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#d29922;"></span>Acquisition date</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#0d1117;border:1.5px solid #bc8cff;"></span>Current TCG Low (excl. shipping)</span>
   </div>
   </header>
 {tier_sections_html}{ncb_section_html}{comp_view_html}  <div id="chart-tooltip" class="chart-tooltip"></div>
