@@ -1377,8 +1377,7 @@ _DASHBOARD_CSS = """    :root {
       align-items: center;
       gap: 6px 14px;
       margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid var(--card-border);
+      padding: 0 17px;
       font-size: 11px;
       color: var(--text-muted);
     }
