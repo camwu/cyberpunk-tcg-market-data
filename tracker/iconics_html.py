@@ -874,7 +874,7 @@ def generate_svg_chart(
 
     if valid_low is not None and low_y is not None and low_gap >= 5.0:
         svg_parts.append(
-            f'<circle cx="{last_x}" cy="{low_y}" r="3.0" class="low-price-dot" fill="#0d1117" stroke="#bc8cff" stroke-width="1.5" />'
+            f'<circle cx="{last_x}" cy="{low_y}" r="3.0" class="low-price-dot" fill="#0d1117" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;" />'
         )
         if low_gap >= 8.0:
             last_date = points[-1][0]
@@ -1389,7 +1389,7 @@ _DASHBOARD_CSS = """    :root {
       z-index: 200;
     }
     .acq-base-label:hover::after { opacity: 1; visibility: visible; }
-    .acq-dot-halo, .acq-dot-core { pointer-events: none; }
+    .acq-dot-halo, .acq-dot-core, .low-price-dot { pointer-events: none; }
     .price-main { font-size: 22px; font-weight: 600; font-family: var(--font-mono); }
     .price-change { font-size: 12px; font-family: var(--font-mono); font-weight: 600; }
     .metric-l7d, .metric-sub {

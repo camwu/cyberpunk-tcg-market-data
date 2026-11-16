@@ -2165,7 +2165,7 @@ process.stdout.write(JSON.stringify(out));
         # For 20..34, y_range = 17.36 and plot_h = 82 => 1.3 price diff is ~6.1px
         svg_mid_gap = generate_svg_chart(points, card_id="n_719700", low_price=32.70)
         self.assertIn('class="low-price-connector"', svg_mid_gap)
-        self.assertIn('class="low-price-dot" fill="#0d1117"', svg_mid_gap)
+        self.assertIn('class="low-price-dot" fill="#0d1117" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;"', svg_mid_gap)
         self.assertNotIn('data-low="true"', svg_mid_gap)
         self.assertIn('data-low-price="$32.70"', svg_mid_gap)
 
