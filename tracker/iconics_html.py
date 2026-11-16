@@ -948,7 +948,7 @@ _DASHBOARD_CSS = """    :root {
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       padding-top: 16px;
-      padding-bottom: 16px;
+      padding-bottom: 12px;
       margin-top: -24px;
       margin-left: -24px;
       margin-right: -24px;
@@ -1376,10 +1376,11 @@ _DASHBOARD_CSS = """    :root {
       flex-wrap: wrap;
       align-items: center;
       gap: 6px 14px;
-      margin-top: 10px;
+      margin-top: 12px;
       padding: 0 17px;
-      font-size: 11px;
-      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      color: #c9d1d9;
     }
     .legend-item {
       display: inline-flex;
