@@ -46,7 +46,7 @@
     },
     "24884": {
       "name": "Night City Brawl Season 1",
-      "modifiedOn": "2026-10-15T18:51:50.733"
+      "modifiedOn": "2026-11-16T19:34:14.467"
     },
     "24883": {
       "name": "Edgerunner Open Season 1",
@@ -5095,7 +5095,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "001",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -5106,7 +5106,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "002",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Red",
     "cardType": "Unit"
   },
@@ -5117,7 +5117,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "003",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Red",
     "cardType": "Gear"
   },
@@ -5128,7 +5128,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "004",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -5139,7 +5139,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "005",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Yellow",
     "cardType": "Unit"
   },
@@ -5150,7 +5150,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "006",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Yellow",
     "cardType": "Gear"
   },
@@ -5161,7 +5161,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "007",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -5172,7 +5172,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "008",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Yellow",
     "cardType": "Program"
   },
@@ -5183,7 +5183,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "009",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -5194,7 +5194,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "010",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -5205,7 +5205,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "011",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Green",
     "cardType": "Unit"
   },
@@ -5216,7 +5216,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "012",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Green",
     "cardType": "Program"
   },
@@ -5227,7 +5227,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "013",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Green",
     "cardType": "Program"
   },
@@ -5238,7 +5238,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "014",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -5249,7 +5249,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "015",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Blue",
     "cardType": "Unit"
   },
@@ -5260,7 +5260,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "016",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -5271,7 +5271,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "017",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Blue",
     "cardType": "Gear"
   },
@@ -5282,7 +5282,7 @@
     "groupId": 24884,
     "groupName": "Night City Brawl Season 1",
     "printNumber": "018",
-    "rarity": "Nova Rare",
+    "rarity": "NR",
     "color": "Blue",
     "cardType": "Program"
   },
@@ -5802,5 +5802,203 @@
     "rarity": "R",
     "color": "Blue",
     "cardType": "Legend"
+  },
+  "733492": {
+    "productId": 733492,
+    "name": "Kerry Eurodyne - The Last Rockerboy (Brawl Champ)",
+    "cleanName": "Kerry Eurodyne The Last Rockerboy Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733493": {
+    "productId": 733493,
+    "name": "Minotaur (Brawl Champ)",
+    "cleanName": "Minotaur Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733494": {
+    "productId": 733494,
+    "name": "Satori - Sword of Saburo (Brawl Champ)",
+    "cleanName": "Satori Sword of Saburo Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733495": {
+    "productId": 733495,
+    "name": "Jackie Welles - Ride or Die Choom (Brawl Champ)",
+    "cleanName": "Jackie Welles Ride or Die Choom Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733496": {
+    "productId": 733496,
+    "name": "Secondhand Bombus (Brawl Champ)",
+    "cleanName": "Secondhand Bombus Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733497": {
+    "productId": 733497,
+    "name": "Mandibular Upgrade (Brawl Champ)",
+    "cleanName": "Mandibular Upgrade Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733498": {
+    "productId": 733498,
+    "name": "Bootleg Black Sapphire Show (Brawl Champ)",
+    "cleanName": "Bootleg Black Sapphire Show Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733499": {
+    "productId": 733499,
+    "name": "Cyberpsychosis (Brawl Champ)",
+    "cleanName": "Cyberpsychosis Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733500": {
+    "productId": 733500,
+    "name": "Corpo Security (Brawl Champ)",
+    "cleanName": "Corpo Security Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733501": {
+    "productId": 733501,
+    "name": "MaxTac Squadron (Brawl Champ)",
+    "cleanName": "MaxTac Squadron Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733502": {
+    "productId": 733502,
+    "name": "Wraith Marauders (Brawl Champ)",
+    "cleanName": "Wraith Marauders Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733503": {
+    "productId": 733503,
+    "name": "(Don't Fear) The Reaper (Brawl Champ)",
+    "cleanName": "Dont Fear The Reaper Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733504": {
+    "productId": 733504,
+    "name": "We Gotta Live Together (Brawl Champ)",
+    "cleanName": "We Gotta Live Together Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733505": {
+    "productId": 733505,
+    "name": "Delamain Cab (Brawl Champ)",
+    "cleanName": "Delamain Cab Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733506": {
+    "productId": 733506,
+    "name": "Maman Brigitte - Spirit of Death (Brawl Champ)",
+    "cleanName": "Maman Brigitte Spirit of Death Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733507": {
+    "productId": 733507,
+    "name": "Dying Night - V's Pistol (Brawl Champ)",
+    "cleanName": "Dying Night Vs Pistol Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733508": {
+    "productId": 733508,
+    "name": "NetWatch Netdriver (Brawl Champ)",
+    "cleanName": "NetWatch Netdriver Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
+  },
+  "733509": {
+    "productId": 733509,
+    "name": "Floor It (Brawl Champ)",
+    "cleanName": "Floor It Brawl Champ",
+    "groupId": 24884,
+    "groupName": "Night City Brawl Season 1",
+    "printNumber": null,
+    "rarity": null,
+    "color": null,
+    "cardType": null
   }
 }
