@@ -1489,7 +1489,7 @@ class TestSetTrackerExpansionAndState(unittest.TestCase):
                 "name": "Chrome Anticipation",
                 "groupName": "Night City Brawl Season 1",
                 "printNumber": "001",
-                "rarity": "Nova Rare",
+                "rarity": "NR",
                 "color": "Red",
                 "cardType": "Program",
             },
@@ -1498,7 +1498,7 @@ class TestSetTrackerExpansionAndState(unittest.TestCase):
                 "name": "Kiroshi Optics",
                 "groupName": "Night City Brawl Season 1",
                 "printNumber": "002",
-                "rarity": "Nova Rare",
+                "rarity": "NR",
                 "color": "Blue",
                 "cardType": "Gear",
             },
@@ -1536,6 +1536,7 @@ class TestSetTrackerExpansionAndState(unittest.TestCase):
             collection_path=str(self.collection_csv),
         )
         self.assertEqual([c.print_number for c in ncb_cards], ["001", "002", "010"])
+        self.assertEqual([c.rarity for c in ncb_cards], ["Nova Rare", "Nova Rare", "Nova Rare"])
         self.assertEqual(ncb_cards[0].price, 14.0)
         self.assertEqual(ncb_cards[0].owned, 2)
         self.assertEqual(ncb_cards[1].price, 36.0)
