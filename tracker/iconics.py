@@ -43,7 +43,7 @@ TIER_MAP: Dict[str, str] = {
 }
 
 _ICONIC_TIERS: Set[str] = {"IL", "IO", "IS"}
-_BOX_TOPPER_RAW_RARITIES: Set[str] = {"NR", "Nova Rare"}
+_NOVA_RARE_RAW_RARITIES: Set[str] = {"NR", "Nova Rare"}
 
 
 @dataclass
@@ -460,7 +460,7 @@ def _normalize_iconic_rarity(card: dict, _expansion: str) -> Optional[str]:
 
 def _normalize_box_topper_rarity(card: dict, expansion: str) -> str:
     raw_rarity = str(card.get("rarity") or "").strip()
-    if raw_rarity not in _BOX_TOPPER_RAW_RARITIES:
+    if raw_rarity not in _NOVA_RARE_RAW_RARITIES:
         pnum = str(card.get("printNumber") or "").strip()
         card_name = sanitize_card_name(card.get("name") or "")
         raise ValueError(
@@ -609,7 +609,7 @@ def load_ncb_cards(
             continue
         raw_rarity = str(c.get("rarity") or "").strip()
         card_name = sanitize_card_name(c.get("name") or "")
-        if raw_rarity != "Nova Rare":
+        if raw_rarity not in _NOVA_RARE_RAW_RARITIES:
             raise ValueError(
                 f"Unrecognized rarity '{raw_rarity}' in {NCB_S1_GROUP} for #{pnum} '{card_name}'"
             )
