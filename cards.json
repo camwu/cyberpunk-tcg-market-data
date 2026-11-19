@@ -34,7 +34,7 @@
     },
     "24860": {
       "name": "Set 1 Promos",
-      "modifiedOn": "2026-10-30T16:38:34.743"
+      "modifiedOn": "2026-11-17T21:24:10.843"
     },
     "24880": {
       "name": "Pre-Release Beta",
@@ -54,7 +54,7 @@
     },
     "24927": {
       "name": "Judge Promos",
-      "modifiedOn": "2026-11-02T20:15:10.083"
+      "modifiedOn": "2026-11-17T21:20:09.01"
     },
     "24928": {
       "name": "Pre-Release Retail",
@@ -6000,5 +6000,60 @@
     "rarity": null,
     "color": null,
     "cardType": null
+  },
+  "733735": {
+    "productId": 733735,
+    "name": "Sandevistan",
+    "cleanName": "Sandevistan",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "001",
+    "rarity": "NR",
+    "color": "Green",
+    "cardType": "Gear"
+  },
+  "733736": {
+    "productId": 733736,
+    "name": "Sandevistan (Top 4)",
+    "cleanName": "Sandevistan Top 4",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "003",
+    "rarity": "NR",
+    "color": "Green",
+    "cardType": "Gear"
+  },
+  "733739": {
+    "productId": 733739,
+    "name": "Adam Smasher - Metal Over Meat",
+    "cleanName": "Adam Smasher Metal Over Meat",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "002",
+    "rarity": "NR",
+    "color": "Yellow",
+    "cardType": "Unit"
+  },
+  "733740": {
+    "productId": 733740,
+    "name": "Adam Smasher - Metal Over Meat (Showdown Champ)",
+    "cleanName": "Adam Smasher Metal Over Meat Showdown Champ",
+    "groupId": 24860,
+    "groupName": "Set 1 Promos",
+    "printNumber": "004",
+    "rarity": "NR",
+    "color": "Yellow",
+    "cardType": "Unit"
+  },
+  "733738": {
+    "productId": 733738,
+    "name": "Sandevistan",
+    "cleanName": "Sandevistan",
+    "groupId": 24927,
+    "groupName": "Judge Promos",
+    "printNumber": "005",
+    "rarity": "NR",
+    "color": "Green",
+    "cardType": "Gear"
   }
 }
