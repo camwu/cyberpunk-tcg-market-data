@@ -54,7 +54,7 @@
     },
     "24927": {
       "name": "Judge Promos",
-      "modifiedOn": "2026-11-17T21:20:09.01"
+      "modifiedOn": "2026-11-20T18:59:56.053"
     },
     "24928": {
       "name": "Pre-Release Retail",
@@ -6055,5 +6055,16 @@
     "rarity": "NR",
     "color": "Green",
     "cardType": "Gear"
+  },
+  "735296": {
+    "productId": 735296,
+    "name": "Maman Brigitte - Spirit of Death",
+    "cleanName": "Maman Brigitte Spirit of Death",
+    "groupId": 24927,
+    "groupName": "Judge Promos",
+    "printNumber": "037",
+    "rarity": "NR",
+    "color": "Blue",
+    "cardType": "Unit"
   }
 }
