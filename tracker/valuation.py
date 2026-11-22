@@ -520,8 +520,9 @@ def match_collection_item(
 
     prod = None
     if variant and item_type != "Sealed":
-        variant_name = f"{name} ({variant})".lower()
-        variant_clean = f"{name} {variant}".lower()
+        base_name = re.sub(rf"\s*\({re.escape(variant)}\)$", "", name, flags=re.IGNORECASE).strip()
+        variant_name = f"{base_name} ({variant})".lower()
+        variant_clean = f"{base_name} {variant}".lower()
         prod = by_group_name.get((lookup_expansion.lower(), variant_name))
         if not prod:
             prod = by_group_clean_name.get((lookup_expansion.lower(), variant_name))
@@ -899,14 +900,13 @@ def calculate_portfolio_valuation(
     total_value = 0.0
     total_cards = 0
     total_sealed = 0
-    unique_items = len(all_items)
     total_lifetime_gain = 0.0
 
     unmatched_item_labels: dict = {}
     zero_price_item_labels: dict = {}
     matched_distinct: set = set()
     seen_distinct: set = set()
-    seen_card_keys: Set[str] = set()
+    resolved_entries: Dict[str, Dict[str, Any]] = {}
 
     # Session-scoped historical price cache for get_historical_market_price calls
     session_price_cache: Dict[Tuple[str, str], Any] = {}
@@ -933,14 +933,50 @@ def calculate_portfolio_valuation(
                     row, catalog_indexes, first_seen
                 )
 
-        if ctx.card_key in seen_card_keys:
-            conn.rollback()
-            conn.close()
-            raise CollectionValidationError(
-                f"Duplicate valuation key collision for '{ctx.name}' ({ctx.card_key}). "
-                f"Combine quantities or verify duplicate lots before running valuation."
+        existing = resolved_entries.get(ctx.card_key)
+        if existing is not None:
+            # Distinct historical dates predating earliest_price_date legitimately clamp to the same key;
+            # merge their quantities rather than overwriting or failing validation.
+            can_merge_clamped = (
+                bool(raw_acq_date)
+                and bool(earliest_price_date)
+                and (raw_acq_date < earliest_price_date or any(d < earliest_price_date for d in existing["raw_acq_dates"]))
+                and raw_acq_date not in existing["raw_acq_dates"]
+                and ctx.effective_acq_date == earliest_price_date
             )
-        seen_card_keys.add(ctx.card_key)
+            if not can_merge_clamped:
+                conn.rollback()
+                conn.close()
+                raise CollectionValidationError(
+                    f"Duplicate valuation key collision for '{ctx.name}' ({ctx.card_key}). "
+                    f"Combine quantities or verify duplicate lots before running valuation."
+                )
+            existing["raw_acq_dates"].add(raw_acq_date)
+            prev_ctx = existing["ctx"]
+            total_qty = prev_ctx.qty + ctx.qty
+            if total_qty > 0 and (prev_ctx.fallback_price > 0.0 or ctx.fallback_price > 0.0):
+                prev_ctx.fallback_price = (
+                    (prev_ctx.fallback_price * prev_ctx.qty) + (ctx.fallback_price * ctx.qty)
+                ) / total_qty
+            prev_ctx.qty = total_qty
+        else:
+            resolved_entries[ctx.card_key] = {
+                "prod": prod,
+                "ctx": ctx,
+                "distinct_key": distinct_key,
+                "is_matched": is_matched,
+                "label": label,
+                "raw_acq_dates": {raw_acq_date} if raw_acq_date else set(),
+            }
+
+    unique_items = len(resolved_entries)
+
+    for entry in resolved_entries.values():
+        prod = entry["prod"]
+        ctx = entry["ctx"]
+        distinct_key = entry["distinct_key"]
+        is_matched = entry["is_matched"]
+        label = entry["label"]
 
         if is_matched:
             if distinct_key not in seen_distinct:

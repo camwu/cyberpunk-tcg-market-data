@@ -1913,6 +1913,111 @@ class TestPortfolioValuation(unittest.TestCase):
         conn.close()
         self.assertIsNone(market_price)
 
+    def test_match_collection_item_handles_already_tagged_variant_name(self):
+        top4_prod = {
+            "productId": 733736,
+            "name": "Sandevistan (Top 4)",
+            "cleanName": "Sandevistan Top 4",
+            "groupId": 24860,
+            "groupName": "Set 1 Promos",
+            "printNumber": "003",
+            "rarity": "NR",
+            "color": "Green",
+            "cardType": "Gear",
+        }
+        indexes = {
+            "by_group_pnum": {},
+            "by_group_name": {("set 1 promos", "sandevistan (top 4)"): top4_prod},
+            "by_group_clean_name": {("set 1 promos", "sandevistan top 4"): top4_prod},
+            "by_name": {},
+        }
+        # Name already ending with "(Top 4)" plus variant="Top 4" matches without double suffixing
+        row_tagged = {
+            "name": "Sandevistan (Top 4)",
+            "expansion": "Night City Showdown S1",
+            "printNumber": "001",
+            "finish": "Foil",
+            "totalQtyOwned": 1,
+            "variant": "Top 4",
+        }
+        prod, ctx, _, is_matched, _ = match_collection_item(row_tagged, indexes, "2026-11-20")
+        self.assertTrue(is_matched)
+        self.assertEqual(ctx.prod_id, 733736)
+        self.assertEqual(ctx.name, "Sandevistan (Top 4)")
+        self.assertEqual(ctx.print_number, "003")
+        self.assertIsNone(ctx.variant)
+
+        # Base name + variant="Top 4" continues matching identically
+        row_base = dict(row_tagged, name="Sandevistan")
+        prod_b, ctx_b, _, is_matched_b, _ = match_collection_item(row_base, indexes, "2026-11-20")
+        self.assertTrue(is_matched_b)
+        self.assertEqual(ctx_b.prod_id, 733736)
+        self.assertEqual(ctx_b.card_key, ctx.card_key)
+
+        # Mismatched trailing tag must not be stripped when variant differs
+        row_mismatch = dict(row_tagged, variant="Brawl Champ")
+        prod_m, ctx_m, _, is_matched_m, _ = match_collection_item(row_mismatch, indexes, "2026-11-20")
+        self.assertFalse(is_matched_m)
+        self.assertIsNone(prod_m)
+        self.assertEqual(ctx_m.variant, "Brawl Champ")
+
+    def test_distinct_pre_clamp_lots_merge_while_identical_raw_dates_fail(self):
+        cards_catalog = {
+            "101": {
+                "productId": 101,
+                "name": "V - Corporate Exile",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "rarity": "Nova",
+                "color": "Yellow",
+                "cardType": "Legend",
+            },
+        }
+        os.makedirs(self.cache_dir, exist_ok=True)
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump({"date": "2026-09-11", "prices": {"101": {"Normal": {"marketPrice": 5.00}}}}, f)
+
+        # Two distinct dates predating earliest_price_date (2026-09-11) clamp to 2026-09-11 and merge quantities
+        pre_clamp_rows = [
+            {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1, "acquisitionDate": "2026-09-02"},
+            {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 2, "acquisitionDate": "2026-09-05"},
+        ]
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path=None,
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=pre_clamp_rows,
+        )
+        self.assertEqual(res["total_cards"], 3)
+        self.assertEqual(res["unique_items"], 1)
+        self.assertAlmostEqual(res["total_value"], 15.00, places=2)
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key, quantity, line_total FROM daily_snapshots WHERE date = '2026-09-11'")
+        snap_rows = cur.fetchall()
+        conn.close()
+        self.assertEqual(snap_rows, [("Welcome to Night City - Beta::006::Standard::2026-09-11", 3, 15.00)])
+
+        # Identical pre-clamp raw acquisitionDate values still collide and fail closed
+        dup_pre_clamp_rows = [
+            {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1, "acquisitionDate": "2026-09-02"},
+            {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1, "acquisitionDate": "2026-09-02"},
+        ]
+        with self.assertRaises(CollectionValidationError):
+            calculate_portfolio_valuation(
+                date_str="2026-09-11",
+                collection_path=None,
+                cache_dir=self.cache_dir,
+                db_path=self.db_path,
+                force=True,
+                collection_rows=dup_pre_clamp_rows,
+            )
+
 
 class TestReportFormatting(unittest.TestCase):
 
