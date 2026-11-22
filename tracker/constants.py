@@ -53,6 +53,36 @@ COLOR_DOTS: dict[str, str] = {
     "Yellow": "🟡",
 }
 
+STAMP_VARIANTS: tuple[str, ...] = (
+    "Brawl Champ",
+    "Showdown Champ",
+    "Top 4",
+)
+
+STAMP_VARIANT_MAP: dict[str, str] = {
+    v.lower(): v for v in STAMP_VARIANTS
+}
+
+EXPANSION_ALIASES: dict[str, str] = {
+    "night city showdown s1": "Set 1 Promos",
+}
+
+
+def normalize_stamp_variant(tag: Optional[str]) -> Optional[str]:
+    """Normalizes recognized tournament stamp tags to canonical casing, returning None otherwise."""
+    if not tag:
+        return None
+    cleaned = tag.strip().lower()
+    return STAMP_VARIANT_MAP.get(cleaned)
+
+
+def resolve_expansion_alias(expansion: str) -> str:
+    """Maps CardNexus expansion names to TCGplayer catalog group names when an alias exists."""
+    cleaned = (expansion or "").strip()
+    if not cleaned:
+        return cleaned
+    return EXPANSION_ALIASES.get(cleaned.lower(), cleaned)
+
 
 def normalize_rarity(rarity: Optional[str]) -> str:
     """

@@ -7,7 +7,10 @@ import csv
 import datetime
 import os
 import re
-from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
+import sys
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Set, Tuple
+
+from tracker.constants import normalize_stamp_variant
 
 REQUIRED_COLUMNS = {"name", "expansion", "printNumber", "finish", "totalQtyOwned"}
 REQUIRED_SEALED_COLUMNS = {"productId", "name", "expansion", "totalQtyOwned", "acquisitionDate"}
@@ -42,47 +45,69 @@ def extract_date_from_text(text: Optional[str]) -> Optional[str]:
     return None
 
 
-def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tuple[Optional[str], int]], Optional[str]]:
+def _extract_lot_variant_and_unknown_tags(chunk_text: str) -> Tuple[Optional[str], List[str]]:
+    """Extracts a recognized tournament stamp variant and any unrecognized parenthesized tags from one lot chunk."""
+    matched_variant: Optional[str] = None
+    unknown_tags: List[str] = []
+    for m in re.finditer(r"\(([^()]+)\)", chunk_text):
+        raw_tag = m.group(1).strip()
+        if not raw_tag:
+            continue
+        canonical = normalize_stamp_variant(raw_tag)
+        if canonical:
+            if matched_variant is None:
+                matched_variant = canonical
+        else:
+            unknown_tags.append(raw_tag)
+    return matched_variant, unknown_tags
+
+
+def parse_multi_lot_notes_with_variants(
+    notes: Optional[str],
+    total_qty: int,
+) -> Tuple[List[Tuple[Optional[str], int, Optional[str]]], Optional[str], List[str]]:
     """
-    Parses acquisition date(s) and lot quantities from the notes field.
-    Supports:
-    - Standalone single date: '2026-09-02' -> [(2026-09-02, total_qty)]
-    - Semicolon or comma delimited lots: '2026-09-02: 2; 2026-09-18: 3'
-    - Implicit quantities in delimited lists: '2026-09-02; 2026-09-18' (1 each)
-    - Mixed implicit/explicit: '2026-09-02; 2026-09-18: 2'
-    Returns:
-    (list_of_lots, error_message_or_None) where each lot is (date_str_or_None, qty).
+    Parses acquisition date(s), lot quantities, and tournament stamp variants from notes.
+    Returns (lots, error_or_None, unrecognized_tags) where each lot is (date_or_None, qty, variant_or_None).
     """
     if not notes or not str(notes).strip():
-        return [(None, total_qty)], None
+        return [(None, total_qty, None)], None, []
 
     text = str(notes).strip()
     chunks = [c.strip() for c in re.split(r"[;,]", text) if c.strip()]
     if not chunks:
-        return [(None, total_qty)], None
+        return [(None, total_qty, None)], None, []
 
     if len(chunks) == 1:
+        variant, unknown_tags = _extract_lot_variant_and_unknown_tags(chunks[0])
         m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b(?:\s*:\s*(-?\d+))?", chunks[0])
         if m:
             date_candidate = m.group(1)
             try:
                 datetime.date.fromisoformat(date_candidate)
             except ValueError:
-                return [(None, total_qty)], None
+                return [(None, total_qty, variant)], None, unknown_tags
 
             explicit_qty_str = m.group(2)
             if explicit_qty_str is not None:
                 qty = int(explicit_qty_str)
                 if qty < 1:
-                    return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty})."
+                    return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty}).", unknown_tags
                 if qty != total_qty:
-                    return [(date_candidate, qty)], f"Sum of parsed lots ({qty}) does not equal totalQtyOwned ({total_qty})."
-                return [(date_candidate, qty)], None
-            return [(date_candidate, total_qty)], None
-        return [(None, total_qty)], None
+                    return [(date_candidate, qty, variant)], f"Sum of parsed lots ({qty}) does not equal totalQtyOwned ({total_qty}).", unknown_tags
+                return [(date_candidate, qty, variant)], None, unknown_tags
+            return [(date_candidate, total_qty, variant)], None, unknown_tags
+        return [(None, total_qty, variant)], None, unknown_tags
 
-    lots: List[Tuple[Optional[str], int]] = []
+    lots: List[Tuple[Optional[str], int, Optional[str]]] = []
+    unknown_tags: List[str] = []
+    fallback_variant: Optional[str] = None
     for c in chunks:
+        variant, chunk_unknown = _extract_lot_variant_and_unknown_tags(c)
+        if variant and fallback_variant is None:
+            fallback_variant = variant
+        unknown_tags.extend(chunk_unknown)
+
         m = re.search(r"\b(\d{4}-\d{2}-\d{2})\b(?:\s*:\s*(-?\d+))?", c)
         if not m:
             continue
@@ -96,19 +121,34 @@ def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tu
         if explicit_qty_str is not None:
             qty = int(explicit_qty_str)
             if qty < 1:
-                return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty})."
+                return [], f"Parsed lot quantity for '{date_candidate}' must be at least 1 (got {qty}).", unknown_tags
         else:
             qty = 1
-        lots.append((date_candidate, qty))
+        lots.append((date_candidate, qty, variant))
 
     if not lots:
-        return [(None, total_qty)], None
+        return [(None, total_qty, fallback_variant)], None, unknown_tags
 
-    lot_sum = sum(q for _, q in lots)
+    lot_sum = sum(q for _, q, _ in lots)
     if lot_sum != total_qty:
-        return lots, f"Sum of parsed lots ({lot_sum}) does not equal totalQtyOwned ({total_qty})."
+        return lots, f"Sum of parsed lots ({lot_sum}) does not equal totalQtyOwned ({total_qty}).", unknown_tags
 
-    return lots, None
+    return lots, None, unknown_tags
+
+
+def parse_multi_lot_notes(notes: Optional[str], total_qty: int) -> Tuple[List[Tuple[Optional[str], int]], Optional[str]]:
+    """
+    Parses acquisition date(s) and lot quantities from the notes field.
+    Supports:
+    - Standalone single date: '2026-09-02' -> [(2026-09-02, total_qty)]
+    - Semicolon or comma delimited lots: '2026-09-02: 2; 2026-09-18: 3'
+    - Implicit quantities in delimited lists: '2026-09-02; 2026-09-18' (1 each)
+    - Mixed implicit/explicit: '2026-09-02; 2026-09-18: 2'
+    Returns:
+    (list_of_lots, error_message_or_None) where each lot is (date_str_or_None, qty).
+    """
+    lots_with_variants, err, _ = parse_multi_lot_notes_with_variants(notes, total_qty)
+    return [(d, q) for d, q, _ in lots_with_variants], err
 
 
 def is_sealed_product(name: str, expansion: str = "") -> bool:
@@ -218,6 +258,8 @@ class LotResolutionResult(NamedTuple):
     lots: List[Tuple[Optional[str], int]]
     errors: List[str]
     mismatches: List[Dict[str, str]]
+    lot_variants: Tuple[Optional[str], ...] = ()
+    warnings: Tuple[str, ...] = ()
 
 
 class DuplicateTracker:
@@ -225,17 +267,18 @@ class DuplicateTracker:
 
     def __init__(self) -> None:
         self.seen_sealed_lots: Set[Tuple[str, str, str]] = set()
-        self.seen_card_lots: Set[Tuple[str, str, str, str]] = set()
-        self.seen_dateless_cards: Set[Tuple[str, str, str]] = set()
+        self.seen_card_lots: Set[Tuple[str, str, str, str, str]] = set()
+        self.seen_dateless_cards: Set[Tuple[str, str, str, str]] = set()
         self.seen_dateless_sealed: Set[Tuple[str, str]] = set()
         self.seen_sealed_file_lots: Set[Tuple[int, str]] = set()
 
     def check_and_record(
         self,
         row_data: Dict[str, Any],
-        lots: List[Tuple[Optional[str], int]],
+        lots: Sequence[Tuple[Any, ...]],
         row_idx: int,
         errors: List[str],
+        lot_variants: Optional[Sequence[Optional[str]]] = None,
     ) -> bool:
         """Validates lot uniqueness for collection entries, mutating seen sets in-place."""
         is_sealed = row_data["is_sealed"]
@@ -244,7 +287,17 @@ class DuplicateTracker:
         print_number = row_data.get("printNumber")
         normalized_finish = row_data["finish"]
 
-        for lot_date, _ in lots:
+        for idx, lot_entry in enumerate(lots):
+            lot_date = lot_entry[0]
+            if len(lot_entry) >= 3:
+                lot_variant = lot_entry[2]
+            elif lot_variants is not None and idx < len(lot_variants):
+                lot_variant = lot_variants[idx]
+            else:
+                lot_variant = None
+            variant_key = (lot_variant or "").lower()
+            variant_suffix = f", {lot_variant}" if lot_variant else ""
+
             if is_sealed and lot_date:
                 lot_key = (name.lower(), expansion.lower(), lot_date)
                 if lot_key in self.seen_sealed_lots:
@@ -252,16 +305,16 @@ class DuplicateTracker:
                     return False
                 self.seen_sealed_lots.add(lot_key)
             elif not is_sealed and lot_date:
-                card_lot_key = (expansion.lower(), (print_number or "").lower(), normalized_finish.lower(), lot_date)
+                card_lot_key = (expansion.lower(), (print_number or "").lower(), variant_key, normalized_finish.lower(), lot_date)
                 if card_lot_key in self.seen_card_lots:
-                    errors.append(f"Row {row_idx}: Duplicate card lot for '{name}' ({print_number}, {normalized_finish}) and acquisitionDate '{lot_date}'. Combine quantities using 'totalQtyOwned' or notes.")
+                    errors.append(f"Row {row_idx}: Duplicate card lot for '{name}' ({print_number}, {normalized_finish}{variant_suffix}) and acquisitionDate '{lot_date}'. Combine quantities using 'totalQtyOwned' or notes.")
                     return False
                 self.seen_card_lots.add(card_lot_key)
             elif not is_sealed and not lot_date:
-                dateless_key = (expansion.lower(), (print_number or "").lower(), normalized_finish.lower())
+                dateless_key = (expansion.lower(), (print_number or "").lower(), variant_key, normalized_finish.lower())
                 if dateless_key in self.seen_dateless_cards:
                     errors.append(
-                        f"Row {row_idx}: Duplicate card '{name}' ({print_number}, {normalized_finish}) with no acquisition date. "
+                        f"Row {row_idx}: Duplicate card '{name}' ({print_number}, {normalized_finish}{variant_suffix}) with no acquisition date. "
                         f"Add an acquisition date to the notes field to distinguish purchase lots, or combine quantities using 'totalQtyOwned'."
                     )
                     return False
@@ -409,7 +462,9 @@ def _resolve_row_lots(
     """Parses lot purchase tranches, validates date formats, and enforces future-date bounds."""
     errors: List[str] = []
     mismatches: List[Dict[str, str]] = []
+    warnings: List[str] = []
     lots: List[Tuple[Optional[str], int]] = []
+    lot_variants: List[Optional[str]] = []
 
     name = item_info.get("name", "")
     print_num_val = item_info.get("print_num_val", "")
@@ -431,10 +486,21 @@ def _resolve_row_lots(
         else:
             raw_to_parse = raw_notes or ""
 
-        parsed_lots, lot_err = parse_multi_lot_notes(raw_to_parse, qty)
+        parsed_lots, lot_err, unknown_tags = parse_multi_lot_notes_with_variants(raw_to_parse, qty)
+        if raw_to_parse == acq_date_col and raw_notes and not extract_date_from_text(raw_notes):
+            notes_variant, notes_unknown = _extract_lot_variant_and_unknown_tags(raw_notes)
+            unknown_tags = unknown_tags + notes_unknown
+            if notes_variant is not None:
+                parsed_lots = [(d, q, v or notes_variant) for d, q, v in parsed_lots]
+
+        for tag in unknown_tags:
+            warnings.append(
+                f"Row {row_idx}: Unrecognized parenthesized tag '({tag})' in notes for '{name}' ({print_num_val}); treating lot as regular variant."
+            )
+
         if lot_err:
             errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({print_num_val}). {lot_err} (notes: '{raw_to_parse}')")
-            parsed_qty = sum(q for _, q in parsed_lots)
+            parsed_qty = sum(q for _, q, _ in parsed_lots)
             mismatches.append({
                 "row": str(row_idx),
                 "print_number": str(print_num_val),
@@ -445,7 +511,7 @@ def _resolve_row_lots(
             })
         else:
             future_lot_dates = [
-                d for d, _ in parsed_lots
+                d for d, _, _ in parsed_lots
                 if d and d > today_str and not (acq_date_future_flagged and d == acq_date_col)
             ]
             if future_lot_dates:
@@ -454,9 +520,16 @@ def _resolve_row_lots(
                         f"Row {row_idx}: Acquisition date '{fdate}' for '{name}' ({print_num_val}) is in the future (notes: '{raw_to_parse}')."
                     )
             else:
-                lots = parsed_lots
+                lots = [(d, q) for d, q, _ in parsed_lots]
+                lot_variants = [v for _, _, v in parsed_lots]
 
-    return LotResolutionResult(lots=lots, errors=errors, mismatches=mismatches)
+    return LotResolutionResult(
+        lots=lots,
+        errors=errors,
+        mismatches=mismatches,
+        lot_variants=tuple(lot_variants),
+        warnings=tuple(warnings),
+    )
 
 
 def _export_validation_errors(error_export_path: Optional[str], lot_mismatches: List[Dict[str, str]]) -> None:
@@ -526,14 +599,19 @@ def validate_collection_file(
                     lot_mismatches.extend(lot_res.mismatches)
                     continue
 
-                if not tracker.check_and_record(parsed, lot_res.lots, row_idx, errors):
+                if not tracker.check_and_record(parsed, lot_res.lots, row_idx, errors, lot_variants=lot_res.lot_variants):
                     continue
 
-                for lot_date, lot_qty in lot_res.lots:
+                for warn in lot_res.warnings:
+                    print(f"Warning: {warn}", file=sys.stderr)
+
+                lot_variants = lot_res.lot_variants or (None,) * len(lot_res.lots)
+                for (lot_date, lot_qty), lot_variant in zip(lot_res.lots, lot_variants):
                     row_copy = {**dict(parsed["row"]), **{
                         "name": parsed["name"], "expansion": parsed["expansion"], "printNumber": parsed["printNumber"],
                         "finish": parsed["finish"], "totalQtyOwned": lot_qty, "price": parsed["price"],
                         "item_type": parsed["item_type"], "acquisitionDate": lot_date,
+                        "variant": lot_variant,
                     }}
                     if parsed["is_sealed"]:
                         row_copy["rarity"] = "Sealed"

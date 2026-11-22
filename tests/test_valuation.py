@@ -13,11 +13,13 @@ from tracker.valuation import (
     calculate_portfolio_valuation,
     init_database,
     get_historical_market_price,
+    load_price_catalog,
     match_collection_item,
     resolve_and_persist_baseline,
     migrate_card_metadata_rarities,
     ItemValuationContext,
 )
+from tracker.validation import CollectionValidationError
 from tracker.report import format_rarity, RARITY_ICONS
 
 
@@ -1574,6 +1576,480 @@ class TestPortfolioValuation(unittest.TestCase):
         noop = migrate_card_metadata_rarities(cur, conn)
         conn.close()
         self.assertEqual(noop, 0)
+
+    def test_tournament_stamp_variants_metadata_inheritance_and_isolation(self):
+        cards_catalog = {
+            "719698": {
+                "productId": 719698,
+                "name": "Maman Brigitte - Spirit of Death",
+                "cleanName": "Maman Brigitte Spirit of Death",
+                "groupId": 24884,
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "015",
+                "rarity": "NR",
+                "color": "Blue",
+                "cardType": "Unit",
+            },
+            "733506": {
+                "productId": 733506,
+                "name": "Maman Brigitte - Spirit of Death (Brawl Champ)",
+                "cleanName": "Maman Brigitte Spirit of Death Brawl Champ",
+                "groupId": 24884,
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": None,
+                "rarity": None,
+                "color": None,
+                "cardType": None,
+            },
+            "733735": {
+                "productId": 733735,
+                "name": "Sandevistan",
+                "cleanName": "Sandevistan",
+                "groupId": 24860,
+                "groupName": "Set 1 Promos",
+                "printNumber": "001",
+                "rarity": "NR",
+                "color": "Green",
+                "cardType": "Gear",
+            },
+            "733736": {
+                "productId": 733736,
+                "name": "Sandevistan (Top 4)",
+                "cleanName": "Sandevistan Top 4",
+                "groupId": 24860,
+                "groupName": "Set 1 Promos",
+                "printNumber": "003",
+                "rarity": "NR",
+                "color": "Green",
+                "cardType": "Gear",
+            },
+            "733739": {
+                "productId": 733739,
+                "name": "Adam Smasher - Metal Over Meat",
+                "cleanName": "Adam Smasher Metal Over Meat",
+                "groupId": 24860,
+                "groupName": "Set 1 Promos",
+                "printNumber": "002",
+                "rarity": "NR",
+                "color": "Yellow",
+                "cardType": "Unit",
+            },
+            "733740": {
+                "productId": 733740,
+                "name": "Adam Smasher - Metal Over Meat (Showdown Champ)",
+                "cleanName": "Adam Smasher Metal Over Meat Showdown Champ",
+                "groupId": 24860,
+                "groupName": "Set 1 Promos",
+                "printNumber": "004",
+                "rarity": "NR",
+                "color": "Yellow",
+                "cardType": "Unit",
+            },
+        }
+        os.makedirs(self.cache_dir, exist_ok=True)
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+
+        with open(os.path.join(self.cache_dir, "2026-11-20.json"), "w", encoding="utf-8") as f:
+            json.dump({
+                "date": "2026-11-20",
+                "prices": {
+                    "719698": {"Foil": {"marketPrice": 6.63}},
+                    "733506": {"Foil": {"marketPrice": None, "midPrice": 89.99}},
+                    "733735": {"Foil": {"marketPrice": 21.75}},
+                    "733736": {"Foil": {"marketPrice": None, "midPrice": 189.99}},
+                    "733739": {"Foil": {"marketPrice": 53.04}},
+                    "733740": {"Foil": {"marketPrice": None, "midPrice": 637.50}},
+                },
+            }, f)
+
+        # Day 2 drops prices for both regular 015 and Brawl Champ 015 to verify bidirectional carry-forward isolation
+        day2_price_file = os.path.join(self.cache_dir, "2026-11-21.json")
+        with open(day2_price_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "date": "2026-11-21",
+                "prices": {
+                    "719698": {},
+                    "733506": {},
+                },
+            }, f)
+
+        rows = [
+            {
+                "name": "Maman Brigitte - Spirit of Death",
+                "expansion": "Night City Brawl Season 1",
+                "printNumber": "015",
+                "finish": "Foil",
+                "totalQtyOwned": 1,
+                "acquisitionDate": "2026-11-20",
+                "variant": "Brawl Champ",
+            },
+            {
+                "name": "Maman Brigitte - Spirit of Death",
+                "expansion": "Night City Brawl Season 1",
+                "printNumber": "015",
+                "finish": "Foil",
+                "totalQtyOwned": 1,
+                "acquisitionDate": "2026-11-20",
+                "variant": None,
+            },
+            {
+                "name": "Sandevistan",
+                "expansion": "Night City Showdown S1",
+                "printNumber": "001",
+                "finish": "Foil",
+                "totalQtyOwned": 1,
+                "acquisitionDate": "2026-11-20",
+                "variant": "Top 4",
+            },
+            {
+                "name": "Adam Smasher - Metal Over Meat",
+                "expansion": "Night City Showdown S1",
+                "printNumber": "002",
+                "finish": "Foil",
+                "totalQtyOwned": 1,
+                "acquisitionDate": "2026-11-20",
+                "variant": "Showdown Champ",
+            },
+        ]
+
+        res1 = calculate_portfolio_valuation(
+            date_str="2026-11-20",
+            collection_path=None,
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=rows,
+        )
+        self.assertAlmostEqual(res1["total_value"], round(89.99 + 6.63 + 189.99 + 637.50, 2), places=2)
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key, name, print_number, expansion, rarity, color, card_type, variant FROM card_metadata ORDER BY card_key")
+        meta = {r[0]: r[1:] for r in cur.fetchall()}
+        self.assertIn("Night City Brawl Season 1::015::Brawl Champ::Foil::2026-11-20", meta)
+        self.assertEqual(
+            meta["Night City Brawl Season 1::015::Brawl Champ::Foil::2026-11-20"],
+            ("Maman Brigitte - Spirit of Death (Brawl Champ)", "015", "Night City Brawl Season 1", "Nova", "Blue", "Unit", "Brawl Champ"),
+        )
+        self.assertIn("Night City Brawl Season 1::015::Foil::2026-11-20", meta)
+        self.assertEqual(
+            meta["Night City Brawl Season 1::015::Foil::2026-11-20"],
+            ("Maman Brigitte - Spirit of Death", "015", "Night City Brawl Season 1", "Nova", "Blue", "Unit", None),
+        )
+        # Distinct printNumber Showdown variants adopt 003 / 004 and clear card_metadata.variant to None
+        self.assertEqual(
+            meta["Set 1 Promos::003::Foil::2026-11-20"],
+            ("Sandevistan (Top 4)", "003", "Set 1 Promos", "Nova", "Green", "Gear", None),
+        )
+        self.assertEqual(
+            meta["Set 1 Promos::004::Foil::2026-11-20"],
+            ("Adam Smasher - Metal Over Meat (Showdown Champ)", "004", "Set 1 Promos", "Nova", "Yellow", "Unit", None),
+        )
+
+        # Verify lookup_first_seen_date isolates variant vs base rows
+        from tracker.valuation import lookup_first_seen_date
+        cur.execute("UPDATE card_metadata SET first_seen_date = '2026-11-07' WHERE card_key = 'Night City Brawl Season 1::015::Brawl Champ::Foil::2026-11-20'")
+        cur.execute("UPDATE card_metadata SET first_seen_date = '2026-11-12' WHERE card_key = 'Night City Brawl Season 1::015::Foil::2026-11-20'")
+        conn.commit()
+        self.assertEqual(
+            lookup_first_seen_date(cur, "Card", 733506, "Maman Brigitte - Spirit of Death (Brawl Champ)", "Night City Brawl Season 1", "015", "Foil", variant="Brawl Champ"),
+            "2026-11-07",
+        )
+        self.assertEqual(
+            lookup_first_seen_date(cur, "Card", 719698, "Maman Brigitte - Spirit of Death", "Night City Brawl Season 1", "015", "Foil", variant=None),
+            "2026-11-12",
+        )
+        conn.close()
+
+        # Run Day 2 with both 719698 and 733506 unpriced: each must carry forward only its own price
+        res2 = calculate_portfolio_valuation(
+            date_str="2026-11-21",
+            collection_path=None,
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=rows[:2],
+        )
+        self.assertAlmostEqual(res2["total_value"], round(89.99 + 6.63, 2), places=2)
+
+    def test_get_historical_market_price_variant_skips_print_number_order_dependence(self):
+        os.makedirs(self.cache_dir, exist_ok=True)
+        # Base card precedes variant card in dict iteration order
+        cache_data = {
+            "date": "2026-11-18",
+            "products": {
+                "719698": {
+                    "productId": 719698,
+                    "name": "Maman Brigitte - Spirit of Death",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": "015",
+                    "prices": {"Foil": {"marketPrice": 6.50}},
+                },
+                "733506": {
+                    "productId": 733506,
+                    "name": "Maman Brigitte - Spirit of Death (Brawl Champ)",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": None,
+                    "prices": {"Foil": {"midPrice": 99.99}},
+                },
+            },
+        }
+        with open(os.path.join(self.cache_dir, "2026-11-18.json"), "w", encoding="utf-8") as f:
+            json.dump(cache_data, f)
+
+        price_var_no_pid = get_historical_market_price(
+            cache_dir=self.cache_dir,
+            target_date="2026-11-18",
+            prod_id=None,
+            expansion="Night City Brawl Season 1",
+            print_number="015",
+            name="Maman Brigitte - Spirit of Death (Brawl Champ)",
+            finish="Foil",
+            variant="Brawl Champ",
+        )
+        self.assertEqual(price_var_no_pid, 99.99)
+
+        price_var_with_pid = get_historical_market_price(
+            cache_dir=self.cache_dir,
+            target_date="2026-11-18",
+            prod_id=733506,
+            expansion="Night City Brawl Season 1",
+            print_number="015",
+            name="Maman Brigitte - Spirit of Death (Brawl Champ)",
+            finish="Foil",
+            variant="Brawl Champ",
+        )
+        self.assertEqual(price_var_with_pid, 99.99)
+
+    def test_duplicate_converged_card_key_raises_validation_error(self):
+        cards_catalog = {
+            "733736": {
+                "productId": 733736,
+                "name": "Sandevistan (Top 4)",
+                "cleanName": "Sandevistan Top 4",
+                "groupId": 24860,
+                "groupName": "Set 1 Promos",
+                "printNumber": "003",
+                "rarity": "NR",
+                "color": "Green",
+                "cardType": "Gear",
+            },
+        }
+        os.makedirs(self.cache_dir, exist_ok=True)
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+        with open(os.path.join(self.cache_dir, "2026-11-20.json"), "w", encoding="utf-8") as f:
+            json.dump({"date": "2026-11-20", "prices": {"733736": {"Foil": {"midPrice": 189.99}}}}, f)
+
+        colliding_rows = [
+            {"name": "Sandevistan", "expansion": "Night City Showdown S1", "printNumber": "001", "finish": "Foil", "totalQtyOwned": 1, "acquisitionDate": "2026-11-20", "variant": "Top 4"},
+            {"name": "Sandevistan (Top 4)", "expansion": "Set 1 Promos", "printNumber": "003", "finish": "Foil", "totalQtyOwned": 1, "acquisitionDate": "2026-11-20", "variant": None},
+        ]
+        with self.assertRaises(CollectionValidationError):
+            calculate_portfolio_valuation(
+                date_str="2026-11-20",
+                collection_path=None,
+                cache_dir=self.cache_dir,
+                db_path=self.db_path,
+                force=True,
+                collection_rows=colliding_rows,
+            )
+
+    def test_unmatched_variant_does_not_fallback_to_base_prod_or_carry_forward_by_pid(self):
+        from tracker.valuation import resolve_item_market_price
+
+        base_prod = {
+            "productId": 719698,
+            "name": "Maman Brigitte - Spirit of Death",
+            "cleanName": "Maman Brigitte Spirit of Death",
+            "groupName": "Night City Brawl Season 1",
+            "printNumber": "015",
+            "rarity": "NR",
+            "color": "Blue",
+            "cardType": "Unit",
+            "prices": {"Foil": {"marketPrice": 6.63}},
+        }
+        indexes = {
+            "by_group_pnum": {("night city brawl season 1", "015"): base_prod},
+            "by_group_name": {("night city brawl season 1", "maman brigitte - spirit of death"): base_prod},
+            "by_group_clean_name": {},
+            "by_name": {},
+        }
+        row = {
+            "name": "Maman Brigitte - Spirit of Death",
+            "expansion": "Night City Brawl Season 1",
+            "printNumber": "015",
+            "finish": "Foil",
+            "totalQtyOwned": 1,
+            "variant": "Brawl Champ",
+        }
+        prod, ctx, _, is_matched, _ = match_collection_item(row, indexes, "2026-11-07")
+        self.assertIsNone(prod)
+        self.assertFalse(is_matched)
+        self.assertIsNone(ctx.prod_id)
+        self.assertEqual(ctx.variant, "Brawl Champ")
+        self.assertEqual(ctx.name, "Maman Brigitte - Spirit of Death (Brawl Champ)")
+        self.assertEqual(ctx.rarity, "Nova")
+        self.assertEqual(ctx.color, "Blue")
+        self.assertEqual(ctx.card_type, "Unit")
+
+        # Carry-forward must stay isolated by COALESCE(m.variant, '') even when product_id matches across rows
+        conn = init_database(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, variant)
+            VALUES ('Night City Brawl Season 1::015::Foil::2026-11-07', 719698, 'Maman Brigitte - Spirit of Death', '015', 'Night City Brawl Season 1', 'Foil', 'Nova', 'Blue', '2026-11-07', 6.63, 'Card', NULL)
+        """)
+        cur.execute("""
+            INSERT INTO daily_snapshots (date, card_key, quantity, unit_market_price, line_total, baseline_price)
+            VALUES ('2026-11-07', 'Night City Brawl Season 1::015::Foil::2026-11-07', 1, 6.63, 6.63, 6.63)
+        """)
+        conn.commit()
+
+        # Simulate a stale ctx carrying prod_id=719698 with variant='Brawl Champ': must not resolve base snapshot
+        ctx.prod_id = 719698
+        market_price, _, _, _, _ = resolve_item_market_price(None, ctx, "2026-11-08", cur)
+        conn.close()
+        self.assertIsNone(market_price)
+
+    def test_match_collection_item_handles_already_tagged_variant_name(self):
+        top4_prod = {
+            "productId": 733736,
+            "name": "Sandevistan (Top 4)",
+            "cleanName": "Sandevistan Top 4",
+            "groupId": 24860,
+            "groupName": "Set 1 Promos",
+            "printNumber": "003",
+            "rarity": "NR",
+            "color": "Green",
+            "cardType": "Gear",
+        }
+        indexes = {
+            "by_group_pnum": {},
+            "by_group_name": {("set 1 promos", "sandevistan (top 4)"): top4_prod},
+            "by_group_clean_name": {("set 1 promos", "sandevistan top 4"): top4_prod},
+            "by_name": {},
+        }
+        # Name already ending with "(Top 4)" plus variant="Top 4" matches without double suffixing
+        row_tagged = {
+            "name": "Sandevistan (Top 4)",
+            "expansion": "Night City Showdown S1",
+            "printNumber": "001",
+            "finish": "Foil",
+            "totalQtyOwned": 1,
+            "variant": "Top 4",
+        }
+        prod, ctx, _, is_matched, _ = match_collection_item(row_tagged, indexes, "2026-11-20")
+        self.assertTrue(is_matched)
+        self.assertEqual(ctx.prod_id, 733736)
+        self.assertEqual(ctx.name, "Sandevistan (Top 4)")
+        self.assertEqual(ctx.print_number, "003")
+        self.assertIsNone(ctx.variant)
+
+        # Base name + variant="Top 4" continues matching identically
+        row_base = dict(row_tagged, name="Sandevistan")
+        prod_b, ctx_b, _, is_matched_b, _ = match_collection_item(row_base, indexes, "2026-11-20")
+        self.assertTrue(is_matched_b)
+        self.assertEqual(ctx_b.prod_id, 733736)
+        self.assertEqual(ctx_b.card_key, ctx.card_key)
+
+        # Mismatched trailing tag must not be stripped when variant differs
+        row_mismatch = dict(row_tagged, variant="Brawl Champ")
+        prod_m, ctx_m, _, is_matched_m, _ = match_collection_item(row_mismatch, indexes, "2026-11-20")
+        self.assertFalse(is_matched_m)
+        self.assertIsNone(prod_m)
+        self.assertEqual(ctx_m.variant, "Brawl Champ")
+
+    def test_distinct_pre_clamp_lots_merge_while_identical_raw_dates_fail(self):
+        cards_catalog = {
+            "101": {
+                "productId": 101,
+                "name": "V - Corporate Exile",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "rarity": "Nova",
+                "color": "Yellow",
+                "cardType": "Legend",
+            },
+        }
+        os.makedirs(self.cache_dir, exist_ok=True)
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump({"date": "2026-09-11", "prices": {"101": {"Normal": {"marketPrice": 5.00}}}}, f)
+
+        # Two distinct dates predating earliest_price_date (2026-09-11) clamp to 2026-09-11 and merge quantities
+        pre_clamp_rows = [
+            {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1, "acquisitionDate": "2026-09-02"},
+            {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 2, "acquisitionDate": "2026-09-05"},
+        ]
+        res = calculate_portfolio_valuation(
+            date_str="2026-09-11",
+            collection_path=None,
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+            collection_rows=pre_clamp_rows,
+        )
+        self.assertEqual(res["total_cards"], 3)
+        self.assertEqual(res["unique_items"], 1)
+        self.assertAlmostEqual(res["total_value"], 15.00, places=2)
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key, quantity, line_total FROM daily_snapshots WHERE date = '2026-09-11'")
+        snap_rows = cur.fetchall()
+        conn.close()
+        self.assertEqual(snap_rows, [("Welcome to Night City - Beta::006::Standard::2026-09-11", 3, 15.00)])
+
+        # Identical pre-clamp raw acquisitionDate values still collide and fail closed
+        dup_pre_clamp_rows = [
+            {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1, "acquisitionDate": "2026-09-02"},
+            {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1, "acquisitionDate": "2026-09-02"},
+        ]
+        with self.assertRaises(CollectionValidationError):
+            calculate_portfolio_valuation(
+                date_str="2026-09-11",
+                collection_path=None,
+                cache_dir=self.cache_dir,
+                db_path=self.db_path,
+                force=True,
+                collection_rows=dup_pre_clamp_rows,
+            )
+
+    def test_undated_and_pre_clamp_collision_rejected_regardless_of_order(self):
+        cards_catalog = {
+            "101": {
+                "productId": 101,
+                "name": "V - Corporate Exile",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "rarity": "Nova",
+                "color": "Yellow",
+                "cardType": "Legend",
+            },
+        }
+        os.makedirs(self.cache_dir, exist_ok=True)
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump({"date": "2026-09-11", "prices": {"101": {"Normal": {"marketPrice": 5.00}}}}, f)
+
+        undated = {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1}
+        pre_clamp = {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1, "acquisitionDate": "2026-09-02"}
+
+        for ordered_rows in ([undated, pre_clamp], [pre_clamp, undated]):
+            with self.subTest(order=[r.get("acquisitionDate") for r in ordered_rows]):
+                with self.assertRaises(CollectionValidationError):
+                    calculate_portfolio_valuation(
+                        date_str="2026-09-11",
+                        collection_path=None,
+                        cache_dir=self.cache_dir,
+                        db_path=self.db_path,
+                        force=True,
+                        collection_rows=ordered_rows,
+                    )
 
 
 class TestReportFormatting(unittest.TestCase):

@@ -12,7 +12,11 @@ from tracker.constants import (
     CACHE_TTL_24H_SECONDS,
     CANONICAL_RARITIES,
     RARITY_MAP,
+    STAMP_VARIANTS,
+    EXPANSION_ALIASES,
     normalize_rarity,
+    normalize_stamp_variant,
+    resolve_expansion_alias,
 )
 import tracker.config
 import tracker.sync
@@ -103,6 +107,23 @@ class TestConstants(unittest.TestCase):
         self.assertEqual(normalize_rarity("Promo"), "Promo")
         self.assertEqual(normalize_rarity("  Special Foil  "), "Special Foil")
         self.assertEqual(normalize_rarity("Sealed"), "Sealed")
+
+    def test_stamp_variants_and_expansion_aliases(self):
+        self.assertEqual(STAMP_VARIANTS, ("Brawl Champ", "Showdown Champ", "Top 4"))
+        self.assertEqual(normalize_stamp_variant("Brawl Champ"), "Brawl Champ")
+        self.assertEqual(normalize_stamp_variant("  brawl champ "), "Brawl Champ")
+        self.assertEqual(normalize_stamp_variant("SHOWDOWN CHAMP"), "Showdown Champ")
+        self.assertEqual(normalize_stamp_variant("top 4"), "Top 4")
+        # Casual notes or typos return None
+        self.assertIsNone(normalize_stamp_variant("one non-foil"))
+        self.assertIsNone(normalize_stamp_variant("Brawl Chmap"))
+        self.assertIsNone(normalize_stamp_variant(""))
+        self.assertIsNone(normalize_stamp_variant(None))
+
+        self.assertIn("night city showdown s1", EXPANSION_ALIASES)
+        self.assertEqual(resolve_expansion_alias("Night City Showdown S1"), "Set 1 Promos")
+        self.assertEqual(resolve_expansion_alias("  night city showdown s1 "), "Set 1 Promos")
+        self.assertEqual(resolve_expansion_alias("Night City Brawl Season 1"), "Night City Brawl Season 1")
 
 
 if __name__ == "__main__":

@@ -2243,6 +2243,60 @@ process.stdout.write(JSON.stringify(out));
         self.assertIn('<span class="price-main">N/A</span>', unpriced_tile)
         self.assertNotIn("price-low-tooltip", unpriced_tile)
 
+    def test_stamped_variants_excluded_from_regular_ncb_owned_counts_and_acquisitions(self):
+        from tracker.iconics import _collect_owned_counts
+        from tracker.iconics_common import load_validated_collection_rows
+        from tracker.iconics_html import load_collection_acquisitions
+        from tracker.valuation import init_database
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            csv_path = tmp_path / "collection.csv"
+            csv_path.write_text(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+                'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,2,"2026-11-07: 1 (Brawl Champ); 2026-11-12: 1"\n'
+                'Wraith Marauders,Night City Brawl Season 1,011,Foil,1,"2026-11-21: 1 (Brawl Champ)"\n',
+                encoding="utf-8",
+            )
+            db_path = tmp_path / "history.db"
+            conn = init_database(str(db_path))
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, variant)
+                VALUES
+                ('Night City Brawl Season 1::015::Brawl Champ::Foil::2026-11-07', 733506, 'Maman Brigitte - Spirit of Death (Brawl Champ)', '015', 'Night City Brawl Season 1', 'Foil', 'Nova', 'Blue', '2026-11-07', 89.99, 'Card', 'Brawl Champ'),
+                ('Night City Brawl Season 1::015::Foil::2026-11-12', 719698, 'Maman Brigitte - Spirit of Death', '015', 'Night City Brawl Season 1', 'Foil', 'Nova', 'Blue', '2026-11-12', 6.63, 'Card', NULL)
+            """)
+            conn.commit()
+            conn.close()
+
+            vrows = load_validated_collection_rows(str(csv_path))
+            counts, _, _ = _collect_owned_counts(
+                str(csv_path),
+                vrows,
+                {
+                    ("Night City Brawl Season 1", "015"): "Foil",
+                    ("Night City Brawl Season 1", "011"): "Foil",
+                },
+                {"Night City Brawl Season 1"},
+            )
+            self.assertEqual(counts.get(("Night City Brawl Season 1", "015", "Foil")), 1)
+            self.assertNotIn(("Night City Brawl Season 1", "011", "Foil"), counts)
+
+            acqs = load_collection_acquisitions(
+                str(csv_path),
+                str(db_path),
+                earliest_beta_date="2026-09-11",
+                earliest_retail_date="2026-10-30",
+                validated_rows=vrows,
+                earliest_ncb_date="2026-11-05",
+            )
+            self.assertIn(("Night City Brawl Season 1", "015", "Foil"), acqs)
+            self.assertEqual(acqs[("Night City Brawl Season 1", "015", "Foil")]["qty"], 1)
+            self.assertEqual(acqs[("Night City Brawl Season 1", "015", "Foil")]["date"], "2026-11-12")
+            self.assertAlmostEqual(acqs[("Night City Brawl Season 1", "015", "Foil")]["cost"], 6.63)
+            self.assertNotIn(("Night City Brawl Season 1", "011", "Foil"), acqs)
+
 
 if __name__ == "__main__":
     unittest.main()

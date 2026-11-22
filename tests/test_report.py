@@ -1199,6 +1199,80 @@ class TestReportGeneration(unittest.TestCase):
                 cells = [c.strip() for c in line.split("|")[1:-1]]
                 self.assertEqual(len(cells), 10, f"Mover table row '{line}' must have 10 columns")
 
+    def test_report_separates_stamped_variant_and_regular_card_rows(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM daily_snapshots WHERE date = '2026-09-14'")
+            cur.execute("DELETE FROM card_metadata")
+            seed_metadata(conn, [
+                {
+                    "card_key": "Night City Brawl Season 1::015::Foil::2026-09-12",
+                    "product_id": 719698,
+                    "name": "Maman Brigitte - Spirit of Death",
+                    "print_number": "015",
+                    "expansion": "Night City Brawl Season 1",
+                    "finish": "Foil",
+                    "rarity": "Nova",
+                    "color": "Blue",
+                    "first_seen_date": "2026-09-12",
+                    "baseline_market_price": 8.00,
+                    "item_type": "Card",
+                    "card_type": "Unit",
+                },
+                {
+                    "card_key": "Night City Brawl Season 1::015::Brawl Champ::Foil::2026-09-07",
+                    "product_id": 733506,
+                    "name": "Maman Brigitte - Spirit of Death (Brawl Champ)",
+                    "print_number": "015",
+                    "expansion": "Night City Brawl Season 1",
+                    "finish": "Foil",
+                    "rarity": "Nova",
+                    "color": "Blue",
+                    "first_seen_date": "2026-09-07",
+                    "baseline_market_price": 85.00,
+                    "item_type": "Card",
+                    "card_type": "Unit",
+                },
+            ])
+            seed_snapshots(conn, "2026-09-14", [
+                {
+                    "card_key": "Night City Brawl Season 1::015::Foil::2026-09-12",
+                    "quantity": 1,
+                    "unit_market_price": 10.00,
+                    "line_total": 10.00,
+                    "baseline_price": 8.00,
+                },
+                {
+                    "card_key": "Night City Brawl Season 1::015::Brawl Champ::Foil::2026-09-07",
+                    "quantity": 1,
+                    "unit_market_price": 89.99,
+                    "line_total": 89.99,
+                    "baseline_price": 85.00,
+                },
+            ])
+            seed_summary(
+                conn,
+                "2026-09-14",
+                total_value=99.99,
+                total_cards=2,
+                unique_items=2,
+                lifetime_gain=6.99,
+                lifetime_pct=7.52,
+            )
+        finally:
+            conn.close()
+
+        generate_portfolio_report(db_path=self.db_path, output_md=self.output_md, target_date="2026-09-14")
+        content = Path(self.output_md).read_text(encoding="utf-8")
+
+        rarity_sec = content.split("### Rarity")[1].split("### Color")[0]
+        self.assertIn("| **▣ Nova** | 2 | 2 | 100.0% | `$99.99` | 100.0% |", rarity_sec)
+
+        nova_sub = content.split("#### Nova Rare Singles")[1].split("## 📈 Top Gainers")[0]
+        self.assertIn("| 🔵 **Maman Brigitte - Spirit of Death (Brawl Champ)** | Unit | Night City Brawl Season 1 | **▣ Nova** | Foil | 1 | `$89.99` | `$89.99` |", nova_sub)
+        self.assertIn("| 🔵 **Maman Brigitte - Spirit of Death** | Unit | Night City Brawl Season 1 | **▣ Nova** | Foil | 1 | `$10.00` | `$10.00` |", nova_sub)
+
 
 if __name__ == "__main__":
     unittest.main()
