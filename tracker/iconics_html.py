@@ -311,9 +311,12 @@ def load_collection_acquisitions(
         try:
             conn = sqlite3.connect(database_path)
             cur = conn.cursor()
+            cur.execute("PRAGMA table_info(card_metadata)")
+            meta_cols = {col[1] for col in cur.fetchall()}
+            variant_filter = "WHERE COALESCE(variant, '') = ''" if "variant" in meta_cols else ""
             cur.execute(
-                "SELECT expansion, print_number, finish, first_seen_date, baseline_market_price "
-                "FROM card_metadata ORDER BY first_seen_date ASC"
+                f"SELECT expansion, print_number, finish, first_seen_date, baseline_market_price "
+                f"FROM card_metadata {variant_filter} ORDER BY first_seen_date ASC"
             )
             for exp, pn, fin, fsd, bmp in cur.fetchall():
                 exp_s = str(exp or "")
@@ -345,10 +348,19 @@ def load_collection_acquisitions(
         if vrow.qty <= 0:
             continue
 
+        if vrow.lot_variants is not None:
+            lots = [(d, q) for d, q, v in vrow.lot_variants if not v]
+            regular_qty = sum(q for _, q, v in vrow.lot_variants if not v)
+        else:
+            lots = vrow.lots
+            regular_qty = vrow.qty
+
+        if regular_qty <= 0:
+            continue
+
         exp = vrow.expansion
         pn = vrow.print_number
         fin = vrow.norm_finish or "Standard"
-        lots = vrow.lots
 
         min_edition_date = _resolve_earliest_date_for_expansion(
             exp, earliest_beta_date, earliest_retail_date, earliest_ncb_date
@@ -375,7 +387,7 @@ def load_collection_acquisitions(
         acq_key = (exp, pn, fin)
         existing = acquisitions.get(acq_key)
         if existing:
-            existing["qty"] += vrow.qty
+            existing["qty"] += regular_qty
             existing["lots"].extend(clamped_lots)
             existing["lot_entries"].extend(lot_entries)
             if acq_date and (not existing["date"] or acq_date < existing["date"]):
@@ -397,7 +409,7 @@ def load_collection_acquisitions(
                 "date": acq_date,
                 "rawDate": raw_earliest,
                 "cost": summary_cost,
-                "qty": vrow.qty,
+                "qty": regular_qty,
                 "finish": fin,
                 "lots": clamped_lots,
                 "lot_entries": lot_entries,

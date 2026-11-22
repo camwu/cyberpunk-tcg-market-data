@@ -2,13 +2,16 @@
 Automated unit tests for collection CSV schema and data integrity validation.
 """
 
+import io
 import os
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 
 from tracker.validation import (
     parse_multi_lot_notes,
+    parse_multi_lot_notes_with_variants,
     validate_collection_file,
     validate_sealed_file,
     format_validation_report,
@@ -684,6 +687,65 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,not-a-date
         ok2 = tracker.check_and_record(row_data, dateless_lots, row_idx=3, errors=errors)
         self.assertFalse(ok2)
         self.assertTrue(any("Duplicate card" in err and "no acquisition date" in err for err in errors))
+
+    def test_parse_multi_lot_notes_with_variants_and_unrecognized_tags(self):
+        # Mixed regular + stamped lot on different dates
+        lots, err, unknown = parse_multi_lot_notes_with_variants("2026-11-07: 1 (Brawl Champ); 2026-11-12: 1", 2)
+        self.assertIsNone(err)
+        self.assertEqual(unknown, [])
+        self.assertEqual(lots, [("2026-11-07", 1, "Brawl Champ"), ("2026-11-12", 1, None)])
+
+        # Single implicit quantity with stamp
+        lots_single, err_single, unknown_single = parse_multi_lot_notes_with_variants("2026-11-21 (brawl champ)", 1)
+        self.assertIsNone(err_single)
+        self.assertEqual(unknown_single, [])
+        self.assertEqual(lots_single, [("2026-11-21", 1, "Brawl Champ")])
+
+        # Dateless stamp
+        lots_dateless, err_dateless, unknown_dateless = parse_multi_lot_notes_with_variants("(Showdown Champ)", 1)
+        self.assertIsNone(err_dateless)
+        self.assertEqual(unknown_dateless, [])
+        self.assertEqual(lots_dateless, [(None, 1, "Showdown Champ")])
+
+        # Casual finish comment resolves variant=None and reports unrecognized tag
+        lots_comment, err_comment, unknown_comment = parse_multi_lot_notes_with_variants("2026-11-14: 2 (one non-foil)", 2)
+        self.assertIsNone(err_comment)
+        self.assertEqual(lots_comment, [("2026-11-14", 2, None)])
+        self.assertEqual(unknown_comment, ["one non-foil"])
+
+    def test_same_date_regular_and_champ_pass_duplicate_tracker_while_same_variant_fails(self):
+        csv_path = self.test_dir / "variants.csv"
+        csv_path.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,2,"2026-11-12: 1 (Brawl Champ); 2026-11-12: 1"\n'
+            'Sandevistan,Night City Showdown S1,001,Foil,2,"2026-11-14: 2 (one non-foil)"\n',
+            encoding="utf-8",
+        )
+        stderr_buf = io.StringIO()
+        with redirect_stderr(stderr_buf):
+            ok, errs, rows = validate_collection_file(str(csv_path), error_export_path=None)
+
+        self.assertTrue(ok, f"Expected validation to succeed, got errors: {errs}")
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0]["variant"], "Brawl Champ")
+        self.assertIsNone(rows[1]["variant"])
+        self.assertIsNone(rows[2]["variant"])
+        # Warning printed once for the unrecognized parenthesized tag
+        self.assertEqual(stderr_buf.getvalue().count("one non-foil"), 1)
+
+        # True duplicate of the same variant on the same date must fail
+        tracker = DuplicateTracker()
+        row_data = {
+            "name": "Maman Brigitte - Spirit of Death",
+            "expansion": "Night City Brawl Season 1",
+            "printNumber": "015",
+            "finish": "Foil",
+            "is_sealed": False,
+        }
+        dup_errors: list = []
+        self.assertTrue(tracker.check_and_record(row_data, [("2026-11-28", 1, "Brawl Champ")], 2, dup_errors))
+        self.assertFalse(tracker.check_and_record(row_data, [("2026-11-28", 1, "Brawl Champ")], 3, dup_errors))
+        self.assertTrue(any("Brawl Champ" in e for e in dup_errors))
 
 
 if __name__ == "__main__":

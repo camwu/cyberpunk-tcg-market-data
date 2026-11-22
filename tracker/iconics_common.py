@@ -8,7 +8,11 @@ from dataclasses import dataclass
 import statistics
 from typing import Any, List, Optional, Tuple
 
-from tracker.validation import CollectionValidationError, REQUIRED_COLUMNS, parse_multi_lot_notes
+from tracker.validation import (
+    CollectionValidationError,
+    REQUIRED_COLUMNS,
+    parse_multi_lot_notes_with_variants,
+)
 
 
 def normalize_finish(raw_finish: str, default: str = "") -> str:
@@ -71,6 +75,7 @@ class ValidatedCollectionRow:
     norm_finish: str
     qty: int
     lots: List[Tuple[Optional[str], int]]
+    lot_variants: Optional[List[Tuple[Optional[str], int, Optional[str]]]] = None
 
 
 def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollectionRow]:
@@ -100,11 +105,13 @@ def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollec
                 )
 
             lots: List[Tuple[Optional[str], int]] = []
+            lot_variants: List[Tuple[Optional[str], int, Optional[str]]] = []
             if qty > 0:
                 notes = (row.get("notes") or "").strip()
-                lots, lot_err = parse_multi_lot_notes(notes, qty)
+                lot_variants, lot_err, _ = parse_multi_lot_notes_with_variants(notes, qty)
                 if lot_err:
                     raise CollectionValidationError(f"Row {exp} #{pnum}: {lot_err}")
+                lots = [(d, q) for d, q, _ in lot_variants]
 
             validated_rows.append(
                 ValidatedCollectionRow(
@@ -114,6 +121,7 @@ def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollec
                     norm_finish=norm_finish,
                     qty=qty,
                     lots=lots,
+                    lot_variants=lot_variants,
                 )
             )
     return validated_rows

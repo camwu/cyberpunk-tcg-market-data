@@ -325,8 +325,16 @@ def _collect_owned_counts(
             )
             continue
 
+        if vrow.lot_variants is not None:
+            regular_qty = sum(q for _, q, v in vrow.lot_variants if not v)
+        else:
+            regular_qty = vrow.qty
+
+        if regular_qty <= 0:
+            continue
+
         key = (exp, pnum, vrow.norm_finish)
-        owned_counts[key] = owned_counts.get(key, 0) + vrow.qty
+        owned_counts[key] = owned_counts.get(key, 0) + regular_qty
 
     if empty_match_warning and total_rows > 0 and matched_rows == 0:
         print(empty_match_warning, file=sys.stderr)

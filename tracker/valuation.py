@@ -23,7 +23,14 @@ from tracker.validation import (
     CollectionValidationError,
 )
 
-from tracker.constants import REPO_ROOT, REPO_PRICES_DIR, REPO_CARDS_FILE, normalize_rarity
+from tracker.constants import (
+    REPO_ROOT,
+    REPO_PRICES_DIR,
+    REPO_CARDS_FILE,
+    normalize_rarity,
+    normalize_stamp_variant,
+    resolve_expansion_alias,
+)
 
 
 @dataclass
@@ -41,6 +48,7 @@ class ItemValuationContext:
     effective_acq_date: str
     fallback_price: float
     qty: int
+    variant: Optional[str] = None
 
 
 def sanitize_card_name(name: str) -> str:
@@ -88,6 +96,7 @@ def get_historical_market_price(
     name: str,
     finish: str,
     price_cache: Optional[Dict[Tuple[str, str], Any]] = None,
+    variant: Optional[str] = None,
 ) -> Optional[float]:
     """Retrieves market price for a product on target_date from price cache files."""
     cache_key = (os.path.abspath(cache_dir), target_date)
@@ -119,6 +128,7 @@ def get_historical_market_price(
         return None
 
     sub_type = "Foil" if finish.lower() == "foil" else "Normal"
+    lookup_expansion = resolve_expansion_alias(expansion).lower()
 
     def _extract_from_price_dict(p_dict: dict) -> Optional[float]:
         if not isinstance(p_dict, dict):
@@ -139,18 +149,23 @@ def get_historical_market_price(
         return None
 
     if "products" in cache_data:
-        for p in cache_data["products"].values():
-            p_pid = p.get("productId")
+        products = cache_data["products"].values()
+        if prod_id:
+            for p in products:
+                p_pid = p.get("productId")
+                if p_pid and int(p_pid) == int(prod_id):
+                    return _extract_from_price_dict(p.get("prices", {}))
+
+        for p in products:
             p_exp = (p.get("groupName") or "").strip().lower()
             p_name = (p.get("name") or "").strip().lower()
             p_pnum = (p.get("printNumber") or "").strip().lower()
-            match = False
-            if prod_id and p_pid and int(p_pid) == int(prod_id):
-                match = True
-            elif print_number and p_exp == expansion.lower() and p_pnum == str(print_number).strip().lower():
-                match = True
-            elif not print_number and p_exp == expansion.lower() and p_name == name.lower():
-                match = True
+            if variant:
+                match = p_exp == lookup_expansion and p_name == name.lower()
+            elif print_number:
+                match = p_exp == lookup_expansion and p_pnum == str(print_number).strip().lower()
+            else:
+                match = p_exp == lookup_expansion and p_name == name.lower()
 
             if match:
                 price = _extract_from_price_dict(p.get("prices", {}))
@@ -183,7 +198,8 @@ def init_database(db_path: str) -> sqlite3.Connection:
         rarity TEXT,
         color TEXT,
         first_seen_date TEXT,
-        baseline_market_price REAL
+        baseline_market_price REAL,
+        variant TEXT
     )
     """)
 
@@ -195,6 +211,8 @@ def init_database(db_path: str) -> sqlite3.Connection:
         cur.execute("ALTER TABLE card_metadata ADD COLUMN item_type TEXT DEFAULT 'Card'")
     if "card_type" not in cols:
         cur.execute("ALTER TABLE card_metadata ADD COLUMN card_type TEXT")
+    if "variant" not in cols:
+        cur.execute("ALTER TABLE card_metadata ADD COLUMN variant TEXT")
 
     # Migrate legacy 3-part sealed keys (SEALED::{expansion}::{productId}) to lot keys with acquisitionDate
     cur.execute("SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Sealed'")
@@ -452,6 +470,7 @@ def lookup_first_seen_date(
     expansion: str,
     print_number: Optional[str],
     finish: str,
+    variant: Optional[str] = None,
 ) -> Optional[str]:
     """Queries card_metadata for the earliest first_seen_date matching the item."""
     if item_type == "Sealed":
@@ -461,8 +480,8 @@ def lookup_first_seen_date(
         )
     else:
         cur.execute(
-            "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Card' AND expansion = ? AND print_number = ? AND finish = ? ORDER BY first_seen_date ASC LIMIT 1",
-            (expansion, print_number, finish),
+            "SELECT card_key, first_seen_date FROM card_metadata WHERE item_type = 'Card' AND expansion = ? AND print_number = ? AND finish = ? AND COALESCE(variant, '') = ? ORDER BY first_seen_date ASC LIMIT 1",
+            (expansion, print_number, finish, variant or ""),
         )
     existing_meta = cur.fetchone()
     if existing_meta and existing_meta[1]:
@@ -481,53 +500,99 @@ def match_collection_item(
         item_type = "Sealed" if is_sealed_product(row.get("name", ""), row.get("expansion", "")) else "Card"
 
     name = row["name"].strip()
-    expansion = row["expansion"].strip()
+    raw_expansion = row["expansion"].strip()
+    lookup_expansion = resolve_expansion_alias(raw_expansion)
     print_number = (row.get("printNumber") or "").strip() or None
     finish = (row.get("finish") or "Standard").strip()
     qty = int(row.get("totalQtyOwned", 1))
     fallback_price = float(row.get("price") or 0.0)
+    raw_variant = row.get("variant")
+    variant = normalize_stamp_variant(raw_variant) if raw_variant else None
+
+    by_group_pnum = indexes.get("by_group_pnum", {})
+    by_group_name = indexes.get("by_group_name", {})
+    by_group_clean_name = indexes.get("by_group_clean_name", {})
+    by_name = indexes.get("by_name", {})
+
+    base_prod = None
+    if print_number and item_type != "Sealed":
+        base_prod = by_group_pnum.get((lookup_expansion.lower(), print_number.lower()))
 
     prod = None
-    if print_number:
-        prod = indexes["by_group_pnum"].get((expansion.lower(), print_number.lower()))
-    if not prod:
-        prod = indexes["by_group_name"].get((expansion.lower(), name.lower()))
-    if not prod:
-        prod = indexes["by_group_clean_name"].get((expansion.lower(), name.lower()))
-    if not prod and item_type == "Sealed":
-        prod = indexes["by_name"].get(name.lower())
+    if variant and item_type != "Sealed":
+        variant_name = f"{name} ({variant})".lower()
+        variant_clean = f"{name} {variant}".lower()
+        prod = by_group_name.get((lookup_expansion.lower(), variant_name))
+        if not prod:
+            prod = by_group_clean_name.get((lookup_expansion.lower(), variant_name))
+        if not prod:
+            prod = by_group_clean_name.get((lookup_expansion.lower(), variant_clean))
+        if not prod and base_prod:
+            base_raw_name = sanitize_card_name(base_prod.get("name") or "")
+            if base_raw_name:
+                prod = by_group_name.get((lookup_expansion.lower(), f"{base_raw_name} ({variant})".lower()))
+            base_clean_name = (base_prod.get("cleanName") or "").strip()
+            if not prod and base_clean_name:
+                prod = by_group_clean_name.get((lookup_expansion.lower(), f"{base_clean_name} {variant}".lower()))
+        if not prod:
+            prod = base_prod
+    else:
+        if print_number:
+            prod = base_prod if item_type != "Sealed" else by_group_pnum.get((lookup_expansion.lower(), print_number.lower()))
+        if not prod:
+            prod = by_group_name.get((lookup_expansion.lower(), name.lower()))
+        if not prod:
+            prod = by_group_clean_name.get((lookup_expansion.lower(), name.lower()))
+        if not prod and item_type == "Sealed":
+            prod = by_name.get(name.lower())
+
+    effective_print_number = print_number
+    effective_variant = variant
+    if variant and prod and prod is not base_prod:
+        matched_pnum = (prod.get("printNumber") or "").strip() or None
+        if matched_pnum:
+            effective_print_number = matched_pnum
+            effective_variant = None
 
     prod_id = prod["productId"] if prod else None
-    distinct_key = (item_type, expansion.lower(), (print_number or name).lower(), finish.lower())
 
     if prod:
         name = sanitize_card_name(prod.get("name") or name)
-        expansion = prod.get("groupName") or expansion
-        rarity = prod.get("rarity") or row.get("rarity")
-        color = (prod.get("color") or row.get("color") or "").strip()
-        card_type = prod.get("cardType") or row.get("card_type")
+        if effective_variant and f"({effective_variant.lower()})" not in name.lower():
+            name = f"{name} ({effective_variant})"
+        expansion = prod.get("groupName") or lookup_expansion
+        rarity = prod.get("rarity") or (base_prod.get("rarity") if base_prod else None) or row.get("rarity")
+        color = (prod.get("color") or (base_prod.get("color") if base_prod else None) or row.get("color") or "").strip()
+        card_type = prod.get("cardType") or (base_prod.get("cardType") if base_prod else None) or row.get("card_type")
         is_matched = True
-        label = f"'{name}' ({print_number or 'N/A'}, {expansion})"
     else:
-        label = f"'{name}' ({print_number or 'N/A'}, {expansion})"
+        expansion = lookup_expansion
         name = sanitize_card_name(name)
-        rarity = row.get("rarity")
-        color = (row.get("color") or "").strip()
-        card_type = row.get("card_type")
+        if effective_variant and f"({effective_variant.lower()})" not in name.lower():
+            name = f"{name} ({effective_variant})"
+        rarity = (base_prod.get("rarity") if base_prod else None) or row.get("rarity")
+        color = ((base_prod.get("color") if base_prod else None) or row.get("color") or "").strip()
+        card_type = (base_prod.get("cardType") if base_prod else None) or row.get("card_type")
         is_matched = False
 
+    label = f"'{name}' ({effective_print_number or 'N/A'}, {expansion})"
     if item_type == "Sealed":
+        distinct_key = (item_type, expansion.lower(), (effective_print_number or name).lower(), finish.lower())
         card_key = f"SEALED::{expansion}::{prod_id or name}::{effective_acq_date}"
         rarity = "Sealed"
+    elif effective_variant:
+        distinct_key = (item_type, expansion.lower(), (effective_print_number or name).lower(), effective_variant.lower(), finish.lower())
+        card_key = f"{expansion}::{effective_print_number}::{effective_variant}::{finish}::{effective_acq_date}"
     else:
-        card_key = f"{expansion}::{print_number}::{finish}::{effective_acq_date}"
+        distinct_key = (item_type, expansion.lower(), (effective_print_number or name).lower(), finish.lower())
+        card_key = f"{expansion}::{effective_print_number}::{finish}::{effective_acq_date}"
 
     ctx = ItemValuationContext(
         card_key=card_key,
         item_type=item_type,
         prod_id=prod_id,
         name=name,
-        print_number=print_number,
+        print_number=effective_print_number,
         expansion=expansion,
         finish=finish,
         rarity=normalize_rarity(rarity) if item_type != "Sealed" else "Sealed",
@@ -536,6 +601,7 @@ def match_collection_item(
         effective_acq_date=effective_acq_date,
         fallback_price=fallback_price,
         qty=qty,
+        variant=effective_variant,
     )
     return prod, ctx, distinct_key, is_matched, label
 
@@ -568,17 +634,20 @@ def resolve_item_market_price(
                         break
 
     if market_price is None or market_price <= 0.0:
+        variant_key = ctx.variant or ""
         cur.execute("""
         SELECT s.unit_market_price
         FROM daily_snapshots s
         JOIN card_metadata m ON s.card_key = m.card_key
         WHERE s.date < ? AND s.unit_market_price > 0.0
           AND ((m.product_id IS NOT NULL AND m.product_id = ?)
-               OR (m.expansion = ? AND m.print_number = ? AND m.finish = ?)
-               OR (m.expansion = ? AND m.name = ?))
+               OR (COALESCE(m.variant, '') = ? AND (
+                   (m.expansion = ? AND m.print_number = ? AND m.finish = ?)
+                   OR (m.expansion = ? AND m.name = ?)
+               )))
         ORDER BY s.date DESC
         LIMIT 1
-        """, (date_str, ctx.prod_id, ctx.expansion, ctx.print_number, ctx.finish, ctx.expansion, ctx.name))
+        """, (date_str, ctx.prod_id, variant_key, ctx.expansion, ctx.print_number, ctx.finish, ctx.expansion, ctx.name))
         prev_price_row = cur.fetchone()
         if prev_price_row and prev_price_row[0] is not None and prev_price_row[0] > 0.0:
             market_price = prev_price_row[0]
@@ -611,7 +680,7 @@ def resolve_and_persist_baseline(
     price_cache: Optional[Dict[Tuple[str, str], Any]] = None,
 ) -> Optional[float]:
     """Resolves item baseline price, updating existing card metadata or inserting a new record."""
-    cur.execute("SELECT baseline_market_price, color, item_type, name, rarity, card_type FROM card_metadata WHERE card_key = ?", (ctx.card_key,))
+    cur.execute("SELECT baseline_market_price, color, item_type, name, rarity, card_type, variant FROM card_metadata WHERE card_key = ?", (ctx.card_key,))
     meta_res = cur.fetchone()
     if meta_res:
         baseline_price = meta_res[0]
@@ -620,6 +689,7 @@ def resolve_and_persist_baseline(
         existing_name = meta_res[3] if len(meta_res) > 3 else None
         existing_rarity = meta_res[4] if len(meta_res) > 4 else None
         existing_card_type = meta_res[5] if len(meta_res) > 5 else None
+        existing_variant = meta_res[6] if len(meta_res) > 6 else None
         if ctx.color and existing_color != ctx.color:
             cur.execute("UPDATE card_metadata SET color = ? WHERE card_key = ?", (ctx.color, ctx.card_key))
         if ctx.name and existing_name != ctx.name:
@@ -630,6 +700,8 @@ def resolve_and_persist_baseline(
             cur.execute("UPDATE card_metadata SET item_type = ? WHERE card_key = ?", (ctx.item_type, ctx.card_key))
         if ctx.card_type and existing_card_type != ctx.card_type:
             cur.execute("UPDATE card_metadata SET card_type = ? WHERE card_key = ?", (ctx.card_type, ctx.card_key))
+        if existing_variant != ctx.variant:
+            cur.execute("UPDATE card_metadata SET variant = ? WHERE card_key = ?", (ctx.variant, ctx.card_key))
         if baseline_price is None or baseline_price <= 0.0:
             if ctx.fallback_price > 0.0:
                 baseline_price = ctx.fallback_price
@@ -652,6 +724,7 @@ def resolve_and_persist_baseline(
                     name=ctx.name,
                     finish=ctx.finish,
                     price_cache=price_cache,
+                    variant=ctx.variant,
                 )
                 if hist_price is not None and hist_price > 0.0:
                     baseline_price = hist_price
@@ -666,9 +739,9 @@ def resolve_and_persist_baseline(
 
         first_seen = ctx.effective_acq_date
         cur.execute("""
-        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, card_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (ctx.card_key, ctx.prod_id, ctx.name, ctx.print_number, ctx.expansion, ctx.finish, ctx.rarity, ctx.color, first_seen, baseline_price, ctx.item_type, ctx.card_type))
+        INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, card_type, variant)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (ctx.card_key, ctx.prod_id, ctx.name, ctx.print_number, ctx.expansion, ctx.finish, ctx.rarity, ctx.color, first_seen, baseline_price, ctx.item_type, ctx.card_type, ctx.variant))
 
     return baseline_price
 
@@ -816,7 +889,7 @@ def calculate_portfolio_valuation(
         }
         if catalog_group_names:
             collection_expansions = {
-                row["expansion"].strip()
+                resolve_expansion_alias(row["expansion"].strip())
                 for row in all_items
                 if row.get("expansion")
             }
@@ -836,6 +909,7 @@ def calculate_portfolio_valuation(
     zero_price_item_labels: dict = {}
     matched_distinct: set = set()
     seen_distinct: set = set()
+    seen_card_keys: Set[str] = set()
 
     # Session-scoped historical price cache for get_historical_market_price calls
     session_price_cache: Dict[Tuple[str, str], Any] = {}
@@ -854,12 +928,22 @@ def calculate_portfolio_valuation(
                 row, catalog_indexes, date_str
             )
             first_seen = lookup_first_seen_date(
-                cur, ctx.item_type, ctx.prod_id, ctx.name, ctx.expansion, ctx.print_number, ctx.finish
+                cur, ctx.item_type, ctx.prod_id, ctx.name, ctx.expansion, ctx.print_number, ctx.finish,
+                variant=ctx.variant,
             )
             if first_seen and first_seen != date_str:
                 prod, ctx, distinct_key, is_matched, label = match_collection_item(
                     row, catalog_indexes, first_seen
                 )
+
+        if ctx.card_key in seen_card_keys:
+            conn.rollback()
+            conn.close()
+            raise CollectionValidationError(
+                f"Duplicate valuation key collision for '{ctx.name}' ({ctx.card_key}). "
+                f"Combine quantities or verify duplicate lots before running valuation."
+            )
+        seen_card_keys.add(ctx.card_key)
 
         if is_matched:
             if distinct_key not in seen_distinct:
