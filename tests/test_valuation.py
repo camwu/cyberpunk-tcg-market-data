@@ -2018,6 +2018,39 @@ class TestPortfolioValuation(unittest.TestCase):
                 collection_rows=dup_pre_clamp_rows,
             )
 
+    def test_undated_and_pre_clamp_collision_rejected_regardless_of_order(self):
+        cards_catalog = {
+            "101": {
+                "productId": 101,
+                "name": "V - Corporate Exile",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "006",
+                "rarity": "Nova",
+                "color": "Yellow",
+                "cardType": "Legend",
+            },
+        }
+        os.makedirs(self.cache_dir, exist_ok=True)
+        with open(os.path.join(self.cache_dir, "cards.json"), "w", encoding="utf-8") as f:
+            json.dump(cards_catalog, f)
+        with open(os.path.join(self.cache_dir, "2026-09-11.json"), "w", encoding="utf-8") as f:
+            json.dump({"date": "2026-09-11", "prices": {"101": {"Normal": {"marketPrice": 5.00}}}}, f)
+
+        undated = {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1}
+        pre_clamp = {"name": "V - Corporate Exile", "expansion": "Welcome to Night City - Beta", "printNumber": "006", "finish": "Standard", "totalQtyOwned": 1, "acquisitionDate": "2026-09-02"}
+
+        for ordered_rows in ([undated, pre_clamp], [pre_clamp, undated]):
+            with self.subTest(order=[r.get("acquisitionDate") for r in ordered_rows]):
+                with self.assertRaises(CollectionValidationError):
+                    calculate_portfolio_valuation(
+                        date_str="2026-09-11",
+                        collection_path=None,
+                        cache_dir=self.cache_dir,
+                        db_path=self.db_path,
+                        force=True,
+                        collection_rows=ordered_rows,
+                    )
+
 
 class TestReportFormatting(unittest.TestCase):
 

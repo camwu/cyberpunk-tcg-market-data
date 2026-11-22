@@ -940,6 +940,7 @@ def calculate_portfolio_valuation(
             can_merge_clamped = (
                 bool(raw_acq_date)
                 and bool(earliest_price_date)
+                and bool(existing["raw_acq_dates"])
                 and (raw_acq_date < earliest_price_date or any(d < earliest_price_date for d in existing["raw_acq_dates"]))
                 and raw_acq_date not in existing["raw_acq_dates"]
                 and ctx.effective_acq_date == earliest_price_date
