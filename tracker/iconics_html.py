@@ -404,7 +404,7 @@ def load_collection_acquisitions(
                 earliest_ncb_champ_date=earliest_ncb_champ_date,
             )
             clamped_lots: List[Tuple[str, int]] = []
-            lot_entries: List[Tuple[str, int, float]] = []
+            lot_entries: List[Tuple[str, int, float, str]] = []
             for lot_date, lot_qty in lots:
                 if lot_date:
                     c_date = _clamp_date(lot_date, min_edition_date)
@@ -416,7 +416,7 @@ def load_collection_acquisitions(
                             or db_clamped_baselines.get((exp, pn, fin, var_key, c_date))
                             or 0.0
                         )
-                        lot_entries.append((c_date, lot_qty, lot_db_cost))
+                        lot_entries.append((c_date, lot_qty, lot_db_cost, lot_date))
 
             dated_candidates = sorted(d for d, _ in clamped_lots)
             raw_earliest = sorted(d for d, _ in lots if d)[0] if any(d for d, _ in lots) else None
@@ -430,17 +430,19 @@ def load_collection_acquisitions(
                 existing["lot_entries"].extend(lot_entries)
                 if acq_date and (not existing["date"] or acq_date < existing["date"]):
                     existing["date"] = acq_date
+                if raw_earliest and (not existing.get("rawDate") or raw_earliest < existing["rawDate"]):
+                    existing["rawDate"] = raw_earliest
                 merged_entries = existing["lot_entries"]
-                merged_qty = sum(q for _, q, _ in merged_entries)
-                if merged_qty > 0 and all(c > 0.0 for _, _, c in merged_entries):
-                    existing["cost"] = sum(c * q for _, q, c in merged_entries) / merged_qty
+                merged_qty = sum(q for _, q, *_ in merged_entries)
+                if merged_qty > 0 and all(c > 0.0 for _, _, c, *_ in merged_entries):
+                    existing["cost"] = sum(c * q for _, q, c, *_ in merged_entries) / merged_qty
                 else:
                     existing["cost"] = 0.0
             else:
-                row_lot_qty = sum(q for _, q, _ in lot_entries)
+                row_lot_qty = sum(q for _, q, *_ in lot_entries)
                 summary_cost = (
-                    sum(c * q for _, q, c in lot_entries) / row_lot_qty
-                    if (row_lot_qty > 0 and all(c > 0.0 for _, _, c in lot_entries))
+                    sum(c * q for _, q, c, *_ in lot_entries) / row_lot_qty
+                    if (row_lot_qty > 0 and all(c > 0.0 for _, _, c, *_ in lot_entries))
                     else 0.0
                 )
                 acquisitions[acq_key] = {
@@ -560,12 +562,14 @@ def _build_card_trajectory(
         acq_date = _clamp_date(str(acq["date"]), first_priced_date)
         lot_entries = acq.get("lot_entries")
         if lot_entries:
-            lot_total_qty = sum(q for _, q, _ in lot_entries)
+            lot_total_qty = sum(entry[1] for entry in lot_entries)
             if lot_total_qty > 0:
                 weighted = 0.0
                 resolved_qty = 0
-                for d, q, lot_db_cost in lot_entries:
-                    use_db_cost = lot_db_cost > 0.0 and first_priced_date is not None and first_priced_date <= d
+                for entry in lot_entries:
+                    d, q, lot_db_cost = entry[0], entry[1], entry[2]
+                    orig_d = entry[3] if len(entry) >= 4 else d
+                    use_db_cost = lot_db_cost > 0.0 and first_priced_date is not None and first_priced_date <= orig_d
                     lot_price = lot_db_cost if use_db_cost else (_lookup_point_price(clean_points, d) if clean_points else 0.0)
                     if lot_price > 0.0:
                         weighted += lot_price * q
@@ -582,11 +586,12 @@ def _build_card_trajectory(
                 acq_cost = _lookup_point_price(clean_points, acq_date or "")
         else:
             db_cost = float(acq.get("cost") or 0.0)
+            orig_acq_date = str(acq.get("rawDate") or acq_date or "")
             use_acq_db_cost = (
                 db_cost > 0.0
                 and first_priced_date is not None
-                and acq_date is not None
-                and first_priced_date <= acq_date
+                and bool(orig_acq_date)
+                and first_priced_date <= orig_acq_date
             )
             acq_cost = db_cost if use_acq_db_cost else (_lookup_point_price(clean_points, acq_date or "") if clean_points else 0.0)
 
@@ -3322,12 +3327,13 @@ def generate_html_dashboard(
         })
 
     generated_at = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
+    active_ncb_dates = ncb_dates if ncb_trajectories else ncb_champ_dates
     retail_date_range = f"{retail_dates[0]} to {retail_dates[-1]}" if retail_dates else "N/A"
     beta_date_range = f"{beta_dates[0]} to {beta_dates[-1]}" if beta_dates else "N/A"
-    ncb_date_range = f"{ncb_dates[0]} to {ncb_dates[-1]}" if ncb_dates else "N/A"
+    ncb_date_range = f"{active_ncb_dates[0]} to {active_ncb_dates[-1]}" if active_ncb_dates else "N/A"
     retail_count = len(retail_dates)
     beta_count = len(beta_dates)
-    ncb_count = len(ncb_dates)
+    ncb_count = len(active_ncb_dates)
     snapshot_templates = {
         "retail": f"{retail_count} market snapshots ({retail_date_range})",
         "beta": f"{beta_count} market snapshots ({beta_date_range})",

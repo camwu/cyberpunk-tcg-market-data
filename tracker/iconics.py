@@ -134,17 +134,17 @@ def get_historical_price_files(prices_dir: Path = REPO_PRICES_DIR) -> List[Path]
     return files
 
 
-def resolve_product_finish(
+def _resolve_product_finish_or_none(
     product_id: Optional[int],
     card_label: str,
     latest_prices: Dict[str, Any],
     historical_files: List[Path],
     snapshot_cache: Dict[Path, Dict[str, Any]],
-) -> str:
+) -> Optional[str]:
     """
     Derives the valid normalized finish for a product from price records.
-    Normalizes 'Normal' -> 'Standard'.
-    Raises ValueError if product has zero records across all history, or multiple distinct finishes.
+    Returns None when no price records or finish keys exist across history,
+    and raises ValueError on missing productId or multiple distinct finishes.
     """
     if not product_id:
         raise ValueError(f"Missing productId for {card_label}")
@@ -173,9 +173,7 @@ def resolve_product_finish(
                 break
 
     if not raw_keys:
-        raise ValueError(
-            f"No price records or finish keys found across catalog history for {card_label} (productId={product_id})"
-        )
+        return None
 
     normalized_finishes: Set[str] = set()
     for k in raw_keys:
@@ -193,6 +191,32 @@ def resolve_product_finish(
         )
 
     return next(iter(normalized_finishes))
+
+
+def resolve_product_finish(
+    product_id: Optional[int],
+    card_label: str,
+    latest_prices: Dict[str, Any],
+    historical_files: List[Path],
+    snapshot_cache: Dict[Path, Dict[str, Any]],
+) -> str:
+    """
+    Derives the valid normalized finish for a product from price records.
+    Normalizes 'Normal' -> 'Standard'.
+    Raises ValueError if product has zero records across all history, or multiple distinct finishes.
+    """
+    finish = _resolve_product_finish_or_none(
+        product_id,
+        card_label,
+        latest_prices,
+        historical_files,
+        snapshot_cache,
+    )
+    if finish is None:
+        raise ValueError(
+            f"No price records or finish keys found across catalog history for {card_label} (productId={product_id})"
+        )
+    return finish
 
 
 def resolve_card_price_unbounded(
@@ -291,6 +315,7 @@ def _collect_owned_counts_by_variant(
     expected_finishes: Dict[Tuple[str, str], str],
     matched_expansions: Set[str],
     empty_match_warning: Optional[str] = None,
+    target_variant: Optional[str] = None,
 ) -> Tuple[Dict[Tuple[str, str, str, str], int], Optional[str], Optional[str]]:
     """Aggregates validated collection quantities keyed by (expansion, printNumber, finish, variant)."""
     owned_counts: Dict[Tuple[str, str, str, str], int] = {}
@@ -319,6 +344,20 @@ def _collect_owned_counts_by_variant(
         if exp in matched_expansions:
             matched_rows += 1
 
+        row_variant_entries: List[Tuple[str, int]] = []
+        if vrow.lot_variants is not None:
+            for _, lot_qty, lot_variant in vrow.lot_variants:
+                if lot_qty <= 0:
+                    continue
+                var_key = (lot_variant or "").strip()
+                if target_variant is None or var_key == target_variant:
+                    row_variant_entries.append((var_key, lot_qty))
+        elif vrow.qty > 0 and (target_variant is None or target_variant == ""):
+            row_variant_entries.append(("", vrow.qty))
+
+        if not row_variant_entries:
+            continue
+
         card_valid_finish = expected_finishes.get((exp, pnum))
         if card_valid_finish is not None and vrow.norm_finish != card_valid_finish:
             print(
@@ -327,15 +366,9 @@ def _collect_owned_counts_by_variant(
             )
             continue
 
-        if vrow.lot_variants is not None:
-            for _, lot_qty, lot_variant in vrow.lot_variants:
-                if lot_qty <= 0:
-                    continue
-                key = (exp, pnum, vrow.norm_finish, (lot_variant or "").strip())
-                owned_counts[key] = owned_counts.get(key, 0) + lot_qty
-        elif vrow.qty > 0:
-            key = (exp, pnum, vrow.norm_finish, "")
-            owned_counts[key] = owned_counts.get(key, 0) + vrow.qty
+        for var_key, lot_qty in row_variant_entries:
+            key = (exp, pnum, vrow.norm_finish, var_key)
+            owned_counts[key] = owned_counts.get(key, 0) + lot_qty
 
     if empty_match_warning and total_rows > 0 and matched_rows == 0:
         print(empty_match_warning, file=sys.stderr)
@@ -357,6 +390,7 @@ def _collect_owned_counts(
         expected_finishes=expected_finishes,
         matched_expansions=matched_expansions,
         empty_match_warning=empty_match_warning,
+        target_variant="",
     )
     regular_counts = {
         (exp, pnum, fin): qty
@@ -374,18 +408,13 @@ def _collect_variant_owned_counts(
     target_variant: str,
 ) -> Tuple[Dict[Tuple[str, str, str, str], int], Optional[str], Optional[str]]:
     """Aggregates validated collection quantities strictly for target_variant."""
-    by_variant, col_name, col_mtime_date = _collect_owned_counts_by_variant(
+    return _collect_owned_counts_by_variant(
         collection_path=collection_path,
         validated_rows=validated_rows,
         expected_finishes=expected_finishes,
         matched_expansions=matched_expansions,
+        target_variant=target_variant,
     )
-    filtered = {
-        key: qty
-        for key, qty in by_variant.items()
-        if key[3] == target_variant
-    }
-    return filtered, col_name, col_mtime_date
 
 
 def _format_orphan_entries(keys: List[str], cards_by_key: Dict[str, dict], expansion: str) -> str:
@@ -741,7 +770,8 @@ def load_ncb_champ_cards(
     variant_suffix = f" ({NCB_BRAWL_CHAMP_VARIANT})"
     suffix_lower = variant_suffix.lower()
 
-    base_by_name: Dict[str, Tuple[str, dict]] = {}
+    base_by_raw_name: Dict[str, List[Tuple[str, dict]]] = {}
+    base_by_sanitized_name: Dict[str, List[Tuple[str, dict]]] = {}
     champ_raw_entries: List[dict] = []
 
     for c in card_items:
@@ -750,9 +780,11 @@ def load_ncb_champ_cards(
         pnum = str(c.get("printNumber") or "").strip()
         raw_name = (c.get("name") or "").strip()
         if pnum:
+            if raw_name:
+                base_by_raw_name.setdefault(raw_name.lower(), []).append((pnum, c))
             base_key = sanitize_card_name(raw_name).lower()
             if base_key:
-                base_by_name[base_key] = (pnum, c)
+                base_by_sanitized_name.setdefault(base_key, []).append((pnum, c))
         elif raw_name.lower().endswith(suffix_lower):
             champ_raw_entries.append(c)
 
@@ -761,15 +793,23 @@ def load_ncb_champ_cards(
 
     paired_entries: List[Tuple[str, str, dict, dict]] = []
     for champ_c in champ_raw_entries:
-        display_name = sanitize_card_name(champ_c.get("name") or "")
-        base_name_raw = display_name[: -len(variant_suffix)].strip()
-        base_match = base_by_name.get(sanitize_card_name(base_name_raw).lower())
-        if base_match is None:
+        raw_champ_name = (champ_c.get("name") or "").strip()
+        display_name = sanitize_card_name(raw_champ_name)
+        raw_base_name = raw_champ_name[: -len(variant_suffix)].strip()
+        matches = base_by_raw_name.get(raw_base_name.lower())
+        if not matches:
+            matches = base_by_sanitized_name.get(sanitize_card_name(raw_base_name).lower())
+        if not matches:
             raise ValueError(
                 f"Unmatched {NCB_BRAWL_CHAMP_VARIANT} entry in {NCB_S1_GROUP}: "
                 f"'{display_name}' (productId={champ_c.get('productId')})"
             )
-        pnum, base_c = base_match
+        if len(matches) > 1:
+            raise ValueError(
+                f"Ambiguous {NCB_BRAWL_CHAMP_VARIANT} base match in {NCB_S1_GROUP}: "
+                f"'{display_name}' (productId={champ_c.get('productId')}) matched {len(matches)} base cards"
+            )
+        pnum, base_c = matches[0]
         raw_rarity = str(base_c.get("rarity") or "").strip()
         if raw_rarity not in _NOVA_RARE_RAW_RARITIES:
             base_name = sanitize_card_name(base_c.get("name") or "")
@@ -782,15 +822,29 @@ def load_ncb_champ_cards(
 
     expected_finishes: Dict[Tuple[str, str], str] = {}
     valid_finishes: Dict[Tuple[str, Optional[int]], str] = {}
-    for pnum, display_name, champ_c, _base_c in paired_entries:
+    for pnum, display_name, champ_c, base_c in paired_entries:
         pid = champ_c.get("productId")
-        valid_finish = resolve_product_finish(
+        valid_finish = _resolve_product_finish_or_none(
             pid,
             f"{NCB_S1_GROUP} #{pnum} '{display_name}'",
             latest_prices,
             historical_files,
             snapshot_cache,
         )
+        if valid_finish is None:
+            base_pid = base_c.get("productId")
+            base_finish = (
+                _resolve_product_finish_or_none(
+                    base_pid,
+                    f"{NCB_S1_GROUP} #{pnum} '{sanitize_card_name(base_c.get('name') or '')}'",
+                    latest_prices,
+                    historical_files,
+                    snapshot_cache,
+                )
+                if base_pid
+                else None
+            )
+            valid_finish = base_finish or "Foil"
         valid_finishes[(pnum, pid)] = valid_finish
         expected_finishes[(NCB_S1_GROUP, pnum)] = valid_finish
 

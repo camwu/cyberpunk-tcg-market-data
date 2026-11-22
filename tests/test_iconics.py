@@ -2556,6 +2556,20 @@ process.stdout.write(JSON.stringify(out));
                 }),
                 encoding="utf-8",
             )
+            (p_dir / "2026-11-18.json").write_text(
+                json.dumps({
+                    "date": "2026-11-18",
+                    "prices": {
+                        "101": {"Foil": {"marketPrice": 50.0}},
+                        "102": {"Foil": {"marketPrice": 30.0}},
+                        "719694": {"Foil": {"marketPrice": 10.0}},
+                        "719698": {"Foil": {"marketPrice": 6.63}},
+                        "733502": {"Foil": {"marketPrice": 82.0}},
+                        "733506": {"Foil": {"marketPrice": None, "midPrice": 89.99}},
+                    },
+                }),
+                encoding="utf-8",
+            )
             csv_path = tmp_path / "collection.csv"
             csv_path.write_text(
                 "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
@@ -2578,7 +2592,7 @@ process.stdout.write(JSON.stringify(out));
                 PromoSetCard("015", "Maman Brigitte - Spirit of Death", "Nova Rare", "Foil", 719698, 6.63, 1, color="Blue", card_type="Program"),
             ]
             champ_cards = [
-                PromoSetCard("011", "Wraith Marauders (Brawl Champ)", "Nova Rare", "Foil", 733502, 80.0, 1, color="Red", card_type="Unit", variant="Brawl Champ"),
+                PromoSetCard("011", "Wraith Marauders (Brawl Champ)", "Nova Rare", "Foil", 733502, 82.0, 1, color="Red", card_type="Unit", variant="Brawl Champ"),
                 PromoSetCard("015", "Maman Brigitte - Spirit of Death (Brawl Champ)", "Nova Rare", "Foil", 733506, None, 1, color="Blue", card_type="Program", variant="Brawl Champ"),
             ]
             out_html = tmp_path / "dashboard.html"
@@ -2607,13 +2621,190 @@ process.stdout.write(JSON.stringify(out));
 
             nr_block = html_text.split('id="section-NR"', 1)[1].split('id="section-NRC"', 1)[0]
             nrc_block = html_text.split('id="section-NRC"', 1)[1].split('id="view-comparison"', 1)[0]
-            self.assertIn('data-pid="719694"', nr_block)
-            self.assertIn('data-rarity="NR"', nr_block)
-            self.assertIn('data-pid="733502"', nrc_block)
-            self.assertIn('data-rarity="NRC"', nrc_block)
-            self.assertIn('data-owned-qty="1"', nrc_block)
-            self.assertNotIn("$89.99", nrc_block)
-            self.assertIn("Insufficient historical data", nrc_block)
+            tile_nr_011 = nr_block.split('data-pid="719694"', 1)[1].split('class="card-tile"', 1)[0]
+            tile_nr_015 = nr_block.split('data-pid="719698"', 1)[1].split('class="card-tile"', 1)[0]
+            tile_nrc_011 = nrc_block.split('data-pid="733502"', 1)[1].split('class="card-tile"', 1)[0]
+            tile_nrc_015 = nrc_block.split('data-pid="733506"', 1)[1].split('class="card-tile"', 1)[0]
+
+            self.assertIn('data-rarity="NR"', tile_nr_011)
+            self.assertIn('data-owned-qty="0"', tile_nr_011)
+            self.assertIn('data-rarity="NR"', tile_nr_015)
+            self.assertIn('data-owned-qty="1"', tile_nr_015)
+
+            self.assertIn('data-rarity="NRC"', tile_nrc_011)
+            self.assertIn('data-owned-qty="1"', tile_nrc_011)
+            self.assertIn("$82.00", tile_nrc_011)
+            self.assertIn("<polyline", tile_nrc_011)
+            self.assertNotIn("Insufficient historical data", tile_nrc_011)
+
+            self.assertIn('data-rarity="NRC"', tile_nrc_015)
+            self.assertIn('data-owned-qty="1"', tile_nrc_015)
+            self.assertIn("N/A", tile_nrc_015)
+            self.assertNotIn("$89.99", tile_nrc_015)
+            self.assertIn("Insufficient historical data", tile_nrc_015)
+
+    def test_original_lot_date_gates_sqlite_baseline_and_champ_only_snapshot_header(self):
+        from tracker.valuation import init_database
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            p_dir = tmp_path / "prices"
+            p_dir.mkdir(parents=True, exist_ok=True)
+            (p_dir / "2026-11-12.json").write_text(
+                json.dumps({"date": "2026-11-12", "prices": {"101": {"Foil": {"marketPrice": 50.0}}, "102": {"Foil": {"marketPrice": 30.0}}}}),
+                encoding="utf-8",
+            )
+            (p_dir / "2026-11-19.json").write_text(
+                json.dumps({
+                    "date": "2026-11-19",
+                    "prices": {
+                        "101": {"Foil": {"marketPrice": 50.0}},
+                        "102": {"Foil": {"marketPrice": 30.0}},
+                        "733502": {"Foil": {"marketPrice": 75.0}},
+                        "733503": {"Foil": {"marketPrice": 90.0}},
+                    },
+                }),
+                encoding="utf-8",
+            )
+            csv_path = tmp_path / "collection.csv"
+            csv_path.write_text(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+                'Wraith Marauders,Night City Brawl Season 1,011,Foil,1,"2026-11-18: 1 (Brawl Champ)"\n'
+                'Same Day Champ,Night City Brawl Season 1,012,Foil,1,"2026-11-19: 1 (Brawl Champ)"\n',
+                encoding="utf-8",
+            )
+            db_path = tmp_path / "history.db"
+            conn = init_database(str(db_path))
+            conn.executemany(
+                "INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, variant) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    ("Night City Brawl Season 1::011::Brawl Champ::Foil::2026-11-18", 733502, "Wraith Marauders (Brawl Champ)", "011", "Night City Brawl Season 1", "Foil", "Nova", "Red", "2026-11-18", 45.75, "Card", "Brawl Champ"),
+                    ("Night City Brawl Season 1::012::Brawl Champ::Foil::2026-11-19", 733503, "Same Day Champ (Brawl Champ)", "012", "Night City Brawl Season 1", "Foil", "Nova", "Blue", "2026-11-19", 72.50, "Card", "Brawl Champ"),
+                ],
+            )
+            conn.commit()
+            conn.close()
+
+            acqs = load_collection_acquisitions(
+                str(csv_path),
+                str(db_path),
+                earliest_beta_date="2026-09-13",
+                earliest_retail_date="2026-10-30",
+                earliest_ncb_date="2026-11-06",
+                earliest_ncb_champ_date="2026-11-19",
+            )
+            champ_cards = [
+                PromoSetCard("011", "Wraith Marauders (Brawl Champ)", "Nova Rare", "Foil", 733502, 75.0, 1, color="Red", card_type="Unit", variant="Brawl Champ"),
+                PromoSetCard("012", "Same Day Champ (Brawl Champ)", "Nova Rare", "Foil", 733503, 90.0, 1, color="Blue", card_type="Unit", variant="Brawl Champ"),
+            ]
+            price_by_date = {"2026-11-19": {"733502": {"Foil": {"marketPrice": 75.0}}, "733503": {"Foil": {"marketPrice": 90.0}}}}
+            trajs = build_ncb_trajectories(champ_cards, ["2026-11-19"], price_by_date, acqs)
+            # Pre-cutoff 2026-11-18 lot clamped to 2026-11-19 must NOT inherit 2026-11-18 SQLite ask ($45.75).
+            self.assertAlmostEqual(trajs[0]["acqCost"], 75.0)
+            # Genuine 2026-11-19 lot still uses eligible same-day SQLite baseline ($72.50).
+            self.assertAlmostEqual(trajs[1]["acqCost"], 72.5)
+
+            out_html = tmp_path / "champ_only.html"
+            generate_html_dashboard(
+                pairs=[IconicCardPair("141", "Card 1", "Legends", "Foil", 101, 102, 50.0, 30.0, 20.0, 66.7, 0, 0, color="Red", card_type="Legend")],
+                prices_dir=p_dir,
+                collection_path=str(csv_path),
+                output_path=str(out_html),
+                database_path=str(db_path),
+                earliest_beta_date=None,
+                earliest_retail_date=None,
+                earliest_ncb_date="2026-11-12",
+                earliest_ncb_champ_date="2026-11-17",
+                ncb_cards=[],
+                ncb_champ_cards=champ_cards,
+            )
+            html_text = out_html.read_text(encoding="utf-8")
+            self.assertIn('"ncb": "1 market snapshots (2026-11-19 to 2026-11-19)"', html_text)
+
+    def test_variant_first_finish_validation_avoids_cross_variant_and_duplicate_warnings(self):
+        from tracker.iconics import _collect_owned_counts, _collect_variant_owned_counts
+
+        with tempfile.TemporaryDirectory() as tmp:
+            csv_path = Path(tmp) / "collection.csv"
+            csv_path.write_text(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+                'Stamp Only Card,Night City Brawl Season 1,011,Standard,1,"2026-11-17: 1 (Brawl Champ)"\n'
+                'Regular Only Card,Night City Brawl Season 1,015,Foil,1,"2026-11-12: 1"\n'
+                'Mismatched Regular,Night City Brawl Season 1,016,Standard,1,"2026-11-12: 1"\n',
+                encoding="utf-8",
+            )
+            vrows = load_validated_collection_rows(str(csv_path))
+            stderr_buf = io.StringIO()
+            with patch("sys.stderr", stderr_buf):
+                reg_counts, _, _ = _collect_owned_counts(
+                    str(csv_path),
+                    vrows,
+                    {("Night City Brawl Season 1", "011"): "Foil", ("Night City Brawl Season 1", "015"): "Foil", ("Night City Brawl Season 1", "016"): "Foil"},
+                    {"Night City Brawl Season 1"},
+                )
+                champ_counts, _, _ = _collect_variant_owned_counts(
+                    str(csv_path),
+                    vrows,
+                    {("Night City Brawl Season 1", "011"): "Standard", ("Night City Brawl Season 1", "015"): "Standard", ("Night City Brawl Season 1", "016"): "Foil"},
+                    {"Night City Brawl Season 1"},
+                    target_variant="Brawl Champ",
+                )
+            warn_text = stderr_buf.getvalue()
+            self.assertNotIn("#011", warn_text)
+            self.assertNotIn("#015", warn_text)
+            self.assertEqual(warn_text.count("#016"), 1)
+            self.assertEqual(reg_counts.get(("Night City Brawl Season 1", "015", "Foil")), 1)
+            self.assertEqual(champ_counts.get(("Night City Brawl Season 1", "011", "Standard", "Brawl Champ")), 1)
+
+    def test_load_ncb_champ_cards_ambiguous_base_and_missing_vs_conflicting_finish(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            cards_file = tmp_path / "cards.json"
+            prices_dir = tmp_path / "prices"
+            prices_dir.mkdir(parents=True, exist_ok=True)
+            csv_path = tmp_path / "collection.csv"
+            csv_path.write_text(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+                'Example (a),Night City Brawl Season 1,001,Foil,1,"2026-11-17: 1 (Brawl Champ)"\n',
+                encoding="utf-8",
+            )
+            base_catalog = {
+                "_groups": {},
+                "101": {"productId": 101, "name": "Example (a)", "groupName": "Night City Brawl Season 1", "printNumber": "001", "rarity": "NR", "color": "Red", "cardType": "Unit"},
+                "102": {"productId": 102, "name": "Example (b)", "groupName": "Night City Brawl Season 1", "printNumber": "002", "rarity": "NR", "color": "Blue", "cardType": "Program"},
+                "201": {"productId": 201, "name": "Example (a) (Brawl Champ)", "groupName": "Night City Brawl Season 1", "printNumber": None},
+            }
+            cards_file.write_text(json.dumps(base_catalog), encoding="utf-8")
+            # 201 has zero price history -> must inherit Foil from 101 and preserve owned=1, price=None.
+            (prices_dir / "2026-11-21.json").write_text(
+                json.dumps({"date": "2026-11-21", "prices": {"101": {"Foil": {"marketPrice": 12.0}}, "102": {"Foil": {"marketPrice": 15.0}}}}),
+                encoding="utf-8",
+            )
+            champ_cards = load_ncb_champ_cards(cards_path=cards_file, prices_dir=prices_dir, collection_path=str(csv_path))
+            self.assertEqual(len(champ_cards), 1)
+            self.assertEqual((champ_cards[0].print_number, champ_cards[0].color, champ_cards[0].valid_finish, champ_cards[0].owned, champ_cards[0].price), ("001", "Red", "Foil", 1, None))
+
+            # Conflicting finishes on the stamped product still raise ValueError.
+            (prices_dir / "2026-11-21.json").write_text(
+                json.dumps({"date": "2026-11-21", "prices": {"101": {"Foil": {"marketPrice": 12.0}}, "201": {"Foil": {"marketPrice": 50.0}, "Normal": {"marketPrice": 30.0}}}}),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError) as conflict_ctx:
+                load_ncb_champ_cards(cards_path=cards_file, prices_dir=prices_dir, collection_path=str(csv_path))
+            self.assertIn("Ambiguous multiple finishes", str(conflict_ctx.exception))
+
+            # Ambiguous sanitized base match without exact raw match raises ValueError.
+            ambiguous_catalog = dict(base_catalog)
+            ambiguous_catalog["201"] = {"productId": 201, "name": "Example (Brawl Champ)", "groupName": "Night City Brawl Season 1", "printNumber": None}
+            cards_file.write_text(json.dumps(ambiguous_catalog), encoding="utf-8")
+            (prices_dir / "2026-11-21.json").write_text(
+                json.dumps({"date": "2026-11-21", "prices": {"101": {"Foil": {"marketPrice": 12.0}}}}),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError) as ambig_ctx:
+                load_ncb_champ_cards(cards_path=cards_file, prices_dir=prices_dir)
+            self.assertIn("Ambiguous Brawl Champ base match", str(ambig_ctx.exception))
 
 
 if __name__ == "__main__":
