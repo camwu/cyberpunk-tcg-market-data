@@ -25,6 +25,7 @@ from tracker.iconics_common import (
 EARLIEST_BETA_DATE = "2026-09-13"
 EARLIEST_RETAIL_DATE = "2026-10-30"
 EARLIEST_NCB_DATE = "2026-11-06"
+EARLIEST_NCB_CHAMP_DATE = "2026-11-17"
 WNC_BETA_GROUP_NAME = "Welcome to Night City - Beta"
 WNC_RETAIL_GROUP_NAME = "Welcome to Night City - Retail"
 WNC_BT_BETA_GROUP_NAME = "Box Toppers - Beta"
@@ -168,17 +169,21 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       var m = (meta && typeof meta === 'object') ? meta : {};
       if (activeSet === 'ncb') {
         var ncbRange = m.ncbRangeLabel || '';
+        var ncbChampCount = Number(m.ncbChampCardCount || 0);
+        var hasNcbChamp = Boolean(m.hasNcbChamp || ncbChampCount > 0);
         return {
           title: 'Night City Brawl Season 1 \u2013 Nova Rare Price Trajectories',
           showClusterView: false,
           showMsRarity: false,
+          showMsVariant: hasNcbChamp,
           showLegendTypeItem: false,
           showSectionNR: true,
+          showSectionNRC: hasNcbChamp,
           showWncTiers: false,
           showComparisonView: false,
           showBasisCluster: true,
           sortNumLabel: ncbRange ? ('Print # (' + ncbRange + ')') : 'Print #',
-          countDenominator: Number(m.ncbCardCount || 0)
+          countDenominator: Number(m.ncbCardCount || 0) + ncbChampCount
         };
       }
       var isComparison = activeEdition === 'comparison';
@@ -188,8 +193,10 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
         title: 'Welcome to Night City \u2013 Iconic & Promo Price Trajectories',
         showClusterView: true,
         showMsRarity: true,
+        showMsVariant: false,
         showLegendTypeItem: true,
         showSectionNR: false,
+        showSectionNRC: false,
         showWncTiers: !isComparison,
         showComparisonView: isComparison,
         showBasisCluster: !isComparison,
@@ -281,13 +288,17 @@ def _resolve_earliest_date_for_expansion(
     earliest_beta_date: Optional[str],
     earliest_retail_date: Optional[str],
     earliest_ncb_date: Optional[str],
+    variant: Optional[str] = None,
+    earliest_ncb_champ_date: Optional[str] = EARLIEST_NCB_CHAMP_DATE,
 ) -> Optional[str]:
-    """Resolves the active release-date cutoff for an expansion name."""
+    """Resolves the active release-date cutoff for an expansion name and optional variant."""
     if exp in (WNC_BETA_GROUP_NAME, WNC_BT_BETA_GROUP_NAME):
         return earliest_beta_date
     if exp in (WNC_RETAIL_GROUP_NAME, WNC_BT_RETAIL_GROUP_NAME):
         return earliest_retail_date
     if exp == NCB_S1_GROUP_NAME:
+        if variant == "Brawl Champ":
+            return earliest_ncb_champ_date
         return earliest_ncb_date
     return earliest_beta_date
 
@@ -299,13 +310,15 @@ def load_collection_acquisitions(
     earliest_retail_date: Optional[str],
     validated_rows: Optional[List[ValidatedCollectionRow]] = None,
     earliest_ncb_date: Optional[str] = EARLIEST_NCB_DATE,
-) -> Dict[Tuple[str, str, str], Dict[str, Any]]:
+    earliest_ncb_champ_date: Optional[str] = EARLIEST_NCB_CHAMP_DATE,
+) -> Dict[Tuple[Any, ...], Dict[str, Any]]:
     """
     Loads card acquisition lots and baselines from card_metadata SQLite (when available)
-    and active collection CSV rows keyed by (expansion, printNumber, normalized_finish).
+    and active collection CSV rows keyed by (expansion, printNumber, normalized_finish)
+    for regular lots or (expansion, printNumber, normalized_finish, variant) for stamped lots.
     """
-    db_lot_baselines: Dict[Tuple[str, str, str, str], float] = {}
-    db_clamped_baselines: Dict[Tuple[str, str, str, str], float] = {}
+    db_lot_baselines: Dict[Tuple[str, str, str, str, str], float] = {}
+    db_clamped_baselines: Dict[Tuple[str, str, str, str, str], float] = {}
     if database_path and os.path.isfile(database_path):
         conn = None
         try:
@@ -313,32 +326,46 @@ def load_collection_acquisitions(
             cur = conn.cursor()
             cur.execute("PRAGMA table_info(card_metadata)")
             meta_cols = {col[1] for col in cur.fetchall()}
-            variant_filter = "WHERE COALESCE(variant, '') = ''" if "variant" in meta_cols else ""
-            cur.execute(
-                f"SELECT expansion, print_number, finish, first_seen_date, baseline_market_price "
-                f"FROM card_metadata {variant_filter} ORDER BY first_seen_date ASC"
-            )
-            for exp, pn, fin, fsd, bmp in cur.fetchall():
+            if "variant" in meta_cols:
+                cur.execute(
+                    "SELECT expansion, print_number, finish, COALESCE(variant, ''), first_seen_date, baseline_market_price "
+                    "FROM card_metadata ORDER BY first_seen_date ASC"
+                )
+                db_rows = cur.fetchall()
+            else:
+                cur.execute(
+                    "SELECT expansion, print_number, finish, first_seen_date, baseline_market_price "
+                    "FROM card_metadata ORDER BY first_seen_date ASC"
+                )
+                db_rows = [(exp, pn, fin, "", fsd, bmp) for exp, pn, fin, fsd, bmp in cur.fetchall()]
+
+            for exp, pn, fin, var, fsd, bmp in db_rows:
                 exp_s = str(exp or "")
                 pn_s = str(pn or "")
+                var_s = str(var or "").strip()
                 norm_fin = normalize_finish(str(fin or ""), default="Standard")
                 raw_fsd = str(fsd or "").strip()
                 bmp_val = float(bmp or 0.0)
                 if raw_fsd and bmp_val > 0.0:
-                    db_lot_baselines.setdefault((exp_s, pn_s, norm_fin, raw_fsd), bmp_val)
+                    db_lot_baselines.setdefault((exp_s, pn_s, norm_fin, var_s, raw_fsd), bmp_val)
                     min_ed = _resolve_earliest_date_for_expansion(
-                        exp_s, earliest_beta_date, earliest_retail_date, earliest_ncb_date
+                        exp_s,
+                        earliest_beta_date,
+                        earliest_retail_date,
+                        earliest_ncb_date,
+                        variant=var_s or None,
+                        earliest_ncb_champ_date=earliest_ncb_champ_date,
                     )
                     clamped_fsd = _clamp_date(raw_fsd, min_ed)
                     if clamped_fsd:
-                        db_clamped_baselines.setdefault((exp_s, pn_s, norm_fin, clamped_fsd), bmp_val)
+                        db_clamped_baselines.setdefault((exp_s, pn_s, norm_fin, var_s, clamped_fsd), bmp_val)
         except sqlite3.Error as e:
             print(f"Warning: Could not read card_metadata from '{database_path}': {e}", file=sys.stderr)
         finally:
             if conn is not None:
                 conn.close()
 
-    acquisitions: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
+    acquisitions: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
     if validated_rows is None:
         if not collection_path or not os.path.isfile(collection_path):
             return acquisitions
@@ -348,72 +375,83 @@ def load_collection_acquisitions(
         if vrow.qty <= 0:
             continue
 
+        lots_by_var: Dict[str, List[Tuple[Optional[str], int]]] = {}
+        qty_by_var: Dict[str, int] = {}
         if vrow.lot_variants is not None:
-            lots = [(d, q) for d, q, v in vrow.lot_variants if not v]
-            regular_qty = sum(q for _, q, v in vrow.lot_variants if not v)
+            for d, q, v in vrow.lot_variants:
+                var_key = (v or "").strip()
+                lots_by_var.setdefault(var_key, []).append((d, q))
+                qty_by_var[var_key] = qty_by_var.get(var_key, 0) + q
         else:
-            lots = vrow.lots
-            regular_qty = vrow.qty
-
-        if regular_qty <= 0:
-            continue
+            lots_by_var[""] = vrow.lots
+            qty_by_var[""] = vrow.qty
 
         exp = vrow.expansion
         pn = vrow.print_number
         fin = vrow.norm_finish or "Standard"
 
-        min_edition_date = _resolve_earliest_date_for_expansion(
-            exp, earliest_beta_date, earliest_retail_date, earliest_ncb_date
-        )
-        clamped_lots: List[Tuple[str, int]] = []
-        lot_entries: List[Tuple[str, int, float]] = []
-        for lot_date, lot_qty in lots:
-            if lot_date:
-                c_date = _clamp_date(lot_date, min_edition_date)
-                if c_date:
-                    clamped_lots.append((c_date, lot_qty))
-                    lot_db_cost = (
-                        db_lot_baselines.get((exp, pn, fin, lot_date))
-                        or db_lot_baselines.get((exp, pn, fin, c_date))
-                        or db_clamped_baselines.get((exp, pn, fin, c_date))
-                        or 0.0
-                    )
-                    lot_entries.append((c_date, lot_qty, lot_db_cost))
+        for var_key, var_qty in qty_by_var.items():
+            if var_qty <= 0:
+                continue
 
-        dated_candidates = sorted(d for d, _ in clamped_lots)
-        raw_earliest = sorted(d for d, _ in lots if d)[0] if any(d for d, _ in lots) else None
-        acq_date = dated_candidates[0] if dated_candidates else None
-
-        acq_key = (exp, pn, fin)
-        existing = acquisitions.get(acq_key)
-        if existing:
-            existing["qty"] += regular_qty
-            existing["lots"].extend(clamped_lots)
-            existing["lot_entries"].extend(lot_entries)
-            if acq_date and (not existing["date"] or acq_date < existing["date"]):
-                existing["date"] = acq_date
-            merged_entries = existing["lot_entries"]
-            merged_qty = sum(q for _, q, _ in merged_entries)
-            if merged_qty > 0 and all(c > 0.0 for _, _, c in merged_entries):
-                existing["cost"] = sum(c * q for _, q, c in merged_entries) / merged_qty
-            else:
-                existing["cost"] = 0.0
-        else:
-            row_lot_qty = sum(q for _, q, _ in lot_entries)
-            summary_cost = (
-                sum(c * q for _, q, c in lot_entries) / row_lot_qty
-                if (row_lot_qty > 0 and all(c > 0.0 for _, _, c in lot_entries))
-                else 0.0
+            lots = lots_by_var[var_key]
+            min_edition_date = _resolve_earliest_date_for_expansion(
+                exp,
+                earliest_beta_date,
+                earliest_retail_date,
+                earliest_ncb_date,
+                variant=var_key or None,
+                earliest_ncb_champ_date=earliest_ncb_champ_date,
             )
-            acquisitions[acq_key] = {
-                "date": acq_date,
-                "rawDate": raw_earliest,
-                "cost": summary_cost,
-                "qty": regular_qty,
-                "finish": fin,
-                "lots": clamped_lots,
-                "lot_entries": lot_entries,
-            }
+            clamped_lots: List[Tuple[str, int]] = []
+            lot_entries: List[Tuple[str, int, float]] = []
+            for lot_date, lot_qty in lots:
+                if lot_date:
+                    c_date = _clamp_date(lot_date, min_edition_date)
+                    if c_date:
+                        clamped_lots.append((c_date, lot_qty))
+                        lot_db_cost = (
+                            db_lot_baselines.get((exp, pn, fin, var_key, lot_date))
+                            or db_lot_baselines.get((exp, pn, fin, var_key, c_date))
+                            or db_clamped_baselines.get((exp, pn, fin, var_key, c_date))
+                            or 0.0
+                        )
+                        lot_entries.append((c_date, lot_qty, lot_db_cost))
+
+            dated_candidates = sorted(d for d, _ in clamped_lots)
+            raw_earliest = sorted(d for d, _ in lots if d)[0] if any(d for d, _ in lots) else None
+            acq_date = dated_candidates[0] if dated_candidates else None
+
+            acq_key: Tuple[Any, ...] = (exp, pn, fin, var_key) if var_key else (exp, pn, fin)
+            existing = acquisitions.get(acq_key)
+            if existing:
+                existing["qty"] += var_qty
+                existing["lots"].extend(clamped_lots)
+                existing["lot_entries"].extend(lot_entries)
+                if acq_date and (not existing["date"] or acq_date < existing["date"]):
+                    existing["date"] = acq_date
+                merged_entries = existing["lot_entries"]
+                merged_qty = sum(q for _, q, _ in merged_entries)
+                if merged_qty > 0 and all(c > 0.0 for _, _, c in merged_entries):
+                    existing["cost"] = sum(c * q for _, q, c in merged_entries) / merged_qty
+                else:
+                    existing["cost"] = 0.0
+            else:
+                row_lot_qty = sum(q for _, q, _ in lot_entries)
+                summary_cost = (
+                    sum(c * q for _, q, c in lot_entries) / row_lot_qty
+                    if (row_lot_qty > 0 and all(c > 0.0 for _, _, c in lot_entries))
+                    else 0.0
+                )
+                acquisitions[acq_key] = {
+                    "date": acq_date,
+                    "rawDate": raw_earliest,
+                    "cost": summary_cost,
+                    "qty": var_qty,
+                    "finish": fin,
+                    "lots": clamped_lots,
+                    "lot_entries": lot_entries,
+                }
 
     return acquisitions
 
@@ -446,7 +484,8 @@ def _build_card_trajectory(
     expansion_name: str,
     dates: List[str],
     price_by_date: Dict[str, Dict[str, Dict[str, Any]]],
-    acquisitions: Dict[Tuple[str, str, str], Dict[str, Any]],
+    acquisitions: Dict[Tuple[Any, ...], Dict[str, Any]],
+    variant: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Computes delayed-discovery trajectory metrics and acquisition baselines for one card."""
     pid_str = str(pid) if pid is not None else ""
@@ -510,10 +549,15 @@ def _build_card_trajectory(
         if latest_p_data is not None:
             current_low_price = extract_finish_price(latest_p_data, valid_finish, field="lowPrice")
 
-    acq = acquisitions.get((expansion_name, display_pnum, valid_finish))
+    acq_key: Tuple[Any, ...] = (
+        (expansion_name, display_pnum, valid_finish, variant)
+        if variant
+        else (expansion_name, display_pnum, valid_finish)
+    )
+    acq = acquisitions.get(acq_key)
+    first_priced_date = clean_points[0][0] if clean_points else None
     if acq and acq.get("date") and owned_qty > 0:
-        earliest_card_date = clean_points[0][0] if clean_points else None
-        acq_date = _clamp_date(str(acq["date"]), earliest_card_date)
+        acq_date = _clamp_date(str(acq["date"]), first_priced_date)
         lot_entries = acq.get("lot_entries")
         if lot_entries:
             lot_total_qty = sum(q for _, q, _ in lot_entries)
@@ -521,7 +565,8 @@ def _build_card_trajectory(
                 weighted = 0.0
                 resolved_qty = 0
                 for d, q, lot_db_cost in lot_entries:
-                    lot_price = lot_db_cost if lot_db_cost > 0.0 else (_lookup_point_price(clean_points, d) if clean_points else 0.0)
+                    use_db_cost = lot_db_cost > 0.0 and first_priced_date is not None and first_priced_date <= d
+                    lot_price = lot_db_cost if use_db_cost else (_lookup_point_price(clean_points, d) if clean_points else 0.0)
                     if lot_price > 0.0:
                         weighted += lot_price * q
                         resolved_qty += q
@@ -537,7 +582,13 @@ def _build_card_trajectory(
                 acq_cost = _lookup_point_price(clean_points, acq_date or "")
         else:
             db_cost = float(acq.get("cost") or 0.0)
-            acq_cost = db_cost if db_cost > 0.0 else (_lookup_point_price(clean_points, acq_date or "") if clean_points else 0.0)
+            use_acq_db_cost = (
+                db_cost > 0.0
+                and first_priced_date is not None
+                and acq_date is not None
+                and first_priced_date <= acq_date
+            )
+            acq_cost = db_cost if use_acq_db_cost else (_lookup_point_price(clean_points, acq_date or "") if clean_points else 0.0)
 
         acq_delta_dollar = current_price - acq_cost if current_price > 0 else 0.0
         acq_delta_pct = (acq_delta_dollar / acq_cost * 100.0) if (acq_cost > 0 and current_price > 0) else 0.0
@@ -636,7 +687,7 @@ def build_ncb_trajectories(
     ncb_cards: List[Any],
     dates: List[str],
     price_by_date: Dict[str, Dict[str, Dict[str, Any]]],
-    acquisitions: Dict[Tuple[str, str, str], Dict[str, Any]],
+    acquisitions: Dict[Tuple[Any, ...], Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
     Builds chronological daily price series and return metrics for Night City Brawl Season 1 cards.
@@ -649,13 +700,15 @@ def build_ncb_trajectories(
     for card in sorted_cards:
         pnum = str(card.print_number)
         expansion_name = card.expansion
+        variant = getattr(card, "variant", None)
+        rarity_code = "NRC" if variant == "Brawl Champ" else "NR"
         trajectories.append(
             _build_card_trajectory(
                 pid=card.product_id,
                 name=card.card_name,
                 display_pnum=pnum,
                 clean_pnum=pnum,
-                rarity_code="NR",
+                rarity_code=rarity_code,
                 color=card.color,
                 card_type=card.card_type,
                 valid_finish=card.valid_finish,
@@ -664,6 +717,7 @@ def build_ncb_trajectories(
                 dates=dates,
                 price_by_date=price_by_date,
                 acquisitions=acquisitions,
+                variant=variant,
             )
         )
     return trajectories
@@ -923,6 +977,8 @@ def _compute_tier_stats(card_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         "p75": _fmt_quant_stat(q[3]),
         "max": _fmt_quant_stat(q[4]),
         "set_total": _fmt_quant_stat(set_total),
+        "priced_count": len(prices),
+        "total_count": len(card_list),
         "owned_count": owned_count,
         "owned_qty": owned_qty,
         "owned_val": owned_val,
@@ -1748,7 +1804,9 @@ _DASHBOARD_CSS = """    :root {
     html.preload-ncb #section-BT,
     html.preload-ncb #ms-rarity,
     html.preload-ncb #type-item-legend { display: none !important; }
-    html.preload-ncb #section-NR { display: block !important; }
+    html.preload-ncb #section-NR,
+    html.preload-ncb #section-NRC { display: block !important; }
+    html.preload-ncb #ms-variant { display: inline-block !important; }
     html.preload-ncb #cluster-basis { display: inline-flex !important; }
     html.preload-ncb #meta-snapshots { display: block !important; }
     html.preload-ncb #chart-legend { display: flex !important; }
@@ -1776,9 +1834,10 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     const clusterBasis = document.getElementById('cluster-basis');
     const dividerBasis = clusterBasis ? clusterBasis.nextElementSibling : null;
     const msRarity = document.getElementById('ms-rarity');
+    const msVariant = document.getElementById('ms-variant');
     const typeItemLegend = document.getElementById('type-item-legend');
     const sectionNR = document.getElementById('section-NR');
-    const gridNR = document.getElementById('grid-NR');
+    const sectionNRC = document.getElementById('section-NRC');
     const btnAnchorLifetime = document.getElementById('btn-anchor-lifetime');
     const btnAnchorAcq = document.getElementById('btn-anchor-acq');
     const btnAnchorL7d = document.getElementById('btn-anchor-l7d');
@@ -1788,6 +1847,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     const sortSelect = document.getElementById('sort-select');
     const countDisplay = document.getElementById('count-display');
     const tierCodes = Array.isArray(renderedTierCodes) && renderedTierCodes.length > 0 ? renderedTierCodes : ['IL', 'IO', 'IS'];
+    const ncbSectionCodes = (typeof renderedNcbCodes !== 'undefined' && Array.isArray(renderedNcbCodes) && renderedNcbCodes.length > 0) ? renderedNcbCodes : ['NR'];
     const tooltip = document.getElementById('chart-tooltip');
     const STORAGE_KEY = 'wnc_iconics_filter_state';
 
@@ -1910,8 +1970,8 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     function applyTierStatsOpen(code, isOpen) {
       const group = document.getElementById(`stats-group-${code}`);
       const btn = document.getElementById(`btn-stats-${code}`);
-      if (code === 'NR') {
-        const nrBox = document.getElementById('stats-ncb-NR');
+      if (code === 'NR' || code === 'NRC') {
+        const nrBox = document.getElementById(`stats-ncb-${code}`);
         if (nrBox) nrBox.style.display = isOpen ? 'flex' : 'none';
       } else {
         const activeBox = (currentEdition === 'retail')
@@ -1930,15 +1990,15 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     }
 
     function applyStatsOpenForCurrentSet(statsOpenMap) {
-      const targetCodes = currentSet === 'ncb' ? ['NR'] : tierCodes;
+      const targetCodes = currentSet === 'ncb' ? ncbSectionCodes : tierCodes;
       const isWideViewport = window.innerWidth >= 768;
       targetCodes.forEach(code => applyTierStatsOpen(code, resolveTierStatsOpen(statsOpenMap, code, isWideViewport)));
     }
 
     function toggleTierStats(code) {
       const group = document.getElementById(`stats-group-${code}`);
-      const activeBox = (code === 'NR')
-        ? document.getElementById('stats-ncb-NR')
+      const activeBox = (code === 'NR' || code === 'NRC')
+        ? document.getElementById(`stats-ncb-${code}`)
         : ((currentEdition === 'retail')
             ? document.getElementById(`stats-retail-${code}`)
             : document.getElementById(`stats-beta-${code}`));
@@ -1950,7 +2010,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       saveState();
     }
 
-    const multiselectCategories = ['color', 'type', 'rarity', 'ownership'];
+    const multiselectCategories = ['color', 'type', 'rarity', 'variant', 'ownership'];
 
     multiselectCategories.forEach(cat => {
       const btn = document.getElementById(`btn-${cat}`);
@@ -2003,7 +2063,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       return {
         q: searchInput ? searchInput.value : '',
         o: getSelected('ownership'),
-        r: getSelected('rarity'),
+        r: currentSet === 'ncb' ? getSelected('variant') : getSelected('rarity'),
         c: getSelected('color'),
         t: getSelected('type'),
         s: rawSort === 'num-asc' ? 'num' : rawSort,
@@ -2017,7 +2077,8 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       if (searchInput) searchInput.value = typeof filterObj.q === 'string' ? filterObj.q : '';
       const mapByCategory = {
         ownership: filterObj.o || [],
-        rarity: filterObj.r || [],
+        rarity: currentSet === 'wnc' ? (filterObj.r || []) : [],
+        variant: currentSet === 'ncb' ? (filterObj.r || []) : [],
         color: filterObj.c || [],
         type: filterObj.t || []
       };
@@ -2099,11 +2160,13 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       if (clusterView) clusterView.style.display = desc.showClusterView ? 'inline-flex' : 'none';
       if (dividerView) dividerView.style.display = desc.showClusterView ? 'block' : 'none';
       if (msRarity) msRarity.style.display = desc.showMsRarity ? '' : 'none';
+      if (msVariant) msVariant.style.display = desc.showMsVariant ? 'inline-block' : 'none';
       if (typeItemLegend) typeItemLegend.style.display = desc.showLegendTypeItem ? '' : 'none';
       if (clusterBasis) clusterBasis.style.display = desc.showBasisCluster ? 'inline-flex' : 'none';
       if (dividerBasis) dividerBasis.style.display = desc.showBasisCluster ? 'block' : 'none';
       if (compView) compView.style.display = desc.showComparisonView ? 'block' : 'none';
       if (sectionNR) sectionNR.style.display = desc.showSectionNR ? 'block' : 'none';
+      if (sectionNRC) sectionNRC.style.display = desc.showSectionNRC ? 'block' : 'none';
       const sortNumOption = sortSelect ? sortSelect.querySelector('option[value="num-asc"]') : null;
       if (sortNumOption) sortNumOption.textContent = desc.sortNumLabel;
     }
@@ -2314,7 +2377,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
 
     function applyFilters() {
       const q = searchInput.value.trim().toLowerCase();
-      const r = getSelected('rarity');
+      const r = currentSet === 'ncb' ? getSelected('variant') : getSelected('rarity');
       const c = getSelected('color');
       const t = getSelected('type');
       const o = getSelected('ownership');
@@ -2326,23 +2389,29 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       let totalVisible = 0;
 
       if (currentSet === 'ncb') {
-        if (sectionNR) sectionNR.style.display = 'block';
-        if (gridNR) {
-          const tiles = Array.from(gridNR.getElementsByClassName('card-tile'));
+        ncbSectionCodes.forEach(code => {
+          const sectionElem = document.getElementById(`section-${code}`);
+          const gridElem = document.getElementById(`grid-${code}`);
+          if (!sectionElem || !gridElem) return;
+
+          const tiles = Array.from(gridElem.getElementsByClassName('card-tile'));
+          let sectionVisible = 0;
           tiles.forEach(tile => {
             if (tileMatchesFilters(tile, q, r, c, t, o)) {
               tile.style.display = 'flex';
+              sectionVisible++;
               totalVisible++;
             } else {
               tile.style.display = 'none';
             }
           });
+          sectionElem.style.display = sectionVisible > 0 ? 'block' : 'none';
           sortCardTiles(tiles, sort);
-          tiles.forEach(tile => gridNR.appendChild(tile));
-        }
+          tiles.forEach(tile => gridElem.appendChild(tile));
+        });
 
         countDisplay.textContent = `Showing ${totalVisible} of ${viewDesc.countDenominator} cards`;
-        const hasActiveFilters = Boolean(q || c.length > 0 || t.length > 0 || o.length > 0);
+        const hasActiveFilters = Boolean(q || r.length > 0 || c.length > 0 || t.length > 0 || o.length > 0);
         const resetBtn = document.getElementById('btn-reset-filters');
         if (resetBtn) resetBtn.classList.toggle('is-active', hasActiveFilters);
         if (typeof syncTierHeaderStickyBounds === 'function') syncTierHeaderStickyBounds();
@@ -2350,6 +2419,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       }
 
       if (sectionNR) sectionNR.style.display = 'none';
+      if (sectionNRC) sectionNRC.style.display = 'none';
 
       if (currentEdition === 'comparison') {
         const rows = document.querySelectorAll('tr.comp-row');
@@ -2591,7 +2661,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     }
 
     function syncTierHeaderStickyBounds() {
-      const allHeaders = tierCodes.concat(['NR']);
+      const allHeaders = tierCodes.concat(ncbSectionCodes);
       if (currentSet === 'wnc' && currentEdition === 'comparison') {
         allHeaders.forEach(code => {
           const h = document.getElementById(`header-${code}`);
@@ -2602,7 +2672,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       const nav = document.querySelector('.sticky-nav');
       const navHeight = nav ? nav.offsetHeight : 128;
       const headerMarginBottom = 12;
-      const activeCodes = currentSet === 'ncb' ? ['NR'] : tierCodes;
+      const activeCodes = currentSet === 'ncb' ? ncbSectionCodes : tierCodes;
 
       allHeaders.forEach(code => {
         const header = document.getElementById(`header-${code}`);
@@ -2817,36 +2887,73 @@ def _render_tier_sections(
     return "".join(parts)
 
 
-def _render_ncb_section(
-    ncb_trajectories: List[Dict[str, Any]],
-    nr_stats: Dict[str, Any],
+def _render_ncb_subsection(
+    code: str,
+    title: str,
+    trajectories: List[Dict[str, Any]],
+    stats: Dict[str, Any],
 ) -> str:
-    """Renders the single-edition Night City Brawl Season 1 Nova Rares section."""
-    title = f"Nova Rares ({len(ncb_trajectories)})"
-    parts: List[str] = [f"""  <div class="tier-section" id="section-NR" style="display:none;">
-    <div class="tier-header" id="header-NR">
+    """Renders a single Night City Brawl Season 1 tier subsection."""
+    priced_count = stats.get("priced_count", 0)
+    total_count = stats.get("total_count", len(trajectories))
+    set_total_label = (
+        f"Set Total ({priced_count}/{total_count})"
+        if priced_count < total_count
+        else "Set Total"
+    )
+    parts: List[str] = [f"""  <div class="tier-section" id="section-{code}" style="display:none;">
+    <div class="tier-header" id="header-{code}">
       <div class="tier-title">
         <span>{html.escape(title)}</span>
       </div>
-      <div class="tier-stats-group" id="stats-group-NR">
-        <button type="button" class="tier-stats-tab" onclick="toggleTierStats('NR')" id="btn-stats-NR">Stats <span class="stats-arrow">&#x25C2;</span></button>
-        <div class="tier-stats-content edition-stats-ncb" id="stats-ncb-NR">
-          <div class="stat-cell"><span class="stat-label">Min</span><span class="stat-val">{nr_stats['min']}</span></div>
-          <div class="stat-cell"><span class="stat-label">p25</span><span class="stat-val">{nr_stats['p25']}</span></div>
-          <div class="stat-cell"><span class="stat-label">Med</span><span class="stat-val">{nr_stats['med']}</span></div>
-          <div class="stat-cell"><span class="stat-label">p75</span><span class="stat-val">{nr_stats['p75']}</span></div>
-          <div class="stat-cell"><span class="stat-label">Max</span><span class="stat-val">{nr_stats['max']}</span></div>
-          <div class="stat-cell"><span class="stat-label">Set Total</span><span class="stat-val">{nr_stats['set_total']}</span></div>
-          <div class="stat-cell stat-cell-owned"><span class="stat-label">Owned</span><span class="stat-val">{nr_stats['owned_qty']} cards (${nr_stats['owned_val']:,.2f})</span></div>
+      <div class="tier-stats-group" id="stats-group-{code}">
+        <button type="button" class="tier-stats-tab" onclick="toggleTierStats('{code}')" id="btn-stats-{code}">Stats <span class="stats-arrow">&#x25C2;</span></button>
+        <div class="tier-stats-content edition-stats-ncb" id="stats-ncb-{code}">
+          <div class="stat-cell"><span class="stat-label">Min</span><span class="stat-val">{stats['min']}</span></div>
+          <div class="stat-cell"><span class="stat-label">p25</span><span class="stat-val">{stats['p25']}</span></div>
+          <div class="stat-cell"><span class="stat-label">Med</span><span class="stat-val">{stats['med']}</span></div>
+          <div class="stat-cell"><span class="stat-label">p75</span><span class="stat-val">{stats['p75']}</span></div>
+          <div class="stat-cell"><span class="stat-label">Max</span><span class="stat-val">{stats['max']}</span></div>
+          <div class="stat-cell"><span class="stat-label">{html.escape(set_total_label)}</span><span class="stat-val">{stats['set_total']}</span></div>
+          <div class="stat-cell stat-cell-owned"><span class="stat-label">Owned</span><span class="stat-val">{stats['owned_qty']} cards (${stats['owned_val']:,.2f})</span></div>
         </div>
       </div>
     </div>
-    <div class="grid tier-grid" id="grid-NR">
+    <div class="grid tier-grid" id="grid-{code}">
 """]
-    for t in ncb_trajectories:
+    for t in trajectories:
         parts.append(_render_card_tile(t, "ncb", "flex"))
     parts.append("    </div>\n  </div>\n")
     return "".join(parts)
+
+
+def _render_ncb_section(
+    ncb_trajectories: List[Dict[str, Any]],
+    nr_stats: Dict[str, Any],
+    ncb_champ_trajectories: Optional[List[Dict[str, Any]]] = None,
+    nrc_stats: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Renders Night City Brawl Season 1 regular Nova Rares and optional Brawl Champ sections."""
+    sections: List[str] = []
+    if ncb_trajectories:
+        sections.append(
+            _render_ncb_subsection(
+                code="NR",
+                title=f"Nova Rares ({len(ncb_trajectories)})",
+                trajectories=ncb_trajectories,
+                stats=nr_stats,
+            )
+        )
+    if ncb_champ_trajectories and nrc_stats is not None:
+        sections.append(
+            _render_ncb_subsection(
+                code="NRC",
+                title=f"Nova Rares \u2013 Brawl Champ ({len(ncb_champ_trajectories)})",
+                trajectories=ncb_champ_trajectories,
+                stats=nrc_stats,
+            )
+        )
+    return "".join(sections)
 
 
 def _render_comparison_view(comp_pairs: List[Dict[str, Any]]) -> str:
@@ -3098,6 +3205,8 @@ def generate_html_dashboard(
     validated_rows: Optional[List[ValidatedCollectionRow]] = None,
     earliest_ncb_date: Optional[str] = EARLIEST_NCB_DATE,
     ncb_cards: Optional[List[Any]] = None,
+    earliest_ncb_champ_date: Optional[str] = EARLIEST_NCB_CHAMP_DATE,
+    ncb_champ_cards: Optional[List[Any]] = None,
 ) -> None:
     """
     Generates the interactive standalone HTML comparison and trajectory dashboard for WNC & NCB S1.
@@ -3107,10 +3216,12 @@ def generate_html_dashboard(
     beta_dates = _filter_dates_from(all_dates, earliest_beta_date)
     retail_dates = _filter_dates_from(all_dates, earliest_retail_date)
     ncb_dates = _filter_dates_from(all_dates, earliest_ncb_date)
+    ncb_champ_dates = _filter_dates_from(all_dates, earliest_ncb_champ_date)
 
     earliest_beta = beta_dates[0] if beta_dates else (all_dates[0] if all_dates else None)
     earliest_retail = retail_dates[0] if retail_dates else (all_dates[0] if all_dates else None)
     earliest_ncb = ncb_dates[0] if ncb_dates else (all_dates[0] if all_dates else None)
+    earliest_ncb_champ = ncb_champ_dates[0] if ncb_champ_dates else earliest_ncb_champ_date
 
     acquisitions = load_collection_acquisitions(
         collection_path=collection_path,
@@ -3119,6 +3230,7 @@ def generate_html_dashboard(
         earliest_retail_date=earliest_retail,
         validated_rows=validated_rows,
         earliest_ncb_date=earliest_ncb,
+        earliest_ncb_champ_date=earliest_ncb_champ,
     )
 
     beta_trajectories = build_edition_trajectories(
@@ -3141,22 +3253,24 @@ def generate_html_dashboard(
         price_by_date=price_by_date,
         acquisitions=acquisitions,
     )
+    ncb_champ_trajectories = build_ncb_trajectories(
+        ncb_cards=ncb_champ_cards or [],
+        dates=ncb_champ_dates,
+        price_by_date=price_by_date,
+        acquisitions=acquisitions,
+    )
 
-    for t in retail_trajectories:
-        acq_info = {"date": t["acqDate"], "cost": t["acqCost"]} if t.get("hasAcquisition") else None
-        t["svgChart"] = generate_svg_chart(
-            t["points"], card_id=f"r_{t['productId']}", acq_info=acq_info, low_price=t.get("currentLowPrice")
-        )
-    for t in beta_trajectories:
-        acq_info = {"date": t["acqDate"], "cost": t["acqCost"]} if t.get("hasAcquisition") else None
-        t["svgChart"] = generate_svg_chart(
-            t["points"], card_id=f"b_{t['productId']}", acq_info=acq_info, low_price=t.get("currentLowPrice")
-        )
-    for t in ncb_trajectories:
-        acq_info = {"date": t["acqDate"], "cost": t["acqCost"]} if t.get("hasAcquisition") else None
-        t["svgChart"] = generate_svg_chart(
-            t["points"], card_id=f"n_{t['productId']}", acq_info=acq_info, low_price=t.get("currentLowPrice")
-        )
+    for prefix, series in [
+        ("r", retail_trajectories),
+        ("b", beta_trajectories),
+        ("n", ncb_trajectories),
+        ("nc", ncb_champ_trajectories),
+    ]:
+        for t in series:
+            acq_info = {"date": t["acqDate"], "cost": t["acqCost"]} if t.get("hasAcquisition") else None
+            t["svgChart"] = generate_svg_chart(
+                t["points"], card_id=f"{prefix}_{t['productId']}", acq_info=acq_info, low_price=t.get("currentLowPrice")
+            )
 
     has_box_toppers = any(t["rarity"] == "BT" for t in beta_trajectories)
     wnc_tier_codes = ["IL", "IO", "IS", "BT"] if has_box_toppers else ["IL", "IO", "IS"]
@@ -3170,6 +3284,7 @@ def generate_html_dashboard(
         for code in wnc_tier_codes
     }
     nr_stats = _compute_tier_stats(ncb_trajectories)
+    nrc_stats = _compute_tier_stats(ncb_champ_trajectories)
 
     reverse_tier_map = {"Legends": "IL", "Others": "IO", "Secrets": "IS", "Box Toppers": "BT"}
     pair_by_key = {(reverse_tier_map.get(p.tier, "IL"), str(p.print_number)): p for p in pairs}
@@ -3219,19 +3334,32 @@ def generate_html_dashboard(
         "ncb": f"{ncb_count} market snapshots ({ncb_date_range})",
     }
 
-    has_ncb = len(ncb_trajectories) > 0
+    has_ncb = len(ncb_trajectories) > 0 or len(ncb_champ_trajectories) > 0
+    has_ncb_champ = len(ncb_champ_trajectories) > 0
+    ncb_section_codes = (
+        ["NR", "NRC"]
+        if (len(ncb_trajectories) > 0 and has_ncb_champ)
+        else (["NRC"] if has_ncb_champ else ["NR"])
+    )
     tier_sections_html = _render_tier_sections(retail_trajectories, beta_trajectories, r_stats, b_stats)
-    ncb_section_html = _render_ncb_section(ncb_trajectories, nr_stats) if has_ncb else ""
+    ncb_section_html = (
+        _render_ncb_section(ncb_trajectories, nr_stats, ncb_champ_trajectories, nrc_stats)
+        if has_ncb
+        else ""
+    )
     comp_view_html = _render_comparison_view(comp_pairs)
     total_card_count = len(beta_trajectories)
     ncb_card_count = len(ncb_trajectories)
+    ncb_champ_card_count = len(ncb_champ_trajectories)
     wnc_beta_range_label = _format_print_range(beta_trajectories)
     wnc_retail_range_label = _format_print_range(retail_trajectories)
-    ncb_range_label = _format_print_range(ncb_trajectories)
+    ncb_range_label = _format_print_range(ncb_trajectories or ncb_champ_trajectories)
     initial_sort_num_label = f"Print # ({wnc_beta_range_label})" if wnc_beta_range_label else "Print #"
     set_view_meta = {
         "totalCardCount": total_card_count,
         "ncbCardCount": ncb_card_count,
+        "ncbChampCardCount": ncb_champ_card_count,
+        "hasNcbChamp": has_ncb_champ,
         "wncBetaRangeLabel": wnc_beta_range_label,
         "wncRetailRangeLabel": wnc_retail_range_label,
         "ncbRangeLabel": ncb_range_label,
@@ -3247,6 +3375,21 @@ def generate_html_dashboard(
     bt_rarity_option_html = (
         '\n          <label class="multiselect-item"><input type="checkbox" value="BT" /><span class="multiselect-item-label">Nova Box Topper (BT)</span></label>'
         if has_box_toppers
+        else ""
+    )
+    ms_variant_html = (
+        """
+      <div class="multiselect" id="ms-variant" style="display: none;">
+        <button type="button" class="multiselect-btn" id="btn-variant">
+          <span>Variant</span>
+          <span class="filter-count" id="badge-variant" style="display: none;">0</span>
+        </button>
+        <div class="multiselect-menu" id="menu-variant">
+          <label class="multiselect-item"><input type="checkbox" value="NR" /><span class="multiselect-item-label">Regular (NR)</span></label>
+          <label class="multiselect-item"><input type="checkbox" value="NRC" /><span class="multiselect-item-label">Brawl Champ (NRC)</span></label>
+        </div>
+      </div>"""
+        if has_ncb_champ
         else ""
     )
 
@@ -3358,7 +3501,7 @@ def generate_html_dashboard(
           <label class="multiselect-item"><input type="checkbox" value="IO" /><span class="multiselect-item-label">Iconic Other (IO)</span></label>
           <label class="multiselect-item"><input type="checkbox" value="IS" /><span class="multiselect-item-label">Iconic Secret (IS)</span></label>{bt_rarity_option_html}
         </div>
-      </div>
+      </div>{ms_variant_html}
 
       <div class="multiselect" id="ms-ownership">
         <button type="button" class="multiselect-btn" id="btn-ownership">
@@ -3401,7 +3544,9 @@ def generate_html_dashboard(
   <script>
     const totalCardCount = {total_card_count};
     const ncbCardCount = {ncb_card_count};
+    const hasNcbChamp = {'true' if has_ncb_champ else 'false'};
     const renderedTierCodes = {serialize_json_for_script(wnc_tier_codes)};
+    const renderedNcbCodes = {serialize_json_for_script(ncb_section_codes)};
     const setViewMeta = {serialize_json_for_script(set_view_meta)};
     const snapshotTemplates = {serialize_json_for_script(snapshot_templates)};
 {_DASHBOARD_JS_BODY}"""
