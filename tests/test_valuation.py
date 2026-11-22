@@ -1856,6 +1856,63 @@ class TestPortfolioValuation(unittest.TestCase):
                 collection_rows=colliding_rows,
             )
 
+    def test_unmatched_variant_does_not_fallback_to_base_prod_or_carry_forward_by_pid(self):
+        from tracker.valuation import resolve_item_market_price
+
+        base_prod = {
+            "productId": 719698,
+            "name": "Maman Brigitte - Spirit of Death",
+            "cleanName": "Maman Brigitte Spirit of Death",
+            "groupName": "Night City Brawl Season 1",
+            "printNumber": "015",
+            "rarity": "NR",
+            "color": "Blue",
+            "cardType": "Unit",
+            "prices": {"Foil": {"marketPrice": 6.63}},
+        }
+        indexes = {
+            "by_group_pnum": {("night city brawl season 1", "015"): base_prod},
+            "by_group_name": {("night city brawl season 1", "maman brigitte - spirit of death"): base_prod},
+            "by_group_clean_name": {},
+            "by_name": {},
+        }
+        row = {
+            "name": "Maman Brigitte - Spirit of Death",
+            "expansion": "Night City Brawl Season 1",
+            "printNumber": "015",
+            "finish": "Foil",
+            "totalQtyOwned": 1,
+            "variant": "Brawl Champ",
+        }
+        prod, ctx, _, is_matched, _ = match_collection_item(row, indexes, "2026-11-07")
+        self.assertIsNone(prod)
+        self.assertFalse(is_matched)
+        self.assertIsNone(ctx.prod_id)
+        self.assertEqual(ctx.variant, "Brawl Champ")
+        self.assertEqual(ctx.name, "Maman Brigitte - Spirit of Death (Brawl Champ)")
+        self.assertEqual(ctx.rarity, "Nova")
+        self.assertEqual(ctx.color, "Blue")
+        self.assertEqual(ctx.card_type, "Unit")
+
+        # Carry-forward must stay isolated by COALESCE(m.variant, '') even when product_id matches across rows
+        conn = init_database(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO card_metadata (card_key, product_id, name, print_number, expansion, finish, rarity, color, first_seen_date, baseline_market_price, item_type, variant)
+            VALUES ('Night City Brawl Season 1::015::Foil::2026-11-07', 719698, 'Maman Brigitte - Spirit of Death', '015', 'Night City Brawl Season 1', 'Foil', 'Nova', 'Blue', '2026-11-07', 6.63, 'Card', NULL)
+        """)
+        cur.execute("""
+            INSERT INTO daily_snapshots (date, card_key, quantity, unit_market_price, line_total, baseline_price)
+            VALUES ('2026-11-07', 'Night City Brawl Season 1::015::Foil::2026-11-07', 1, 6.63, 6.63, 6.63)
+        """)
+        conn.commit()
+
+        # Simulate a stale ctx carrying prod_id=719698 with variant='Brawl Champ': must not resolve base snapshot
+        ctx.prod_id = 719698
+        market_price, _, _, _, _ = resolve_item_market_price(None, ctx, "2026-11-08", cur)
+        conn.close()
+        self.assertIsNone(market_price)
+
 
 class TestReportFormatting(unittest.TestCase):
 

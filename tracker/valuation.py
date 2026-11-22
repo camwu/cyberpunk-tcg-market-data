@@ -534,8 +534,6 @@ def match_collection_item(
             base_clean_name = (base_prod.get("cleanName") or "").strip()
             if not prod and base_clean_name:
                 prod = by_group_clean_name.get((lookup_expansion.lower(), f"{base_clean_name} {variant}".lower()))
-        if not prod:
-            prod = base_prod
     else:
         if print_number:
             prod = base_prod if item_type != "Sealed" else by_group_pnum.get((lookup_expansion.lower(), print_number.lower()))
@@ -548,7 +546,7 @@ def match_collection_item(
 
     effective_print_number = print_number
     effective_variant = variant
-    if variant and prod and prod is not base_prod:
+    if variant and prod:
         matched_pnum = (prod.get("printNumber") or "").strip() or None
         if matched_pnum:
             effective_print_number = matched_pnum
@@ -640,14 +638,13 @@ def resolve_item_market_price(
         FROM daily_snapshots s
         JOIN card_metadata m ON s.card_key = m.card_key
         WHERE s.date < ? AND s.unit_market_price > 0.0
+          AND COALESCE(m.variant, '') = ?
           AND ((m.product_id IS NOT NULL AND m.product_id = ?)
-               OR (COALESCE(m.variant, '') = ? AND (
-                   (m.expansion = ? AND m.print_number = ? AND m.finish = ?)
-                   OR (m.expansion = ? AND m.name = ?)
-               )))
+               OR (m.expansion = ? AND m.print_number = ? AND m.finish = ?)
+               OR (m.expansion = ? AND m.name = ?))
         ORDER BY s.date DESC
         LIMIT 1
-        """, (date_str, ctx.prod_id, variant_key, ctx.expansion, ctx.print_number, ctx.finish, ctx.expansion, ctx.name))
+        """, (date_str, variant_key, ctx.prod_id, ctx.expansion, ctx.print_number, ctx.finish, ctx.expansion, ctx.name))
         prev_price_row = cur.fetchone()
         if prev_price_row and prev_price_row[0] is not None and prev_price_row[0] > 0.0:
             market_price = prev_price_row[0]
