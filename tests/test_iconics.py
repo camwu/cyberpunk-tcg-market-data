@@ -2978,11 +2978,12 @@ process.stdout.write(JSON.stringify(out));
         node_bin = self._require_node()
         parse_num_js = "    function parseNum(" + _DASHBOARD_JS_BODY.split("    function parseNum(", 1)[1].split("    function fmtCurrency(", 1)[0]
         compare_col_js = "    function compareTableRowsByCol(" + _DASHBOARD_JS_BODY.split("    function compareTableRowsByCol(", 1)[1].split("    function initFilters(", 1)[0]
+        helper_js = json.dumps(parse_num_js + "\n" + compare_col_js)
         driver = f"""
 const vm = require('vm');
 const context = {{}};
 vm.createContext(context);
-vm.runInContext({json.dumps(parse_num_js + "\n" + compare_col_js)}, context);
+vm.runInContext({helper_js}, context);
 const rows = [
   {{ dataset: {{ num: '015', name: 'maman', type: 'Program', mktPrice: '20.0', lowPrice: '', c7dDlr: '-2.0', c7dPct: '-9.1', owned: '1' }} }},
   {{ dataset: {{ num: '002', name: 'kiroshi', type: 'Gear', mktPrice: '15.0', lowPrice: '12.0', c7dDlr: '3.0', c7dPct: '25.0', owned: '0' }} }},
