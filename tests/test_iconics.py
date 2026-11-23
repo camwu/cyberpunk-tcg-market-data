@@ -2967,6 +2967,37 @@ process.stdout.write(JSON.stringify(out));
         self.assertIn('id="total-label-NR">Total</td>', html_full)
         self.assertIn('id="total-low-price-NR">$23.50</td>', html_full)
 
+    def test_table_header_sort_preserved_on_filter_and_cleared_on_sort_select(self):
+        from tracker.iconics_html import _DASHBOARD_JS_BODY
+
+        self.assertIn("const activeTh = table.querySelector('th.sortable.sort-asc, th.sortable.sort-desc');", _DASHBOARD_JS_BODY)
+        self.assertIn("if (activeCol) {", _DASHBOARD_JS_BODY)
+        self.assertIn("return compareTableRowsByCol(a, b, activeCol, activeDir);", _DASHBOARD_JS_BODY)
+        self.assertIn("clearTableHeaderSorts(currentSet === 'ncb' ? ncbSectionCodes : tierCodes);", _DASHBOARD_JS_BODY)
+
+        node_bin = self._require_node()
+        parse_num_js = "    function parseNum(" + _DASHBOARD_JS_BODY.split("    function parseNum(", 1)[1].split("    function fmtCurrency(", 1)[0]
+        compare_col_js = "    function compareTableRowsByCol(" + _DASHBOARD_JS_BODY.split("    function compareTableRowsByCol(", 1)[1].split("    function initFilters(", 1)[0]
+        driver = f"""
+const vm = require('vm');
+const context = {{}};
+vm.createContext(context);
+vm.runInContext({json.dumps(parse_num_js + "\n" + compare_col_js)}, context);
+const rows = [
+  {{ dataset: {{ num: '015', name: 'maman', type: 'Program', mktPrice: '20.0', lowPrice: '', c7dDlr: '-2.0', c7dPct: '-9.1', owned: '1' }} }},
+  {{ dataset: {{ num: '002', name: 'kiroshi', type: 'Gear', mktPrice: '15.0', lowPrice: '12.0', c7dDlr: '3.0', c7dPct: '25.0', owned: '0' }} }},
+  {{ dataset: {{ num: '011', name: 'wraith', type: 'Unit', mktPrice: '10.0', lowPrice: '8.5', c7dDlr: '2.0', c7dPct: '25.0', owned: '1' }} }},
+];
+const byLowAsc = [...rows].sort((a, b) => context.compareTableRowsByCol(a, b, 'low_price', 1)).map(r => r.dataset.num);
+const byPctDescTieNum = [...rows].sort((a, b) => context.compareTableRowsByCol(a, b, 'c7d_pct', -1)).map(r => r.dataset.num);
+process.stdout.write(JSON.stringify({{ byLowAsc, byPctDescTieNum }}));
+"""
+        proc = subprocess.run([node_bin, "-e", driver], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        res = json.loads(proc.stdout)
+        self.assertEqual(res["byLowAsc"], ["011", "002", "015"])
+        self.assertEqual(res["byPctDescTieNum"], ["002", "011", "015"])
+
 
 if __name__ == "__main__":
     unittest.main()

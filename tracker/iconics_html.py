@@ -2130,6 +2130,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       if (sortSelect) {
         sortSelect.value = (!filterObj.s || filterObj.s === 'num') ? 'num-asc' : filterObj.s;
       }
+      clearTableHeaderSorts(currentSet === 'ncb' ? ncbSectionCodes : tierCodes);
       setPricedSetTier(filterObj.b || 'all', false);
     }
 
@@ -2560,8 +2561,14 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
             if (!table) return;
             const tbody = table.querySelector('tbody');
             if (!tbody) return;
+            const activeTh = table.querySelector('th.sortable.sort-asc, th.sortable.sort-desc');
+            const activeCol = activeTh ? activeTh.dataset.col : null;
+            const activeDir = activeTh && activeTh.classList.contains('sort-asc') ? 1 : -1;
             const tableRows = Array.from(tbody.querySelectorAll('tr.ncb-comp-row'));
             tableRows.sort((a, b) => {
+              if (activeCol) {
+                return compareTableRowsByCol(a, b, activeCol, activeDir);
+              }
               if (sort === 'price-desc') {
                 const cmp = compareNullableNums(a.dataset.mktPrice, b.dataset.mktPrice, -1);
                 if (cmp !== 0) return cmp;
@@ -2714,14 +2721,25 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
           if (!table) return;
           const tbody = table.querySelector('tbody');
           if (!tbody) return;
+          const activeTh = table.querySelector('th.sortable.sort-asc, th.sortable.sort-desc');
+          const activeCol = activeTh ? activeTh.dataset.col : null;
+          const activeDir = activeTh && activeTh.classList.contains('sort-asc') ? 1 : -1;
           const tableRows = Array.from(tbody.querySelectorAll('tr.comp-row'));
           tableRows.sort((a, b) => {
-            if (sort === 'price-desc') return compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, -1);
-            if (sort === 'price-asc') return compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, 1);
-            if (sort === 'gain-desc' || sort === 'gain-all-desc' || sort === 'gain-acq-desc') {
-              return compareNullableNums(a.dataset.spreadPct, b.dataset.spreadPct, -1);
+            if (activeCol) {
+              return compareTableRowsByCol(a, b, activeCol, activeDir);
             }
-            return (parseInt(a.dataset.num) || 0) - (parseInt(b.dataset.num) || 0);
+            if (sort === 'price-desc') {
+              const cmp = compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, -1);
+              if (cmp !== 0) return cmp;
+            } else if (sort === 'price-asc') {
+              const cmp = compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, 1);
+              if (cmp !== 0) return cmp;
+            } else if (sort === 'gain-desc' || sort === 'gain-all-desc' || sort === 'gain-acq-desc') {
+              const cmp = compareNullableNums(a.dataset.spreadPct, b.dataset.spreadPct, -1);
+              if (cmp !== 0) return cmp;
+            }
+            return (parseInt(a.dataset.num.replace(/\D/g, ''), 10) || 0) - (parseInt(b.dataset.num.replace(/\D/g, ''), 10) || 0);
           });
           tableRows.forEach(row => tbody.appendChild(row));
         });
@@ -2792,7 +2810,40 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     document.querySelectorAll('.multiselect-item input[type="checkbox"]').forEach(box => {
       box.addEventListener('change', onFilterChange);
     });
-    sortSelect.addEventListener('change', onFilterChange);
+    sortSelect.addEventListener('change', () => {
+      clearTableHeaderSorts(currentSet === 'ncb' ? ncbSectionCodes : tierCodes);
+      onFilterChange();
+    });
+
+    function clearTableHeaderSorts(codes) {
+      const targetCodes = Array.isArray(codes) ? codes : tierCodes.concat(ncbSectionCodes);
+      targetCodes.forEach(code => {
+        const table = document.getElementById(`table-${code}`);
+        if (table) {
+          table.querySelectorAll('th.sortable').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        }
+      });
+    }
+
+    function compareTableRowsByCol(a, b, col, dir) {
+      let cmp = 0;
+      if (col === 'num') cmp = dir * ((parseInt(a.dataset.num.replace(/\D/g, ''), 10) || 0) - (parseInt(b.dataset.num.replace(/\D/g, ''), 10) || 0));
+      else if (col === 'name') cmp = dir * a.dataset.name.localeCompare(b.dataset.name);
+      else if (col === 'type') cmp = dir * a.dataset.type.localeCompare(b.dataset.type);
+      else if (col === 'b_price') cmp = compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, dir);
+      else if (col === 'r_price') cmp = compareNullableNums(a.dataset.rPrice, b.dataset.rPrice, dir);
+      else if (col === 'spread_dlr') cmp = compareNullableNums(a.dataset.spreadDlr, b.dataset.spreadDlr, dir);
+      else if (col === 'spread_pct') cmp = compareNullableNums(a.dataset.spreadPct, b.dataset.spreadPct, dir);
+      else if (col === 'b_owned') cmp = dir * ((parseInt(a.dataset.ownedB, 10) || 0) - (parseInt(b.dataset.ownedB, 10) || 0));
+      else if (col === 'r_owned') cmp = dir * ((parseInt(a.dataset.ownedR, 10) || 0) - (parseInt(b.dataset.ownedR, 10) || 0));
+      else if (col === 'mkt_price') cmp = compareNullableNums(a.dataset.mktPrice, b.dataset.mktPrice, dir);
+      else if (col === 'low_price') cmp = compareNullableNums(a.dataset.lowPrice, b.dataset.lowPrice, dir);
+      else if (col === 'c7d_dlr') cmp = compareNullableNums(a.dataset.c7dDlr, b.dataset.c7dDlr, dir);
+      else if (col === 'c7d_pct') cmp = compareNullableNums(a.dataset.c7dPct, b.dataset.c7dPct, dir);
+      else if (col === 'owned') cmp = dir * ((parseInt(a.dataset.owned, 10) || 0) - (parseInt(b.dataset.owned, 10) || 0));
+      if (cmp !== 0) return cmp;
+      return (parseInt(a.dataset.num.replace(/\D/g, ''), 10) || 0) - (parseInt(b.dataset.num.replace(/\D/g, ''), 10) || 0);
+    }
 
     function initFilters() {
       const rawSaved = loadState();
@@ -2822,23 +2873,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         th.classList.toggle('sort-desc', isAsc);
         const dir = isAsc ? -1 : 1;
 
-        rows.sort((a, b) => {
-          if (col === 'num') return dir * ((parseInt(a.dataset.num.replace(/\D/g, ''), 10) || 0) - (parseInt(b.dataset.num.replace(/\D/g, ''), 10) || 0));
-          if (col === 'name') return dir * a.dataset.name.localeCompare(b.dataset.name);
-          if (col === 'type') return dir * a.dataset.type.localeCompare(b.dataset.type);
-          if (col === 'b_price') return compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, dir);
-          if (col === 'r_price') return compareNullableNums(a.dataset.rPrice, b.dataset.rPrice, dir);
-          if (col === 'spread_dlr') return compareNullableNums(a.dataset.spreadDlr, b.dataset.spreadDlr, dir);
-          if (col === 'spread_pct') return compareNullableNums(a.dataset.spreadPct, b.dataset.spreadPct, dir);
-          if (col === 'b_owned') return dir * ((parseInt(a.dataset.ownedB, 10) || 0) - (parseInt(b.dataset.ownedB, 10) || 0));
-          if (col === 'r_owned') return dir * ((parseInt(a.dataset.ownedR, 10) || 0) - (parseInt(b.dataset.ownedR, 10) || 0));
-          if (col === 'mkt_price') return compareNullableNums(a.dataset.mktPrice, b.dataset.mktPrice, dir);
-          if (col === 'low_price') return compareNullableNums(a.dataset.lowPrice, b.dataset.lowPrice, dir);
-          if (col === 'c7d_dlr') return compareNullableNums(a.dataset.c7dDlr, b.dataset.c7dDlr, dir);
-          if (col === 'c7d_pct') return compareNullableNums(a.dataset.c7dPct, b.dataset.c7dPct, dir);
-          if (col === 'owned') return dir * ((parseInt(a.dataset.owned, 10) || 0) - (parseInt(b.dataset.owned, 10) || 0));
-          return 0;
-        });
+        rows.sort((a, b) => compareTableRowsByCol(a, b, col, dir));
 
         rows.forEach(r => tbody.appendChild(r));
       });
