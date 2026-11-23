@@ -2999,6 +2999,295 @@ process.stdout.write(JSON.stringify({{ byLowAsc, byPctDescTieNum }}));
         self.assertEqual(res["byLowAsc"], ["011", "002", "015"])
         self.assertEqual(res["byPctDescTieNum"], ["002", "011", "015"])
 
+    def test_header_hydration_precedes_card_sections_and_guards_preload_transitions(self):
+        catalog = {
+            "_groups": self._base_wnc_iconic_catalog_entries(),
+            "101": {
+                "productId": 101,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Beta",
+                "printNumber": "B141",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+            },
+            "102": {
+                "productId": 102,
+                "name": "Adam Smasher",
+                "groupName": "Welcome to Night City - Retail",
+                "printNumber": "141",
+                "rarity": "IL",
+                "color": "Red",
+                "cardType": "Legend",
+            },
+            "301": {
+                "productId": 301,
+                "name": "Chrome",
+                "groupName": "Night City Brawl Season 1",
+                "printNumber": "001",
+                "rarity": "NR",
+                "color": "Blue",
+                "cardType": "Program",
+            },
+        }
+        self.cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+        (self.prices_dir / "2026-11-10.json").write_text(
+            json.dumps({
+                "date": "2026-11-10",
+                "prices": {
+                    "101": {"Foil": {"marketPrice": 120.0}},
+                    "102": {"Foil": {"marketPrice": 80.0}},
+                    "301": {"Foil": {"marketPrice": 25.0}},
+                },
+            }),
+            encoding="utf-8",
+        )
+        self.collection_csv.write_text(
+            "productId,name,expansion,printNumber,finish,totalQtyOwned,notes\n"
+            "101,Adam Smasher,Welcome to Night City - Beta,B141,Foil,1,2026-11-10: 1\n",
+            encoding="utf-8",
+        )
+        out_html = self.test_dir / "preload_order_check.html"
+        with patch("tracker.iconics.REPO_ROOT", self.test_dir):
+            rc, _ = run_iconics_comparison(
+                output_path=str(out_html),
+                collection_path=str(self.collection_csv),
+                cards_path=self.cards_file,
+                prices_dir=self.prices_dir,
+            )
+        self.assertEqual(rc, 0)
+        rendered = out_html.read_text(encoding="utf-8")
+
+        head_end = rendered.index("</head>")
+        header_end = rendered.index("</header>")
+        first_section = rendered.index('id="section-IL"')
+        hydrate_call = rendered.index("hydrateHeaderControls();")
+        init_call = rendered.index("initFilters();")
+
+        self.assertLess(rendered.index("const setViewMeta ="), head_end)
+        self.assertLess(rendered.index("const snapshotTemplates ="), head_end)
+        self.assertIn("html.preload-hydrating *", rendered[:head_end])
+        self.assertIn("html.preload-header-pending .sticky-nav", rendered[:head_end])
+        self.assertIn("html.preload-count-pending #count-display", rendered[:head_end])
+        self.assertIn("html.preload-anchor-lifetime #btn-anchor-lifetime", rendered[:head_end])
+        self.assertGreater(hydrate_call, header_end)
+        self.assertLess(hydrate_call, first_section)
+        self.assertGreater(init_call, first_section)
+
+    def test_header_hydration_js_hydrates_title_basis_and_filters_under_node(self):
+        from tracker.iconics_html import _HEADER_HYDRATION_JS, _SET_STATE_JS
+
+        node_bin = self._require_node()
+        state_js = json.dumps(_SET_STATE_JS)
+        header_js = json.dumps(_HEADER_HYDRATION_JS)
+        driver = f"""
+const vm = require('vm');
+
+function makeClassList(initial) {{
+  const set = new Set(initial || []);
+  return {{
+    add: (...cls) => cls.forEach(c => set.add(c)),
+    remove: (...cls) => cls.forEach(c => set.delete(c)),
+    toggle: (c, force) => {{
+      const next = force === undefined ? !set.has(c) : Boolean(force);
+      if (next) set.add(c); else set.delete(c);
+      return next;
+    }},
+    contains: (c) => set.has(c),
+    toArray: () => Array.from(set).sort()
+  }};
+}}
+
+function makeEl(id, extra) {{
+  return Object.assign({{
+    id,
+    textContent: '',
+    value: '',
+    placeholder: '',
+    style: {{}},
+    classList: makeClassList([]),
+    previousElementSibling: null,
+    nextElementSibling: null,
+    offsetHeight: 120,
+    getBoundingClientRect: () => ({{ top: 10 }}),
+    querySelector: () => null,
+    querySelectorAll: () => []
+  }}, extra || {{}});
+}}
+
+function runScenario(savedState) {{
+  const rootClasses = makeClassList(['preload-hydrating', 'preload-header-pending', 'preload-count-pending']);
+  const cssVars = {{}};
+  const sortNumOpt = makeEl('opt-num-asc');
+  const checkboxes = {{
+    color: [{{ value: 'Red', checked: false }}, {{ value: 'Blue', checked: false }}],
+    type: [{{ value: 'Unit', checked: false }}],
+    rarity: [{{ value: 'IL', checked: false }}],
+    variant: [{{ value: 'NR', checked: false }}, {{ value: 'NRC', checked: false }}],
+    ownership: [{{ value: 'owned', checked: false }}],
+  }};
+  const elements = {{
+    'dashboard-title': makeEl('dashboard-title'),
+    'btn-set-wnc': makeEl('btn-set-wnc', {{ classList: makeClassList(['toggle-btn', 'active']) }}),
+    'btn-set-ncb': makeEl('btn-set-ncb', {{ classList: makeClassList(['toggle-btn']) }}),
+    'btn-beta': makeEl('btn-beta', {{ classList: makeClassList(['toggle-btn', 'active']) }}),
+    'btn-retail': makeEl('btn-retail', {{ classList: makeClassList(['toggle-btn']) }}),
+    'btn-comparison': makeEl('btn-comparison', {{ classList: makeClassList(['toggle-btn']) }}),
+    'btn-ncb-charts': makeEl('btn-ncb-charts', {{ classList: makeClassList(['toggle-btn', 'active']) }}),
+    'btn-ncb-table': makeEl('btn-ncb-table', {{ classList: makeClassList(['toggle-btn']) }}),
+    'btn-anchor-lifetime': makeEl('btn-anchor-lifetime', {{ classList: makeClassList(['toggle-btn']) }}),
+    'btn-anchor-acq': makeEl('btn-anchor-acq', {{ classList: makeClassList(['toggle-btn', 'active']) }}),
+    'btn-anchor-l7d': makeEl('btn-anchor-l7d', {{ classList: makeClassList(['toggle-btn']) }}),
+    'cluster-view': makeEl('cluster-view'),
+    'divider-view': makeEl('divider-view'),
+    'edition-toggle': makeEl('edition-toggle'),
+    'ncb-view-toggle': makeEl('ncb-view-toggle'),
+    'ms-rarity': makeEl('ms-rarity'),
+    'ms-variant': makeEl('ms-variant'),
+    'type-item-legend': makeEl('type-item-legend'),
+    'cluster-basis': makeEl('cluster-basis'),
+    'sort-select': makeEl('sort-select', {{ querySelector: (sel) => sel === 'option[value="num-asc"]' ? sortNumOpt : null }}),
+    'search-input': makeEl('search-input'),
+    'meta-snapshots': makeEl('meta-snapshots'),
+    'chart-legend': makeEl('chart-legend'),
+    'btn-reset-filters': makeEl('btn-reset-filters'),
+    'count-display': makeEl('count-display'),
+    'badge-color': makeEl('badge-color'),
+    'badge-type': makeEl('badge-type'),
+    'badge-rarity': makeEl('badge-rarity'),
+    'badge-variant': makeEl('badge-variant'),
+    'badge-ownership': makeEl('badge-ownership'),
+  }};
+  Object.keys(checkboxes).forEach(cat => {{
+    elements[`menu-${{cat}}`] = makeEl(`menu-${{cat}}`, {{
+      querySelectorAll: (sel) => {{
+        if (sel === 'input[type="checkbox"]:checked') return checkboxes[cat].filter(b => b.checked);
+        if (sel === 'input[type="checkbox"]') return checkboxes[cat];
+        return [];
+      }}
+    }});
+  }});
+  const navEl = makeEl('sticky-nav', {{ offsetHeight: 142 }});
+  const context = {{
+    hasNcb: true,
+    setViewMeta: {{
+      totalCardCount: 37,
+      wncRetailCardCount: 37,
+      ncbCardCount: 18,
+      ncbChampCardCount: 2,
+      hasNcbChamp: true,
+      wncBetaRangeLabel: 'B001 \u2192 B171',
+      wncRetailRangeLabel: '001 \u2192 171',
+      ncbRangeLabel: '001 \u2192 020'
+    }},
+    snapshotTemplates: {{
+      beta: '71 market snapshots (beta)',
+      retail: '24 market snapshots (retail)',
+      ncb: '17 market snapshots (ncb)'
+    }},
+    document: {{
+      title: 'Welcome to Night City',
+      documentElement: {{
+        classList: rootClasses,
+        style: {{ setProperty: (k, v) => {{ cssVars[k] = v; }} }}
+      }},
+      getElementById: (id) => elements[id] || null,
+      querySelector: (sel) => sel === '.sticky-nav' ? navEl : null,
+      querySelectorAll: () => []
+    }}
+  }};
+  vm.createContext(context);
+  vm.runInContext({state_js}, context);
+  context.initialFilterState = context.normalizeSavedFilterState(savedState, true);
+  vm.runInContext({header_js} + "\\nhydrateHeaderControls();", context);
+  return {{
+    docTitle: context.document.title,
+    h1: elements['dashboard-title'].textContent,
+    metaText: elements['meta-snapshots'].textContent,
+    metaDisplay: elements['meta-snapshots'].style.display,
+    searchVal: elements['search-input'].value,
+    searchPlaceholder: elements['search-input'].placeholder,
+    sortVal: elements['sort-select'].value,
+    sortNumLabel: sortNumOpt.textContent,
+    countText: elements['count-display'].textContent,
+    colorBadge: elements['badge-color'].textContent,
+    colorBadgeDisplay: elements['badge-color'].style.display,
+    variantBadge: elements['badge-variant'].textContent,
+    resetActive: elements['btn-reset-filters'].classList.contains('is-active'),
+    ncbActive: elements['btn-set-ncb'].classList.contains('active'),
+    wncActive: elements['btn-set-wnc'].classList.contains('active'),
+    ncbTableActive: elements['btn-ncb-table'].classList.contains('active'),
+    retailActive: elements['btn-retail'].classList.contains('active'),
+    anchorL7dActive: elements['btn-anchor-l7d'].classList.contains('active'),
+    anchorLifetimeActive: elements['btn-anchor-lifetime'].classList.contains('active'),
+    anchorAcqActive: elements['btn-anchor-acq'].classList.contains('active'),
+    rootClasses: rootClasses.toArray(),
+    stickyNavVar: cssVars['--sticky-nav-height']
+  }};
+}}
+
+const ncbFiltered = runScenario({{
+  set: 'ncb',
+  edition: 'beta',
+  ncbView: 'table',
+  anchor: 'l7d',
+  filtersBySet: {{
+    wnc: {{ q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{}} }},
+    ncb: {{ q: 'Chrome', o: [], r: ['NRC'], c: ['Blue'], t: [], s: 'price-desc', b: 'all', statsOpen: {{}} }}
+  }}
+}});
+
+const wncRetailUnfiltered = runScenario({{
+  set: 'wnc',
+  edition: 'retail',
+  ncbView: 'charts',
+  anchor: 'lifetime',
+  filtersBySet: {{
+    wnc: {{ q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{}} }},
+    ncb: {{ q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{}} }}
+  }}
+}});
+
+process.stdout.write(JSON.stringify({{ ncbFiltered, wncRetailUnfiltered }}));
+"""
+        proc = subprocess.run([node_bin, "-e", driver], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        res = json.loads(proc.stdout)
+
+        ncb = res["ncbFiltered"]
+        self.assertEqual(ncb["h1"], "Night City Brawl Season 1 \u2013 Nova Rare Price Trajectories")
+        self.assertEqual(ncb["docTitle"], ncb["h1"])
+        self.assertEqual(ncb["metaDisplay"], "none")
+        self.assertEqual(ncb["searchVal"], "Chrome")
+        self.assertIn("001, Chrome", ncb["searchPlaceholder"])
+        self.assertEqual(ncb["sortVal"], "price-desc")
+        self.assertEqual(ncb["sortNumLabel"], "Print # (001 \u2192 020)")
+        self.assertEqual(str(ncb["colorBadge"]), "1")
+        self.assertEqual(ncb["colorBadgeDisplay"], "inline-flex")
+        self.assertEqual(str(ncb["variantBadge"]), "1")
+        self.assertTrue(ncb["resetActive"])
+        self.assertTrue(ncb["ncbActive"])
+        self.assertFalse(ncb["wncActive"])
+        self.assertTrue(ncb["ncbTableActive"])
+        self.assertTrue(ncb["anchorL7dActive"])
+        self.assertFalse(ncb["anchorAcqActive"])
+        self.assertNotIn("preload-header-pending", ncb["rootClasses"])
+        self.assertIn("preload-count-pending", ncb["rootClasses"])
+        self.assertEqual(ncb["stickyNavVar"], "142px")
+
+        retail = res["wncRetailUnfiltered"]
+        self.assertEqual(retail["h1"], "Welcome to Night City \u2013 Iconic & Promo Price Trajectories")
+        self.assertEqual(retail["metaText"], "24 market snapshots (retail)")
+        self.assertEqual(retail["metaDisplay"], "block")
+        self.assertEqual(retail["sortNumLabel"], "Print # (001 \u2192 171)")
+        self.assertEqual(retail["countText"], "Showing 37 of 37 cards")
+        self.assertTrue(retail["retailActive"])
+        self.assertTrue(retail["anchorLifetimeActive"])
+        self.assertFalse(retail["anchorAcqActive"])
+        self.assertFalse(retail["resetActive"])
+        self.assertNotIn("preload-header-pending", retail["rootClasses"])
+        self.assertNotIn("preload-count-pending", retail["rootClasses"])
+
 
 if __name__ == "__main__":
     unittest.main()

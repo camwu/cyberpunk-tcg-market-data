@@ -216,6 +216,28 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
         sortNumLabel: wncRange ? ('Print # (' + wncRange + ')') : 'Print #',
         countDenominator: Number(m.totalCardCount || 0)
       };
+    }
+
+    function hasActiveFilterValues(filterObj) {
+      if (!filterObj || typeof filterObj !== 'object') return false;
+      var q = typeof filterObj.q === 'string' ? filterObj.q.trim() : '';
+      return Boolean(
+        q ||
+        (Array.isArray(filterObj.o) && filterObj.o.length > 0) ||
+        (Array.isArray(filterObj.r) && filterObj.r.length > 0) ||
+        (Array.isArray(filterObj.c) && filterObj.c.length > 0) ||
+        (Array.isArray(filterObj.t) && filterObj.t.length > 0)
+      );
+    }
+
+    function resolveSearchPlaceholder(activeSet, activeEdition) {
+      if (activeSet === 'ncb') {
+        return 'Search by card name or number (e.g. 001, Chrome, Brawl)...';
+      }
+      if (activeEdition === 'retail' || activeEdition === 'comparison') {
+        return 'Search by card name or number (e.g. 141, Panam, Judy, Smasher)...';
+      }
+      return 'Search by card name or number (e.g. B141, Panam, Judy, Smasher)...';
     }"""
 
 _ALLOWED_COLORS = {"Yellow", "Green", "Blue", "Red", "Neutral"}
@@ -1840,7 +1862,207 @@ _DASHBOARD_CSS = """    :root {
     html.preload-ncb-table #chart-legend { display: none !important; }
     html.preload-ncb-table #view-ncb-table { display: block !important; }
     html.preload-ncb-table #btn-ncb-charts { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
-    html.preload-ncb-table #btn-ncb-table { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }"""
+    html.preload-ncb-table #btn-ncb-table { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }
+    html.preload-anchor-lifetime #btn-anchor-acq,
+    html.preload-anchor-l7d #btn-anchor-acq { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
+    html.preload-anchor-lifetime #btn-anchor-lifetime,
+    html.preload-anchor-l7d #btn-anchor-l7d { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }
+    html.preload-hydrating *,
+    html.preload-hydrating *::before,
+    html.preload-hydrating *::after { transition: none !important; }
+    html.preload-header-pending .sticky-nav { visibility: hidden; }
+    html.preload-count-pending #count-display { visibility: hidden; }"""
+
+
+_HEADER_HYDRATION_JS = r"""    const multiselectCategories = ['color', 'type', 'rarity', 'variant', 'ownership'];
+
+    function getSelected(cat) {
+      const menu = document.getElementById(`menu-${cat}`);
+      if (!menu) return [];
+      const checked = Array.from(menu.querySelectorAll('input[type="checkbox"]:checked'));
+      return checked.map(c => c.value);
+    }
+
+    function updateBadge(cat) {
+      const vals = getSelected(cat);
+      const badge = document.getElementById(`badge-${cat}`);
+      if (badge) {
+        if (vals.length > 0) {
+          badge.textContent = vals.length;
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }
+
+    function syncClusterDividers() {
+      const dividers = document.querySelectorAll('.cluster-divider');
+      dividers.forEach(d => {
+        const prev = d.previousElementSibling;
+        const next = d.nextElementSibling;
+        if ((prev && prev.style.display === 'none') || (next && next.style.display === 'none')) {
+          d.style.display = 'none';
+          return;
+        }
+        d.style.display = 'block';
+        if (prev && next) {
+          const pRect = prev.getBoundingClientRect();
+          const dRect = d.getBoundingClientRect();
+          const nRect = next.getBoundingClientRect();
+          if (Math.abs(pRect.top - dRect.top) > 8 || Math.abs(dRect.top - nRect.top) > 8) {
+            d.style.display = 'none';
+          }
+        }
+      });
+    }
+
+    function syncStickyNavHeight() {
+      syncClusterDividers();
+      const nav = document.querySelector('.sticky-nav');
+      if (nav) document.documentElement.style.setProperty('--sticky-nav-height', `${nav.offsetHeight}px`);
+      if (typeof syncTierHeaderStickyBounds === 'function') syncTierHeaderStickyBounds();
+    }
+
+    function applyAnchorButtons(anchor) {
+      const btnLife = document.getElementById('btn-anchor-lifetime');
+      const btnAcq = document.getElementById('btn-anchor-acq');
+      const btnL7d = document.getElementById('btn-anchor-l7d');
+      if (btnLife) btnLife.classList.toggle('active', anchor === 'lifetime');
+      if (btnAcq) btnAcq.classList.toggle('active', anchor === 'acq');
+      if (btnL7d) btnL7d.classList.toggle('active', anchor === 'l7d');
+    }
+
+    function applyHeaderFromDescriptor(desc, activeSet, activeEdition, activeNcbView) {
+      const titleEl = document.getElementById('dashboard-title');
+      if (titleEl) titleEl.textContent = desc.title;
+      document.title = desc.title;
+
+      const setWnc = document.getElementById('btn-set-wnc');
+      const setNcb = document.getElementById('btn-set-ncb');
+      if (setWnc) setWnc.classList.toggle('active', activeSet === 'wnc');
+      if (setNcb) setNcb.classList.toggle('active', activeSet === 'ncb');
+
+      const betaBtn = document.getElementById('btn-beta');
+      const retailBtn = document.getElementById('btn-retail');
+      const compBtn = document.getElementById('btn-comparison');
+      if (betaBtn) betaBtn.classList.toggle('active', activeEdition === 'beta');
+      if (retailBtn) retailBtn.classList.toggle('active', activeEdition === 'retail');
+      if (compBtn) compBtn.classList.toggle('active', activeEdition === 'comparison');
+
+      const ncbChartsBtn = document.getElementById('btn-ncb-charts');
+      const ncbTableBtn = document.getElementById('btn-ncb-table');
+      const targetNcbView = activeNcbView === 'table' ? 'table' : 'charts';
+      if (ncbChartsBtn) ncbChartsBtn.classList.toggle('active', targetNcbView === 'charts');
+      if (ncbTableBtn) ncbTableBtn.classList.toggle('active', targetNcbView === 'table');
+
+      const cView = document.getElementById('cluster-view');
+      const dView = document.getElementById('divider-view');
+      const edToggle = document.getElementById('edition-toggle');
+      const ncbToggle = document.getElementById('ncb-view-toggle');
+      const rarityMs = document.getElementById('ms-rarity');
+      const variantMs = document.getElementById('ms-variant');
+      const legendType = document.getElementById('type-item-legend');
+      const cBasis = document.getElementById('cluster-basis');
+      const dBasis = cBasis ? cBasis.nextElementSibling : null;
+
+      if (cView) cView.style.display = desc.showClusterView ? 'inline-flex' : 'none';
+      if (dView) dView.style.display = desc.showClusterView ? 'block' : 'none';
+      if (edToggle) edToggle.style.display = desc.showEditionToggle ? 'inline-flex' : 'none';
+      if (ncbToggle) ncbToggle.style.display = desc.showNcbViewToggle ? 'inline-flex' : 'none';
+      if (rarityMs) rarityMs.style.display = desc.showMsRarity ? '' : 'none';
+      if (variantMs) variantMs.style.display = desc.showMsVariant ? 'inline-block' : 'none';
+      if (legendType) legendType.style.display = desc.showLegendTypeItem ? '' : 'none';
+      if (cBasis) cBasis.style.display = desc.showBasisCluster ? 'inline-flex' : 'none';
+      if (dBasis) dBasis.style.display = desc.showBasisCluster ? 'block' : 'none';
+
+      const sortEl = document.getElementById('sort-select');
+      const sortNumOption = sortEl ? sortEl.querySelector('option[value="num-asc"]') : null;
+      if (sortNumOption) sortNumOption.textContent = desc.sortNumLabel;
+
+      const searchEl = document.getElementById('search-input');
+      if (searchEl) searchEl.placeholder = resolveSearchPlaceholder(activeSet, activeEdition);
+
+      const metaEl = document.getElementById('meta-snapshots');
+      const legendEl = document.getElementById('chart-legend');
+      const templates = (typeof snapshotTemplates !== 'undefined' && snapshotTemplates) ? snapshotTemplates : {};
+      if (activeSet === 'ncb') {
+        if (targetNcbView === 'table') {
+          if (metaEl) metaEl.style.display = 'none';
+          if (legendEl) legendEl.style.display = 'none';
+        } else {
+          if (metaEl) {
+            metaEl.style.display = 'block';
+            metaEl.textContent = templates.ncb || '';
+          }
+          if (legendEl) legendEl.style.display = 'flex';
+        }
+      } else if (activeEdition === 'comparison') {
+        if (metaEl) metaEl.style.display = 'none';
+        if (legendEl) legendEl.style.display = 'none';
+      } else {
+        if (metaEl) {
+          metaEl.style.display = 'block';
+          metaEl.textContent = activeEdition === 'retail' ? (templates.retail || '') : (templates.beta || '');
+        }
+        if (legendEl) legendEl.style.display = 'flex';
+      }
+    }
+
+    function applyFilterControlValues(activeSet, filterObj) {
+      const f = filterObj || defaultSetFilters();
+      const searchEl = document.getElementById('search-input');
+      if (searchEl) searchEl.value = typeof f.q === 'string' ? f.q : '';
+      const mapByCategory = {
+        ownership: f.o || [],
+        rarity: activeSet === 'wnc' ? (f.r || []) : [],
+        variant: activeSet === 'ncb' ? (f.r || []) : [],
+        color: f.c || [],
+        type: f.t || []
+      };
+      multiselectCategories.forEach(cat => {
+        const vals = Array.isArray(mapByCategory[cat]) ? mapByCategory[cat] : [];
+        const menu = document.getElementById(`menu-${cat}`);
+        if (menu) {
+          menu.querySelectorAll('input[type="checkbox"]').forEach(box => {
+            box.checked = vals.includes(box.value);
+          });
+        }
+        updateBadge(cat);
+      });
+      const sortEl = document.getElementById('sort-select');
+      if (sortEl) {
+        sortEl.value = (!f.s || f.s === 'num') ? 'num-asc' : f.s;
+      }
+      const resetBtn = document.getElementById('btn-reset-filters');
+      if (resetBtn) resetBtn.classList.toggle('is-active', hasActiveFilterValues(f));
+    }
+
+    function hydrateHeaderControls() {
+      const state = (typeof initialFilterState !== 'undefined' && initialFilterState)
+        ? initialFilterState
+        : normalizeSavedFilterState(null, typeof hasNcb !== 'undefined' ? hasNcb : true);
+      const meta = (typeof setViewMeta !== 'undefined' && setViewMeta) ? setViewMeta : {};
+      const desc = computeSetViewState(state.set, state.edition, meta, state.ncbView);
+      applyHeaderFromDescriptor(desc, state.set, state.edition, state.ncbView);
+      applyAnchorButtons(state.anchor);
+      const filterObj = (state.filtersBySet && state.filtersBySet[state.set]) || defaultSetFilters();
+      applyFilterControlValues(state.set, filterObj);
+
+      const countEl = document.getElementById('count-display');
+      const hasActive = hasActiveFilterValues(filterObj);
+      if (countEl) {
+        const unfilteredVisible = (state.set === 'wnc' && state.edition === 'retail' && meta.wncRetailCardCount !== undefined)
+          ? Number(meta.wncRetailCardCount)
+          : desc.countDenominator;
+        countEl.textContent = `Showing ${unfilteredVisible} of ${desc.countDenominator} cards`;
+      }
+      document.documentElement.classList.remove('preload-header-pending');
+      if (!hasActive) {
+        document.documentElement.classList.remove('preload-count-pending');
+      }
+      syncStickyNavHeight();
+    }"""
 
 
 _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? hasNcb : true;
@@ -2045,8 +2267,6 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       saveState();
     }
 
-    const multiselectCategories = ['color', 'type', 'rarity', 'variant', 'ownership'];
-
     multiselectCategories.forEach(cat => {
       const btn = document.getElementById(`btn-${cat}`);
       const menu = document.getElementById(`menu-${cat}`);
@@ -2072,26 +2292,6 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
 
     document.addEventListener('click', closeAllMenus);
 
-    function getSelected(cat) {
-      const menu = document.getElementById(`menu-${cat}`);
-      if (!menu) return [];
-      const checked = Array.from(menu.querySelectorAll('input[type="checkbox"]:checked'));
-      return checked.map(c => c.value);
-    }
-
-    function updateBadge(cat) {
-      const vals = getSelected(cat);
-      const badge = document.getElementById(`badge-${cat}`);
-      if (badge) {
-        if (vals.length > 0) {
-          badge.textContent = vals.length;
-          badge.style.display = 'inline-flex';
-        } else {
-          badge.style.display = 'none';
-        }
-      }
-    }
-
     function readOutgoingControls() {
       const rawSort = sortSelect ? sortSelect.value : 'num-asc';
       const currentFilters = activeSetState.filtersBySet && activeSetState.filtersBySet[currentSet];
@@ -2108,30 +2308,9 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     }
 
     function applyControlsFromFilterObj(f) {
-      const filterObj = f || defaultSetFilters();
-      if (searchInput) searchInput.value = typeof filterObj.q === 'string' ? filterObj.q : '';
-      const mapByCategory = {
-        ownership: filterObj.o || [],
-        rarity: currentSet === 'wnc' ? (filterObj.r || []) : [],
-        variant: currentSet === 'ncb' ? (filterObj.r || []) : [],
-        color: filterObj.c || [],
-        type: filterObj.t || []
-      };
-      multiselectCategories.forEach(cat => {
-        const vals = Array.isArray(mapByCategory[cat]) ? mapByCategory[cat] : [];
-        const menu = document.getElementById(`menu-${cat}`);
-        if (menu) {
-          menu.querySelectorAll('input[type="checkbox"]').forEach(box => {
-            box.checked = vals.includes(box.value);
-          });
-        }
-        updateBadge(cat);
-      });
-      if (sortSelect) {
-        sortSelect.value = (!filterObj.s || filterObj.s === 'num') ? 'num-asc' : filterObj.s;
-      }
+      applyFilterControlValues(currentSet, f);
       clearTableHeaderSorts(currentSet === 'ncb' ? ncbSectionCodes : tierCodes);
-      setPricedSetTier(filterObj.b || 'all', false);
+      setPricedSetTier((f && f.b) || 'all', false);
     }
 
     function saveState() {
@@ -2157,9 +2336,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
 
     function setAnchor(anchor, save = true) {
       currentAnchor = anchor;
-      if (btnAnchorLifetime) btnAnchorLifetime.classList.toggle('active', anchor === 'lifetime');
-      if (btnAnchorAcq) btnAnchorAcq.classList.toggle('active', anchor === 'acq');
-      if (btnAnchorL7d) btnAnchorL7d.classList.toggle('active', anchor === 'l7d');
+      applyAnchorButtons(anchor);
 
       const allTiles = document.querySelectorAll('.card-tile');
       allTiles.forEach(tile => {
@@ -2190,25 +2367,11 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     }
 
     function applyViewDescriptor(desc) {
-      if (dashboardTitle) dashboardTitle.textContent = desc.title;
-      document.title = desc.title;
-      if (btnSetWnc) btnSetWnc.classList.toggle('active', currentSet === 'wnc');
-      if (btnSetNcb) btnSetNcb.classList.toggle('active', currentSet === 'ncb');
-      if (clusterView) clusterView.style.display = desc.showClusterView ? 'inline-flex' : 'none';
-      if (dividerView) dividerView.style.display = desc.showClusterView ? 'block' : 'none';
-      if (editionToggle) editionToggle.style.display = desc.showEditionToggle ? 'inline-flex' : 'none';
-      if (ncbViewToggle) ncbViewToggle.style.display = desc.showNcbViewToggle ? 'inline-flex' : 'none';
-      if (msRarity) msRarity.style.display = desc.showMsRarity ? '' : 'none';
-      if (msVariant) msVariant.style.display = desc.showMsVariant ? 'inline-block' : 'none';
-      if (typeItemLegend) typeItemLegend.style.display = desc.showLegendTypeItem ? '' : 'none';
-      if (clusterBasis) clusterBasis.style.display = desc.showBasisCluster ? 'inline-flex' : 'none';
-      if (dividerBasis) dividerBasis.style.display = desc.showBasisCluster ? 'block' : 'none';
+      applyHeaderFromDescriptor(desc, currentSet, currentEdition, currentNcbView);
       if (compView) compView.style.display = desc.showComparisonView ? 'block' : 'none';
       if (ncbTableView) ncbTableView.style.display = desc.showNcbTableView ? 'block' : 'none';
       if (sectionNR) sectionNR.style.display = desc.showSectionNR ? 'block' : 'none';
       if (sectionNRC) sectionNRC.style.display = desc.showSectionNRC ? 'block' : 'none';
-      const sortNumOption = sortSelect ? sortSelect.querySelector('option[value="num-asc"]') : null;
-      if (sortNumOption) sortNumOption.textContent = desc.sortNumLabel;
     }
 
     function setNcbView(view, save = true) {
@@ -2231,23 +2394,8 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         const s = document.getElementById(`section-${code}`);
         if (s) s.style.display = 'none';
       });
-      if (searchInput) {
-        searchInput.placeholder = 'Search by card name or number (e.g. 001, Chrome, Brawl)...';
-      }
-
-      if (targetView === 'table') {
-        if (metaSnapshots) metaSnapshots.style.display = 'none';
-        if (chartLegend) chartLegend.style.display = 'none';
-      } else {
-        if (metaSnapshots) {
-          metaSnapshots.style.display = 'block';
-          metaSnapshots.textContent = snapshotTemplates.ncb || '';
-        }
-        if (chartLegend) chartLegend.style.display = 'flex';
-      }
 
       applyFilters();
-      if (typeof syncClusterDividers === 'function') syncClusterDividers();
       if (typeof syncStickyNavHeight === 'function') syncStickyNavHeight();
       if (save) saveState();
     }
@@ -2298,48 +2446,28 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       applyViewDescriptor(desc);
 
       if (edition === 'comparison') {
-        if (metaSnapshots) metaSnapshots.style.display = 'none';
-        if (chartLegend) chartLegend.style.display = 'none';
-        searchInput.placeholder = 'Search by card name or number (e.g. 141, Panam, Judy, Smasher)...';
         tierCodes.forEach(code => {
           const s = document.getElementById(`section-${code}`);
           if (s) s.style.display = 'none';
         });
       } else {
-        if (metaSnapshots) metaSnapshots.style.display = 'block';
-        if (chartLegend) chartLegend.style.display = 'flex';
         tierCodes.forEach(code => {
           const s = document.getElementById(`section-${code}`);
           if (s) s.style.display = 'block';
         });
 
-        if (edition === 'retail') {
-          if (metaSnapshots) metaSnapshots.textContent = snapshotTemplates.retail;
-          searchInput.placeholder = 'Search by card name or number (e.g. 141, Panam, Judy, Smasher)...';
-          tierCodes.forEach(code => {
-            const group = document.getElementById(`stats-group-${code}`);
-            const isExpanded = group && !group.classList.contains('is-collapsed');
-            const dr = document.getElementById(`stats-retail-${code}`);
-            const db = document.getElementById(`stats-beta-${code}`);
-            if (dr) dr.style.display = isExpanded ? 'flex' : 'none';
-            if (db) db.style.display = 'none';
-          });
-        } else {
-          if (metaSnapshots) metaSnapshots.textContent = snapshotTemplates.beta;
-          searchInput.placeholder = 'Search by card name or number (e.g. B141, Panam, Judy, Smasher)...';
-          tierCodes.forEach(code => {
-            const group = document.getElementById(`stats-group-${code}`);
-            const isExpanded = group && !group.classList.contains('is-collapsed');
-            const dr = document.getElementById(`stats-retail-${code}`);
-            const db = document.getElementById(`stats-beta-${code}`);
-            if (dr) dr.style.display = 'none';
-            if (db) db.style.display = isExpanded ? 'flex' : 'none';
-          });
-        }
+        const showRetailStats = edition === 'retail';
+        tierCodes.forEach(code => {
+          const group = document.getElementById(`stats-group-${code}`);
+          const isExpanded = group && !group.classList.contains('is-collapsed');
+          const dr = document.getElementById(`stats-retail-${code}`);
+          const db = document.getElementById(`stats-beta-${code}`);
+          if (dr) dr.style.display = (showRetailStats && isExpanded) ? 'flex' : 'none';
+          if (db) db.style.display = (!showRetailStats && isExpanded) ? 'flex' : 'none';
+        });
       }
 
       applyFilters();
-      if (typeof syncClusterDividers === 'function') syncClusterDividers();
       if (typeof syncStickyNavHeight === 'function') syncStickyNavHeight();
       if (save) saveState();
     }
@@ -2852,12 +2980,22 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       currentEdition = activeSetState.edition;
       currentNcbView = activeSetState.ncbView || 'charts';
       currentAnchor = activeSetState.anchor;
-      if (btnNcbCharts) btnNcbCharts.classList.toggle('active', currentNcbView === 'charts');
-      if (btnNcbTable) btnNcbTable.classList.toggle('active', currentNcbView === 'table');
       applyControlsFromFilterObj(activeSetState.filtersBySet[currentSet]);
       setActiveSet(currentSet, false);
       setAnchor(currentAnchor, false);
-      document.documentElement.classList.remove('preload-comparison', 'preload-retail', 'preload-ncb', 'preload-ncb-table');
+      const root = document.documentElement;
+      root.classList.remove(
+        'preload-comparison',
+        'preload-retail',
+        'preload-ncb',
+        'preload-ncb-table',
+        'preload-anchor-lifetime',
+        'preload-anchor-l7d',
+        'preload-header-pending',
+        'preload-count-pending'
+      );
+      void root.offsetHeight;
+      root.classList.remove('preload-hydrating');
     }
 
     document.querySelectorAll('.comp-table th.sortable').forEach(th => {
@@ -2878,27 +3016,6 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         rows.forEach(r => tbody.appendChild(r));
       });
     });
-
-    function syncClusterDividers() {
-      const dividers = document.querySelectorAll('.cluster-divider');
-      dividers.forEach(d => {
-        const prev = d.previousElementSibling;
-        const next = d.nextElementSibling;
-        if ((prev && prev.style.display === 'none') || (next && next.style.display === 'none')) {
-          d.style.display = 'none';
-          return;
-        }
-        d.style.display = 'block';
-        if (prev && next) {
-          const pRect = prev.getBoundingClientRect();
-          const dRect = d.getBoundingClientRect();
-          const nRect = next.getBoundingClientRect();
-          if (Math.abs(pRect.top - dRect.top) > 8 || Math.abs(dRect.top - nRect.top) > 8) {
-            d.style.display = 'none';
-          }
-        }
-      });
-    }
 
     function syncTierHeaderStickyBounds() {
       const allHeaders = tierCodes.concat(ncbSectionCodes);
@@ -2943,12 +3060,6 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       });
     }
 
-    function syncStickyNavHeight() {
-      syncClusterDividers();
-      const nav = document.querySelector('.sticky-nav');
-      if (nav) document.documentElement.style.setProperty('--sticky-nav-height', `${nav.offsetHeight}px`);
-      syncTierHeaderStickyBounds();
-    }
     window.addEventListener('resize', syncStickyNavHeight);
     window.addEventListener('DOMContentLoaded', syncStickyNavHeight);
     if (window.ResizeObserver) {
@@ -3738,6 +3849,7 @@ def generate_html_dashboard(
     initial_sort_num_label = f"Print # ({wnc_beta_range_label})" if wnc_beta_range_label else "Print #"
     set_view_meta = {
         "totalCardCount": total_card_count,
+        "wncRetailCardCount": len(retail_trajectories),
         "ncbCardCount": ncb_card_count,
         "ncbChampCardCount": ncb_champ_card_count,
         "hasNcbChamp": has_ncb_champ,
@@ -3792,6 +3904,8 @@ def generate_html_dashboard(
   <script>
 {_SET_STATE_JS}
     var hasNcb = {'true' if has_ncb else 'false'};
+    const setViewMeta = {serialize_json_for_script(set_view_meta)};
+    const snapshotTemplates = {serialize_json_for_script(snapshot_templates)};
     var initialFilterState = (function() {{
       try {{
         var raw = localStorage.getItem('wnc_iconics_filter_state');
@@ -3802,15 +3916,22 @@ def generate_html_dashboard(
       }}
     }})();
     (function() {{
+      var root = document.documentElement;
+      root.classList.add('preload-hydrating', 'preload-header-pending', 'preload-count-pending');
       if (initialFilterState.set === 'ncb') {{
-        document.documentElement.classList.add('preload-ncb');
+        root.classList.add('preload-ncb');
         if (initialFilterState.ncbView === 'table') {{
-          document.documentElement.classList.add('preload-ncb-table');
+          root.classList.add('preload-ncb-table');
         }}
       }} else if (initialFilterState.edition === 'comparison') {{
-        document.documentElement.classList.add('preload-comparison');
+        root.classList.add('preload-comparison');
       }} else if (initialFilterState.edition === 'retail') {{
-        document.documentElement.classList.add('preload-retail');
+        root.classList.add('preload-retail');
+      }}
+      if (initialFilterState.anchor === 'lifetime') {{
+        root.classList.add('preload-anchor-lifetime');
+      }} else if (initialFilterState.anchor === 'l7d') {{
+        root.classList.add('preload-anchor-l7d');
       }}
     }})();
   </script>
@@ -3932,6 +4053,10 @@ def generate_html_dashboard(
     <span class="legend-item"><span class="legend-dot" style="background:#0d1117;border:1.5px solid #bc8cff;"></span>Current TCG Low (excl. shipping)</span>
   </div>
   </header>
+  <script>
+{_HEADER_HYDRATION_JS}
+    hydrateHeaderControls();
+  </script>
 {tier_sections_html}{ncb_section_html}{comp_view_html}{ncb_table_view_html}  <div id="chart-tooltip" class="chart-tooltip"></div>
 
   <script>
@@ -3940,8 +4065,6 @@ def generate_html_dashboard(
     const hasNcbChamp = {'true' if has_ncb_champ else 'false'};
     const renderedTierCodes = {serialize_json_for_script(wnc_tier_codes)};
     const renderedNcbCodes = {serialize_json_for_script(ncb_section_codes)};
-    const setViewMeta = {serialize_json_for_script(set_view_meta)};
-    const snapshotTemplates = {serialize_json_for_script(snapshot_templates)};
 {_DASHBOARD_JS_BODY}"""
 
     out_file = Path(output_path)
