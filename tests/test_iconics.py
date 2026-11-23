@@ -1460,6 +1460,8 @@ class TestSetTrackerExpansionAndState(unittest.TestCase):
         self.assertNotIn('id="set-toggle"', html_text)
         self.assertNotIn('id="section-NR"', html_text)
         self.assertNotIn('id="section-NRC"', html_text)
+        self.assertNotIn('id="ncb-view-toggle"', html_text)
+        self.assertNotIn('id="view-ncb-table"', html_text)
         self.assertNotIn('id="ms-variant"', html_text)
         self.assertIn("var hasNcb = false;", html_text)
         self.assertIn("const hasNcbChamp = false;", html_text)
@@ -1658,7 +1660,7 @@ const resolvedStats = {{
   nrExplicitFalseOnWide: context.resolveTierStatsOpen({{ NR: false }}, 'NR', true),
 }};
 const toggledWncStep1 = context.applySetTierStatsToggle(
-  {{ set: 'wnc', edition: 'beta', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
+  {{ set: 'wnc', edition: 'beta', ncbView: 'table', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
   'wnc',
   'IL',
   false,
@@ -1693,7 +1695,9 @@ const out = {{
     ncbBeta: context.computeSetViewState('ncb', 'beta', meta),
     ncbRetail: context.computeSetViewState('ncb', 'retail', meta),
     ncbComparison: context.computeSetViewState('ncb', 'comparison', meta),
+    ncbTable: context.computeSetViewState('ncb', 'beta', meta, 'table'),
     ncbWithChamp: context.computeSetViewState('ncb', 'beta', metaWithChamp),
+    ncbWithChampTable: context.computeSetViewState('ncb', 'beta', metaWithChamp, 'table'),
   }}
 }};
 process.stdout.write(JSON.stringify(out));
@@ -1711,10 +1715,12 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(res["defFilters"], clean_default)
         self.assertEqual(res["fresh"]["set"], "wnc")
         self.assertEqual(res["fresh"]["edition"], "beta")
+        self.assertEqual(res["fresh"]["ncbView"], "charts")
         self.assertEqual(res["fresh"]["filtersBySet"]["ncb"], clean_default)
 
         self.assertEqual(res["legacyFlat"]["set"], "wnc")
         self.assertEqual(res["legacyFlat"]["edition"], "comparison")
+        self.assertEqual(res["legacyFlat"]["ncbView"], "charts")
         self.assertEqual(res["legacyFlat"]["anchor"], "l7d")
         self.assertEqual(res["legacyFlat"]["filtersBySet"]["wnc"], {
             "q": "Panam", "o": ["owned"], "r": ["IL"], "c": ["Red"], "t": ["Legend"], "s": "price-desc", "b": "IL", "statsOpen": {},
@@ -1723,6 +1729,7 @@ process.stdout.write(JSON.stringify(out));
 
         self.assertEqual(res["legacyLong"]["set"], "wnc")
         self.assertEqual(res["legacyLong"]["edition"], "retail")
+        self.assertEqual(res["legacyLong"]["ncbView"], "charts")
         self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["q"], "Judy")
         self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["o"], ["unowned"])
         self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["r"], ["IS"])
@@ -1730,12 +1737,14 @@ process.stdout.write(JSON.stringify(out));
 
         self.assertEqual(res["afterToNcb"]["set"], "ncb")
         self.assertEqual(res["afterToNcb"]["edition"], "retail")
+        self.assertEqual(res["afterToNcb"]["ncbView"], "charts")
         self.assertEqual(res["afterToNcb"]["filtersBySet"]["wnc"]["q"], "Smasher")
         self.assertEqual(res["afterToNcb"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": True, "BT": False})
         self.assertEqual(res["afterToNcb"]["filtersBySet"]["ncb"], clean_default)
 
         self.assertEqual(res["backToWnc"]["set"], "wnc")
         self.assertEqual(res["backToWnc"]["edition"], "retail")
+        self.assertEqual(res["backToWnc"]["ncbView"], "charts")
         self.assertEqual(res["backToWnc"]["filtersBySet"]["wnc"]["q"], "Smasher")
         self.assertEqual(res["backToWnc"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": True, "BT": False})
         self.assertEqual(res["backToWnc"]["filtersBySet"]["ncb"]["q"], "Chrome")
@@ -1754,6 +1763,7 @@ process.stdout.write(JSON.stringify(out));
             "nrUnsetOnWide": True,
             "nrExplicitFalseOnWide": False,
         })
+        self.assertEqual(res["roundTripped"]["ncbView"], "table")
         self.assertEqual(res["roundTripped"]["filtersBySet"]["wnc"]["q"], "Smasher")
         self.assertEqual(res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": False, "BT": True})
         self.assertNotIn("IO", res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"])
@@ -1764,6 +1774,8 @@ process.stdout.write(JSON.stringify(out));
         expected_keys = {
             "title",
             "showClusterView",
+            "showEditionToggle",
+            "showNcbViewToggle",
             "showMsRarity",
             "showMsVariant",
             "showLegendTypeItem",
@@ -1771,6 +1783,7 @@ process.stdout.write(JSON.stringify(out));
             "showSectionNRC",
             "showWncTiers",
             "showComparisonView",
+            "showNcbTableView",
             "showBasisCluster",
             "sortNumLabel",
             "countDenominator",
@@ -1781,6 +1794,8 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(descriptors["wncBeta"], {
             "title": "Welcome to Night City \u2013 Iconic & Promo Price Trajectories",
             "showClusterView": True,
+            "showEditionToggle": True,
+            "showNcbViewToggle": False,
             "showMsRarity": True,
             "showMsVariant": False,
             "showLegendTypeItem": True,
@@ -1788,6 +1803,7 @@ process.stdout.write(JSON.stringify(out));
             "showSectionNRC": False,
             "showWncTiers": True,
             "showComparisonView": False,
+            "showNcbTableView": False,
             "showBasisCluster": True,
             "sortNumLabel": "Print # (B001 \u2192 B171)",
             "countDenominator": 37,
@@ -1795,6 +1811,8 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(descriptors["wncRetail"], {
             "title": "Welcome to Night City \u2013 Iconic & Promo Price Trajectories",
             "showClusterView": True,
+            "showEditionToggle": True,
+            "showNcbViewToggle": False,
             "showMsRarity": True,
             "showMsVariant": False,
             "showLegendTypeItem": True,
@@ -1802,6 +1820,7 @@ process.stdout.write(JSON.stringify(out));
             "showSectionNRC": False,
             "showWncTiers": True,
             "showComparisonView": False,
+            "showNcbTableView": False,
             "showBasisCluster": True,
             "sortNumLabel": "Print # (001 \u2192 171)",
             "countDenominator": 37,
@@ -1809,6 +1828,8 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(descriptors["wncComparison"], {
             "title": "Welcome to Night City \u2013 Iconic & Promo Price Trajectories",
             "showClusterView": True,
+            "showEditionToggle": True,
+            "showNcbViewToggle": False,
             "showMsRarity": True,
             "showMsVariant": False,
             "showLegendTypeItem": True,
@@ -1816,13 +1837,16 @@ process.stdout.write(JSON.stringify(out));
             "showSectionNRC": False,
             "showWncTiers": False,
             "showComparisonView": True,
+            "showNcbTableView": False,
             "showBasisCluster": False,
             "sortNumLabel": "Print # (001 \u2192 171)",
             "countDenominator": 37,
         })
         expected_ncb = {
             "title": "Night City Brawl Season 1 \u2013 Nova Rare Price Trajectories",
-            "showClusterView": False,
+            "showClusterView": True,
+            "showEditionToggle": False,
+            "showNcbViewToggle": True,
             "showMsRarity": False,
             "showMsVariant": False,
             "showLegendTypeItem": False,
@@ -1830,6 +1854,7 @@ process.stdout.write(JSON.stringify(out));
             "showSectionNRC": False,
             "showWncTiers": False,
             "showComparisonView": False,
+            "showNcbTableView": False,
             "showBasisCluster": True,
             "sortNumLabel": "Print # (001 \u2192 018)",
             "countDenominator": 18,
@@ -1837,9 +1862,28 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(descriptors["ncbBeta"], expected_ncb)
         self.assertEqual(descriptors["ncbRetail"], expected_ncb)
         self.assertEqual(descriptors["ncbComparison"], expected_ncb)
+        self.assertEqual(descriptors["ncbTable"], {
+            "title": "Night City Brawl Season 1 \u2013 Nova Rare Price Trajectories",
+            "showClusterView": True,
+            "showEditionToggle": False,
+            "showNcbViewToggle": True,
+            "showMsRarity": False,
+            "showMsVariant": False,
+            "showLegendTypeItem": False,
+            "showSectionNR": False,
+            "showSectionNRC": False,
+            "showWncTiers": False,
+            "showComparisonView": False,
+            "showNcbTableView": True,
+            "showBasisCluster": False,
+            "sortNumLabel": "Print # (001 \u2192 018)",
+            "countDenominator": 18,
+        })
         self.assertEqual(descriptors["ncbWithChamp"], {
             "title": "Night City Brawl Season 1 \u2013 Nova Rare Price Trajectories",
-            "showClusterView": False,
+            "showClusterView": True,
+            "showEditionToggle": False,
+            "showNcbViewToggle": True,
             "showMsRarity": False,
             "showMsVariant": True,
             "showLegendTypeItem": False,
@@ -1847,7 +1891,25 @@ process.stdout.write(JSON.stringify(out));
             "showSectionNRC": True,
             "showWncTiers": False,
             "showComparisonView": False,
+            "showNcbTableView": False,
             "showBasisCluster": True,
+            "sortNumLabel": "Print # (001 \u2192 018)",
+            "countDenominator": 36,
+        })
+        self.assertEqual(descriptors["ncbWithChampTable"], {
+            "title": "Night City Brawl Season 1 \u2013 Nova Rare Price Trajectories",
+            "showClusterView": True,
+            "showEditionToggle": False,
+            "showNcbViewToggle": True,
+            "showMsRarity": False,
+            "showMsVariant": True,
+            "showLegendTypeItem": False,
+            "showSectionNR": False,
+            "showSectionNRC": False,
+            "showWncTiers": False,
+            "showComparisonView": False,
+            "showNcbTableView": True,
+            "showBasisCluster": False,
             "sortNumLabel": "Print # (001 \u2192 018)",
             "countDenominator": 36,
         })
@@ -2643,6 +2705,45 @@ process.stdout.write(JSON.stringify(out));
             self.assertNotIn("$89.99", tile_nrc_015)
             self.assertIn("Insufficient historical data", tile_nrc_015)
 
+            # Verify NCB S1 tabular view subtab and isolated table rows/totals
+            self.assertIn('id="ncb-view-toggle"', html_text)
+            self.assertIn('id="btn-ncb-charts"', html_text)
+            self.assertIn('id="btn-ncb-table"', html_text)
+            self.assertIn('id="view-ncb-table"', html_text)
+            ncb_table_block = html_text.split('id="view-ncb-table"', 1)[1].split('id="chart-tooltip"', 1)[0]
+            self.assertNotIn('class="comp-row"', ncb_table_block)
+            self.assertIn('class="ncb-comp-row"', ncb_table_block)
+            self.assertIn('data-col="mkt_price">Market Price</th>', ncb_table_block)
+            self.assertIn('data-col="low_price">Low Price</th>', ncb_table_block)
+            self.assertIn('data-col="c7d_dlr">L7D Change ($)</th>', ncb_table_block)
+            self.assertIn('data-col="c7d_pct">L7D Change (%)</th>', ncb_table_block)
+            self.assertIn('data-col="owned">Owned</th>', ncb_table_block)
+
+            table_nr = ncb_table_block.split('id="table-NR"', 1)[1].split("</table>", 1)[0]
+            table_nrc = ncb_table_block.split('id="table-NRC"', 1)[1].split("</table>", 1)[0]
+
+            # NR: #011 ($12.00 -> $10.00 = -$2.00 / -16.7%, owned 0) + #015 ($23.24 -> $6.63 = -$16.61 / -71.5%, owned 1)
+            # Total market: $16.63, 7d ago: $35.24, L7D change: -$18.61 (-52.8%), owned: 1
+            self.assertIn('href="https://www.tcgplayer.com/product/719694"', table_nr)
+            self.assertIn('-$2.00', table_nr)
+            self.assertIn('-16.7%', table_nr)
+            self.assertIn('id="total-label-NR">Total</td>', table_nr)
+            self.assertIn('id="total-mkt-price-NR">$16.63</td>', table_nr)
+            self.assertIn('id="total-low-price-NR">N/A</td>', table_nr)
+            self.assertIn('id="total-c7d-dlr-NR">-$18.61</td>', table_nr)
+            self.assertIn('id="total-c7d-pct-NR">-52.8%</td>', table_nr)
+            self.assertIn('id="total-owned-NR">1</td>', table_nr)
+
+            # NRC: #011 ($80.00 -> $82.00 = +$2.00 / +2.5%, owned 1) + #015 (unpriced N/A, owned 1)
+            # Total (1/2 priced): market $82.00, 7d ago $80.00, L7D change +$2.00 (+2.5%), owned 2
+            self.assertIn('href="https://www.tcgplayer.com/product/733502"', table_nrc)
+            self.assertNotIn('href="https://www.tcgplayer.com/product/733506"', table_nrc)
+            self.assertIn('id="total-label-NRC">Total (1/2 priced)</td>', table_nrc)
+            self.assertIn('id="total-mkt-price-NRC">$82.00</td>', table_nrc)
+            self.assertIn('id="total-c7d-dlr-NRC">+$2.00</td>', table_nrc)
+            self.assertIn('id="total-c7d-pct-NRC">+2.5%</td>', table_nrc)
+            self.assertIn('id="total-owned-NRC">2</td>', table_nrc)
+
     def test_original_lot_date_gates_sqlite_baseline_and_champ_only_snapshot_header(self):
         from tracker.valuation import init_database
 
@@ -2805,6 +2906,98 @@ process.stdout.write(JSON.stringify(out));
             with self.assertRaises(ValueError) as ambig_ctx:
                 load_ncb_champ_cards(cards_path=cards_file, prices_dir=prices_dir)
             self.assertIn("Ambiguous Brawl Champ base match", str(ambig_ctx.exception))
+
+    def test_ncb_table_view_partial_and_full_low_price_totals(self):
+        from tracker.iconics_html import _render_ncb_table_view
+
+        trajs_partial_low = [
+            {
+                "productId": "719694",
+                "name": "Wraith Marauders",
+                "printNumber": "011",
+                "rarity": "NR",
+                "color": "Red",
+                "cardType": "Unit",
+                "currentPrice": 10.0,
+                "currentLowPrice": 8.5,
+                "hasPrice": True,
+                "ownedQty": 2,
+                "change7d": 2.0,
+                "change7dPct": 25.0,
+            },
+            {
+                "productId": "719698",
+                "name": "Maman Brigitte",
+                "printNumber": "015",
+                "rarity": "NR",
+                "color": "Blue",
+                "cardType": "Program",
+                "currentPrice": 20.0,
+                "currentLowPrice": None,
+                "hasPrice": True,
+                "ownedQty": 1,
+                "change7d": -2.0,
+                "change7dPct": -9.1,
+            },
+            {
+                "productId": "719699",
+                "name": "Unpriced Card",
+                "printNumber": "016",
+                "rarity": "NR",
+                "color": "Green",
+                "cardType": "Gear",
+                "currentPrice": 0.0,
+                "currentLowPrice": None,
+                "hasPrice": False,
+                "ownedQty": 0,
+                "change7d": 0.0,
+                "change7dPct": 0.0,
+            },
+        ]
+        html_partial = _render_ncb_table_view(trajs_partial_low)
+        self.assertIn('id="total-label-NR">Total (2/3 priced)</td>', html_partial)
+        self.assertIn('id="total-mkt-price-NR">$30.00</td>', html_partial)
+        self.assertIn('id="total-low-price-NR">$8.50 (1/2)</td>', html_partial)
+        self.assertIn('id="total-c7d-dlr-NR">$0.00</td>', html_partial)
+        self.assertIn('id="total-c7d-pct-NR">0.0%</td>', html_partial)
+        self.assertIn('id="total-owned-NR">3</td>', html_partial)
+
+        trajs_full_low = [dict(trajs_partial_low[0]), dict(trajs_partial_low[1], currentLowPrice=15.0)]
+        html_full = _render_ncb_table_view(trajs_full_low)
+        self.assertIn('id="total-label-NR">Total</td>', html_full)
+        self.assertIn('id="total-low-price-NR">$23.50</td>', html_full)
+
+    def test_table_header_sort_preserved_on_filter_and_cleared_on_sort_select(self):
+        from tracker.iconics_html import _DASHBOARD_JS_BODY
+
+        self.assertIn("const activeTh = table.querySelector('th.sortable.sort-asc, th.sortable.sort-desc');", _DASHBOARD_JS_BODY)
+        self.assertIn("if (activeCol) {", _DASHBOARD_JS_BODY)
+        self.assertIn("return compareTableRowsByCol(a, b, activeCol, activeDir);", _DASHBOARD_JS_BODY)
+        self.assertIn("clearTableHeaderSorts(currentSet === 'ncb' ? ncbSectionCodes : tierCodes);", _DASHBOARD_JS_BODY)
+
+        node_bin = self._require_node()
+        parse_num_js = "    function parseNum(" + _DASHBOARD_JS_BODY.split("    function parseNum(", 1)[1].split("    function fmtCurrency(", 1)[0]
+        compare_col_js = "    function compareTableRowsByCol(" + _DASHBOARD_JS_BODY.split("    function compareTableRowsByCol(", 1)[1].split("    function initFilters(", 1)[0]
+        helper_js = json.dumps(parse_num_js + "\n" + compare_col_js)
+        driver = f"""
+const vm = require('vm');
+const context = {{}};
+vm.createContext(context);
+vm.runInContext({helper_js}, context);
+const rows = [
+  {{ dataset: {{ num: '015', name: 'maman', type: 'Program', mktPrice: '20.0', lowPrice: '', c7dDlr: '-2.0', c7dPct: '-9.1', owned: '1' }} }},
+  {{ dataset: {{ num: '002', name: 'kiroshi', type: 'Gear', mktPrice: '15.0', lowPrice: '12.0', c7dDlr: '3.0', c7dPct: '25.0', owned: '0' }} }},
+  {{ dataset: {{ num: '011', name: 'wraith', type: 'Unit', mktPrice: '10.0', lowPrice: '8.5', c7dDlr: '2.0', c7dPct: '25.0', owned: '1' }} }},
+];
+const byLowAsc = [...rows].sort((a, b) => context.compareTableRowsByCol(a, b, 'low_price', 1)).map(r => r.dataset.num);
+const byPctDescTieNum = [...rows].sort((a, b) => context.compareTableRowsByCol(a, b, 'c7d_pct', -1)).map(r => r.dataset.num);
+process.stdout.write(JSON.stringify({{ byLowAsc, byPctDescTieNum }}));
+"""
+        proc = subprocess.run([node_bin, "-e", driver], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        res = json.loads(proc.stdout)
+        self.assertEqual(res["byLowAsc"], ["011", "002", "015"])
+        self.assertEqual(res["byPctDescTieNum"], ["002", "011", "015"])
 
 
 if __name__ == "__main__":
