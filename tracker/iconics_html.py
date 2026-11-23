@@ -87,6 +87,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       var base = {
         set: 'wnc',
         edition: 'beta',
+        ncbView: 'charts',
         anchor: 'acq',
         filtersBySet: {
           wnc: defaultSetFilters(),
@@ -95,12 +96,14 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       };
       if (!saved || typeof saved !== 'object') return base;
       var ed = (saved.edition === 'retail' || saved.edition === 'beta' || saved.edition === 'comparison') ? saved.edition : 'beta';
+      var ncbV = (saved.ncbView === 'table' || saved.ncbView === 'charts') ? saved.ncbView : 'charts';
       var anc = (saved.anchor === 'lifetime' || saved.anchor === 'acq' || saved.anchor === 'l7d') ? saved.anchor : 'acq';
       if (saved.filtersBySet && typeof saved.filtersBySet === 'object') {
         var activeSet = (allowNcb && saved.set === 'ncb') ? 'ncb' : 'wnc';
         return {
           set: activeSet,
           edition: ed,
+          ncbView: ncbV,
           anchor: anc,
           filtersBySet: {
             wnc: _normalizeFilterObj(saved.filtersBySet.wnc),
@@ -111,6 +114,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       return {
         set: 'wnc',
         edition: ed,
+        ncbView: ncbV,
         anchor: anc,
         filtersBySet: {
           wnc: _normalizeFilterObj(saved),
@@ -136,6 +140,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       return {
         set: targetSet,
         edition: normalized.edition,
+        ncbView: normalized.ncbView,
         anchor: normalized.anchor,
         filtersBySet: {
           wnc: nextWnc,
@@ -157,6 +162,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       return {
         set: targetSet,
         edition: normalized.edition,
+        ncbView: normalized.ncbView,
         anchor: normalized.anchor,
         filtersBySet: {
           wnc: nextWnc,
@@ -165,23 +171,27 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       };
     }
 
-    function computeSetViewState(activeSet, activeEdition, meta) {
+    function computeSetViewState(activeSet, activeEdition, meta, activeNcbView) {
       var m = (meta && typeof meta === 'object') ? meta : {};
       if (activeSet === 'ncb') {
         var ncbRange = m.ncbRangeLabel || '';
         var ncbChampCount = Number(m.ncbChampCardCount || 0);
         var hasNcbChamp = Boolean(m.hasNcbChamp || ncbChampCount > 0);
+        var isNcbTable = activeNcbView === 'table';
         return {
           title: 'Night City Brawl Season 1 \u2013 Nova Rare Price Trajectories',
-          showClusterView: false,
+          showClusterView: true,
+          showEditionToggle: false,
+          showNcbViewToggle: true,
           showMsRarity: false,
           showMsVariant: hasNcbChamp,
           showLegendTypeItem: false,
-          showSectionNR: true,
-          showSectionNRC: hasNcbChamp,
+          showSectionNR: !isNcbTable,
+          showSectionNRC: !isNcbTable && hasNcbChamp,
           showWncTiers: false,
           showComparisonView: false,
-          showBasisCluster: true,
+          showNcbTableView: isNcbTable,
+          showBasisCluster: !isNcbTable,
           sortNumLabel: ncbRange ? ('Print # (' + ncbRange + ')') : 'Print #',
           countDenominator: Number(m.ncbCardCount || 0) + ncbChampCount
         };
@@ -192,6 +202,8 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       return {
         title: 'Welcome to Night City \u2013 Iconic & Promo Price Trajectories',
         showClusterView: true,
+        showEditionToggle: true,
+        showNcbViewToggle: false,
         showMsRarity: true,
         showMsVariant: false,
         showLegendTypeItem: true,
@@ -199,6 +211,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
         showSectionNRC: false,
         showWncTiers: !isComparison,
         showComparisonView: isComparison,
+        showNcbTableView: false,
         showBasisCluster: !isComparison,
         sortNumLabel: wncRange ? ('Print # (' + wncRange + ')') : 'Print #',
         countDenominator: Number(m.totalCardCount || 0)
@@ -1800,8 +1813,7 @@ _DASHBOARD_CSS = """    :root {
     html.preload-retail .edition-stats-retail { display: flex !important; }
     html.preload-retail #btn-beta { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
     html.preload-retail #btn-retail { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }
-    html.preload-ncb #cluster-view,
-    html.preload-ncb #divider-view,
+    html.preload-ncb #edition-toggle,
     html.preload-ncb #view-comparison,
     html.preload-ncb #section-IL,
     html.preload-ncb #section-IO,
@@ -1809,6 +1821,9 @@ _DASHBOARD_CSS = """    :root {
     html.preload-ncb #section-BT,
     html.preload-ncb #ms-rarity,
     html.preload-ncb #type-item-legend { display: none !important; }
+    html.preload-ncb #cluster-view,
+    html.preload-ncb #ncb-view-toggle { display: inline-flex !important; }
+    html.preload-ncb #divider-view,
     html.preload-ncb #section-NR,
     html.preload-ncb #section-NRC { display: block !important; }
     html.preload-ncb #ms-variant { display: inline-block !important; }
@@ -1816,7 +1831,16 @@ _DASHBOARD_CSS = """    :root {
     html.preload-ncb #meta-snapshots { display: block !important; }
     html.preload-ncb #chart-legend { display: flex !important; }
     html.preload-ncb #btn-set-wnc { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
-    html.preload-ncb #btn-set-ncb { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }"""
+    html.preload-ncb #btn-set-ncb { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }
+    html.preload-ncb-table #section-NR,
+    html.preload-ncb-table #section-NRC,
+    html.preload-ncb-table #cluster-basis,
+    html.preload-ncb-table #cluster-basis + .cluster-divider,
+    html.preload-ncb-table #meta-snapshots,
+    html.preload-ncb-table #chart-legend { display: none !important; }
+    html.preload-ncb-table #view-ncb-table { display: block !important; }
+    html.preload-ncb-table #btn-ncb-charts { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
+    html.preload-ncb-table #btn-ncb-table { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }"""
 
 
 _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? hasNcb : true;
@@ -1825,6 +1849,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       : normalizeSavedFilterState(null, allowNcb);
     let currentSet = activeSetState.set;
     let currentEdition = activeSetState.edition;
+    let currentNcbView = activeSetState.ncbView || 'charts';
     let currentAnchor = activeSetState.anchor;
     let activePricedSetTier = (activeSetState.filtersBySet[currentSet] && activeSetState.filtersBySet[currentSet].b) || 'all';
     const btnSetWnc = document.getElementById('btn-set-wnc');
@@ -1832,10 +1857,15 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     const dashboardTitle = document.getElementById('dashboard-title');
     const clusterView = document.getElementById('cluster-view');
     const dividerView = document.getElementById('divider-view');
+    const editionToggle = document.getElementById('edition-toggle');
+    const ncbViewToggle = document.getElementById('ncb-view-toggle');
     const btnRetail = document.getElementById('btn-retail');
     const btnBeta = document.getElementById('btn-beta');
     const btnComparison = document.getElementById('btn-comparison');
+    const btnNcbCharts = document.getElementById('btn-ncb-charts');
+    const btnNcbTable = document.getElementById('btn-ncb-table');
     const compView = document.getElementById('view-comparison');
+    const ncbTableView = document.getElementById('view-ncb-table');
     const clusterBasis = document.getElementById('cluster-basis');
     const dividerBasis = clusterBasis ? clusterBasis.nextElementSibling : null;
     const msRarity = document.getElementById('ms-rarity');
@@ -2107,6 +2137,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       try {
         activeSetState.set = currentSet;
         activeSetState.edition = currentEdition;
+        activeSetState.ncbView = currentNcbView;
         activeSetState.anchor = currentAnchor;
         activeSetState.filtersBySet[currentSet] = readOutgoingControls();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(activeSetState));
@@ -2164,16 +2195,60 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       if (btnSetNcb) btnSetNcb.classList.toggle('active', currentSet === 'ncb');
       if (clusterView) clusterView.style.display = desc.showClusterView ? 'inline-flex' : 'none';
       if (dividerView) dividerView.style.display = desc.showClusterView ? 'block' : 'none';
+      if (editionToggle) editionToggle.style.display = desc.showEditionToggle ? 'inline-flex' : 'none';
+      if (ncbViewToggle) ncbViewToggle.style.display = desc.showNcbViewToggle ? 'inline-flex' : 'none';
       if (msRarity) msRarity.style.display = desc.showMsRarity ? '' : 'none';
       if (msVariant) msVariant.style.display = desc.showMsVariant ? 'inline-block' : 'none';
       if (typeItemLegend) typeItemLegend.style.display = desc.showLegendTypeItem ? '' : 'none';
       if (clusterBasis) clusterBasis.style.display = desc.showBasisCluster ? 'inline-flex' : 'none';
       if (dividerBasis) dividerBasis.style.display = desc.showBasisCluster ? 'block' : 'none';
       if (compView) compView.style.display = desc.showComparisonView ? 'block' : 'none';
+      if (ncbTableView) ncbTableView.style.display = desc.showNcbTableView ? 'block' : 'none';
       if (sectionNR) sectionNR.style.display = desc.showSectionNR ? 'block' : 'none';
       if (sectionNRC) sectionNRC.style.display = desc.showSectionNRC ? 'block' : 'none';
       const sortNumOption = sortSelect ? sortSelect.querySelector('option[value="num-asc"]') : null;
       if (sortNumOption) sortNumOption.textContent = desc.sortNumLabel;
+    }
+
+    function setNcbView(view, save = true) {
+      const targetView = view === 'table' ? 'table' : 'charts';
+      currentNcbView = targetView;
+      activeSetState.ncbView = targetView;
+
+      if (btnNcbCharts) btnNcbCharts.classList.toggle('active', targetView === 'charts');
+      if (btnNcbTable) btnNcbTable.classList.toggle('active', targetView === 'table');
+
+      if (currentSet !== 'ncb') {
+        if (save) saveState();
+        return;
+      }
+
+      const desc = computeSetViewState(currentSet, currentEdition, setViewMeta, currentNcbView);
+      applyViewDescriptor(desc);
+
+      tierCodes.forEach(code => {
+        const s = document.getElementById(`section-${code}`);
+        if (s) s.style.display = 'none';
+      });
+      if (searchInput) {
+        searchInput.placeholder = 'Search by card name or number (e.g. 001, Chrome, Brawl)...';
+      }
+
+      if (targetView === 'table') {
+        if (metaSnapshots) metaSnapshots.style.display = 'none';
+        if (chartLegend) chartLegend.style.display = 'none';
+      } else {
+        if (metaSnapshots) {
+          metaSnapshots.style.display = 'block';
+          metaSnapshots.textContent = snapshotTemplates.ncb || '';
+        }
+        if (chartLegend) chartLegend.style.display = 'flex';
+      }
+
+      applyFilters();
+      if (typeof syncClusterDividers === 'function') syncClusterDividers();
+      if (typeof syncStickyNavHeight === 'function') syncStickyNavHeight();
+      if (save) saveState();
     }
 
     function setActiveSet(nextSet, save = true) {
@@ -2188,25 +2263,13 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         activeSetState.set = targetSet;
       }
 
-      const desc = computeSetViewState(currentSet, currentEdition, setViewMeta);
+      const desc = computeSetViewState(currentSet, currentEdition, setViewMeta, currentNcbView);
       applyViewDescriptor(desc);
 
       if (currentSet === 'ncb') {
-        tierCodes.forEach(code => {
-          const s = document.getElementById(`section-${code}`);
-          if (s) s.style.display = 'none';
-        });
-        if (metaSnapshots) {
-          metaSnapshots.style.display = 'block';
-          metaSnapshots.textContent = snapshotTemplates.ncb || '';
-        }
-        if (chartLegend) chartLegend.style.display = 'flex';
-        if (searchInput) {
-          searchInput.placeholder = 'Search by card name or number (e.g. 001, Chrome, Brawl)...';
-        }
         const ncbFilters = activeSetState.filtersBySet.ncb || defaultSetFilters();
         applyStatsOpenForCurrentSet(ncbFilters.statsOpen);
-        applyFilters();
+        setNcbView(currentNcbView, false);
       } else {
         setEdition(currentEdition, false);
         const wncFilters = activeSetState.filtersBySet.wnc || defaultSetFilters();
@@ -2230,7 +2293,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         return;
       }
 
-      const desc = computeSetViewState(currentSet, currentEdition, setViewMeta);
+      const desc = computeSetViewState(currentSet, currentEdition, setViewMeta, currentNcbView);
       applyViewDescriptor(desc);
 
       if (edition === 'comparison') {
@@ -2390,10 +2453,138 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
 
       multiselectCategories.forEach(cat => updateBadge(cat));
 
-      const viewDesc = computeSetViewState(currentSet, currentEdition, setViewMeta);
+      const viewDesc = computeSetViewState(currentSet, currentEdition, setViewMeta, currentNcbView);
       let totalVisible = 0;
 
       if (currentSet === 'ncb') {
+        if (currentNcbView === 'table') {
+          if (sectionNR) sectionNR.style.display = 'none';
+          if (sectionNRC) sectionNRC.style.display = 'none';
+
+          const rows = document.querySelectorAll('tr.ncb-comp-row');
+          const sectionCounts = {};
+          const sectionTotals = {};
+          ncbSectionCodes.forEach(code => {
+            sectionCounts[code] = 0;
+            sectionTotals[code] = { mktPrice: 0, lowPrice: 0, c7dDlr: 0, pricedCount: 0, lowCount: 0, visibleCount: 0, owned: 0 };
+          });
+
+          rows.forEach(row => {
+            const name = row.dataset.name;
+            const num = row.dataset.num.toLowerCase();
+            const cleanNum = num.replace(/^b/, '');
+            const rarity = row.dataset.rarity;
+            const color = row.dataset.color;
+            const cardType = row.dataset.type;
+            const isOwned = (parseInt(row.dataset.owned, 10) || 0) > 0;
+
+            const matchesQ = !q || name.includes(q) || num.includes(q) || cleanNum.includes(q);
+            const matchesR = r.length === 0 || r.includes(rarity);
+            const matchesC = c.length === 0 || c.includes(color);
+            const matchesT = t.length === 0 || t.includes(cardType);
+            const matchesO = o.length === 0 || (o.includes('owned') && isOwned) || (o.includes('unowned') && !isOwned);
+
+            if (matchesQ && matchesR && matchesC && matchesT && matchesO) {
+              row.style.display = '';
+              totalVisible++;
+              if (sectionCounts[rarity] !== undefined) {
+                sectionCounts[rarity]++;
+                sectionTotals[rarity].visibleCount++;
+                if (row.dataset.priced === '1') {
+                  sectionTotals[rarity].mktPrice += parseFloat(row.dataset.mktPrice) || 0;
+                  sectionTotals[rarity].c7dDlr += parseFloat(row.dataset.c7dDlr) || 0;
+                  sectionTotals[rarity].pricedCount++;
+                }
+                if (row.dataset.hasLow === '1') {
+                  sectionTotals[rarity].lowPrice += parseFloat(row.dataset.lowPrice) || 0;
+                  sectionTotals[rarity].lowCount++;
+                }
+                sectionTotals[rarity].owned += parseInt(row.dataset.owned, 10) || 0;
+              }
+            } else {
+              row.style.display = 'none';
+            }
+          });
+
+          ncbSectionCodes.forEach(code => {
+            const sub = document.getElementById(`ncb-sub-${code}`);
+            if (sub) sub.style.display = (sectionCounts[code] > 0) ? 'block' : 'none';
+            const tot = sectionTotals[code];
+            const labelEl = document.getElementById(`total-label-${code}`);
+            const mktEl = document.getElementById(`total-mkt-price-${code}`);
+            const lowEl = document.getElementById(`total-low-price-${code}`);
+            const c7dDlrEl = document.getElementById(`total-c7d-dlr-${code}`);
+            const c7dPctEl = document.getElementById(`total-c7d-pct-${code}`);
+            const ownedEl = document.getElementById(`total-owned-${code}`);
+
+            if (tot && mktEl && lowEl && c7dDlrEl && c7dPctEl && ownedEl) {
+              if (labelEl) {
+                labelEl.textContent = (tot.pricedCount < tot.visibleCount)
+                  ? `Total (${tot.pricedCount}/${tot.visibleCount} priced)`
+                  : 'Total';
+              }
+              c7dDlrEl.classList.remove('comp-premium-pos', 'comp-premium-neg');
+              c7dPctEl.classList.remove('comp-premium-pos', 'comp-premium-neg');
+              if (tot.pricedCount > 0) {
+                mktEl.textContent = `$${tot.mktPrice.toFixed(2)}`;
+                const prev7dSum = tot.mktPrice - tot.c7dDlr;
+                const c7dPct = prev7dSum > 0 ? (tot.c7dDlr / prev7dSum * 100) : 0;
+                let dlrStr = '$0.00';
+                if (tot.c7dDlr > 0) dlrStr = `+$${tot.c7dDlr.toFixed(2)}`;
+                else if (tot.c7dDlr < 0) dlrStr = `-$${Math.abs(tot.c7dDlr).toFixed(2)}`;
+                c7dDlrEl.textContent = dlrStr;
+                c7dPctEl.textContent = `${tot.c7dDlr > 0 ? '+' : ''}${c7dPct.toFixed(1)}%`;
+                if (tot.c7dDlr > 0) {
+                  c7dDlrEl.classList.add('comp-premium-pos');
+                  c7dPctEl.classList.add('comp-premium-pos');
+                } else if (tot.c7dDlr < 0) {
+                  c7dDlrEl.classList.add('comp-premium-neg');
+                  c7dPctEl.classList.add('comp-premium-neg');
+                }
+              } else {
+                mktEl.textContent = 'N/A';
+                c7dDlrEl.textContent = 'N/A';
+                c7dPctEl.textContent = 'N/A';
+              }
+              if (tot.lowCount > 0) {
+                lowEl.textContent = (tot.lowCount < tot.pricedCount)
+                  ? `$${tot.lowPrice.toFixed(2)} (${tot.lowCount}/${tot.pricedCount})`
+                  : `$${tot.lowPrice.toFixed(2)}`;
+              } else {
+                lowEl.textContent = 'N/A';
+              }
+              ownedEl.textContent = tot.owned;
+            }
+
+            const table = document.getElementById(`table-${code}`);
+            if (!table) return;
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            const tableRows = Array.from(tbody.querySelectorAll('tr.ncb-comp-row'));
+            tableRows.sort((a, b) => {
+              if (sort === 'price-desc') {
+                const cmp = compareNullableNums(a.dataset.mktPrice, b.dataset.mktPrice, -1);
+                if (cmp !== 0) return cmp;
+              } else if (sort === 'price-asc') {
+                const cmp = compareNullableNums(a.dataset.mktPrice, b.dataset.mktPrice, 1);
+                if (cmp !== 0) return cmp;
+              } else if (sort === 'gain-desc' || sort === 'gain-all-desc' || sort === 'gain-acq-desc') {
+                const cmp = compareNullableNums(a.dataset.c7dPct, b.dataset.c7dPct, -1);
+                if (cmp !== 0) return cmp;
+              }
+              return (parseInt(a.dataset.num.replace(/\D/g, ''), 10) || 0) - (parseInt(b.dataset.num.replace(/\D/g, ''), 10) || 0);
+            });
+            tableRows.forEach(row => tbody.appendChild(row));
+          });
+
+          countDisplay.textContent = `Showing ${totalVisible} of ${viewDesc.countDenominator} cards`;
+          const hasActiveFilters = Boolean(q || r.length > 0 || c.length > 0 || t.length > 0 || o.length > 0);
+          const resetBtn = document.getElementById('btn-reset-filters');
+          if (resetBtn) resetBtn.classList.toggle('is-active', hasActiveFilters);
+          if (typeof syncTierHeaderStickyBounds === 'function') syncTierHeaderStickyBounds();
+          return;
+        }
+
         ncbSectionCodes.forEach(code => {
           const sectionElem = document.getElementById(`section-${code}`);
           const gridElem = document.getElementById(`grid-${code}`);
@@ -2425,6 +2616,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
 
       if (sectionNR) sectionNR.style.display = 'none';
       if (sectionNRC) sectionNRC.style.display = 'none';
+      if (ncbTableView) ncbTableView.style.display = 'none';
 
       if (currentEdition === 'comparison') {
         const rows = document.querySelectorAll('tr.comp-row');
@@ -2607,18 +2799,21 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       activeSetState = normalizeSavedFilterState(rawSaved, allowNcb);
       currentSet = activeSetState.set;
       currentEdition = activeSetState.edition;
+      currentNcbView = activeSetState.ncbView || 'charts';
       currentAnchor = activeSetState.anchor;
+      if (btnNcbCharts) btnNcbCharts.classList.toggle('active', currentNcbView === 'charts');
+      if (btnNcbTable) btnNcbTable.classList.toggle('active', currentNcbView === 'table');
       applyControlsFromFilterObj(activeSetState.filtersBySet[currentSet]);
       setActiveSet(currentSet, false);
       setAnchor(currentAnchor, false);
-      document.documentElement.classList.remove('preload-comparison', 'preload-retail', 'preload-ncb');
+      document.documentElement.classList.remove('preload-comparison', 'preload-retail', 'preload-ncb', 'preload-ncb-table');
     }
 
     document.querySelectorAll('.comp-table th.sortable').forEach(th => {
       th.addEventListener('click', () => {
         const table = th.closest('table');
         const tbody = table.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr.comp-row'));
+        const rows = Array.from(tbody.querySelectorAll('tr.comp-row, tr.ncb-comp-row'));
         const col = th.dataset.col;
         const isAsc = th.classList.contains('sort-asc');
 
@@ -2628,15 +2823,20 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         const dir = isAsc ? -1 : 1;
 
         rows.sort((a, b) => {
-          if (col === 'num') return dir * ((parseInt(a.dataset.num) || 0) - (parseInt(b.dataset.num) || 0));
+          if (col === 'num') return dir * ((parseInt(a.dataset.num.replace(/\D/g, ''), 10) || 0) - (parseInt(b.dataset.num.replace(/\D/g, ''), 10) || 0));
           if (col === 'name') return dir * a.dataset.name.localeCompare(b.dataset.name);
           if (col === 'type') return dir * a.dataset.type.localeCompare(b.dataset.type);
           if (col === 'b_price') return compareNullableNums(a.dataset.bPrice, b.dataset.bPrice, dir);
           if (col === 'r_price') return compareNullableNums(a.dataset.rPrice, b.dataset.rPrice, dir);
           if (col === 'spread_dlr') return compareNullableNums(a.dataset.spreadDlr, b.dataset.spreadDlr, dir);
           if (col === 'spread_pct') return compareNullableNums(a.dataset.spreadPct, b.dataset.spreadPct, dir);
-          if (col === 'b_owned') return dir * ((parseInt(a.dataset.ownedB) || 0) - (parseInt(b.dataset.ownedB) || 0));
-          if (col === 'r_owned') return dir * ((parseInt(a.dataset.ownedR) || 0) - (parseInt(b.dataset.ownedR) || 0));
+          if (col === 'b_owned') return dir * ((parseInt(a.dataset.ownedB, 10) || 0) - (parseInt(b.dataset.ownedB, 10) || 0));
+          if (col === 'r_owned') return dir * ((parseInt(a.dataset.ownedR, 10) || 0) - (parseInt(b.dataset.ownedR, 10) || 0));
+          if (col === 'mkt_price') return compareNullableNums(a.dataset.mktPrice, b.dataset.mktPrice, dir);
+          if (col === 'low_price') return compareNullableNums(a.dataset.lowPrice, b.dataset.lowPrice, dir);
+          if (col === 'c7d_dlr') return compareNullableNums(a.dataset.c7dDlr, b.dataset.c7dDlr, dir);
+          if (col === 'c7d_pct') return compareNullableNums(a.dataset.c7dPct, b.dataset.c7dPct, dir);
+          if (col === 'owned') return dir * ((parseInt(a.dataset.owned, 10) || 0) - (parseInt(b.dataset.owned, 10) || 0));
           return 0;
         });
 
@@ -2667,7 +2867,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
 
     function syncTierHeaderStickyBounds() {
       const allHeaders = tierCodes.concat(ncbSectionCodes);
-      if (currentSet === 'wnc' && currentEdition === 'comparison') {
+      if ((currentSet === 'wnc' && currentEdition === 'comparison') || (currentSet === 'ncb' && currentNcbView === 'table')) {
         allHeaders.forEach(code => {
           const h = document.getElementById(`header-${code}`);
           if (h) h.style.transform = '';
@@ -2959,6 +3159,141 @@ def _render_ncb_section(
             )
         )
     return "".join(sections)
+
+
+def _render_ncb_table_view(
+    ncb_trajectories: List[Dict[str, Any]],
+    ncb_champ_trajectories: Optional[List[Dict[str, Any]]] = None,
+) -> str:
+    """Renders the tabular view for Night City Brawl Season 1 regular Nova Rares and Brawl Champ sections."""
+    subsections: List[Tuple[str, str, List[Dict[str, Any]]]] = []
+    if ncb_trajectories:
+        subsections.append(("NR", f"Nova Rares ({len(ncb_trajectories)})", ncb_trajectories))
+    if ncb_champ_trajectories:
+        subsections.append(("NRC", f"Nova Rares \u2013 Brawl Champ ({len(ncb_champ_trajectories)})", ncb_champ_trajectories))
+    if not subsections:
+        return ""
+
+    parts: List[str] = ['  <div class="comparison-view" id="view-ncb-table" style="display:none;">\n']
+    for code, title, trajs in subsections:
+        parts.append(f"""    <div class="comp-sub-section" id="ncb-sub-{code}">
+      <h2 class="comp-sub-title">{html.escape(title)}</h2>
+      <div class="comp-table-container">
+        <table class="comp-table" id="table-{code}">
+          <thead>
+            <tr>
+              <th style="text-align:center;width:44px;" class="sortable" data-col="num">#</th>
+              <th style="text-align:left;" class="sortable" data-col="name">Card Name</th>
+              <th style="text-align:center;width:90px;" class="sortable" data-col="type">Type</th>
+              <th style="text-align:right;width:105px;" class="sortable" data-col="mkt_price">Market Price</th>
+              <th style="text-align:right;width:95px;" class="sortable" data-col="low_price">Low Price</th>
+              <th style="text-align:right;width:120px;" class="sortable" data-col="c7d_dlr">L7D Change ($)</th>
+              <th style="text-align:right;width:120px;" class="sortable" data-col="c7d_pct">L7D Change (%)</th>
+              <th style="text-align:center;width:80px;" class="sortable" data-col="owned">Owned</th>
+            </tr>
+          </thead>
+          <tbody>
+""")
+        for t in trajs:
+            has_price = bool(t.get("hasPrice")) and float(t.get("currentPrice") or 0.0) > 0.0
+            mkt_p = float(t["currentPrice"]) if has_price else None
+            raw_low = t.get("currentLowPrice")
+            has_low = has_price and raw_low is not None and float(raw_low) > 0.0
+            low_p = float(raw_low) if has_low else None
+            pid = str(t.get("productId") or "")
+
+            mkt_str = (
+                f'<a href="https://www.tcgplayer.com/product/{html.escape(pid, quote=True)}" target="_blank" rel="noopener noreferrer" class="comp-price-link">${mkt_p:.2f}<span class="ext-icon">&#x2197;</span></a>'
+                if (mkt_p is not None and pid)
+                else (f"${mkt_p:.2f}" if mkt_p is not None else "N/A")
+            )
+            low_str = f"${low_p:.2f}" if low_p is not None else "N/A"
+
+            if has_price:
+                c7d_dlr = float(t.get("change7d", 0.0))
+                c7d_pct = float(t.get("change7dPct", 0.0))
+                c7d_sign = "+" if c7d_dlr > 0 else ""
+                c7d_cls = "comp-premium-pos" if c7d_dlr > 0 else ("comp-premium-neg" if c7d_dlr < 0 else "")
+                c7d_dlr_str = _fmt_currency_delta(c7d_dlr)
+                c7d_pct_str = f"{c7d_sign}{c7d_pct:.1f}%"
+                c7d_dlr_attr = f"{c7d_dlr}"
+                c7d_pct_attr = f"{c7d_pct}"
+            else:
+                c7d_cls = ""
+                c7d_dlr_str = "N/A"
+                c7d_pct_str = "N/A"
+                c7d_dlr_attr = ""
+                c7d_pct_attr = ""
+
+            owned_qty = int(t.get("ownedQty", 0))
+            num_str = str(t.get("printNumber") or "")
+            name_str = str(t.get("name") or "")
+            color_str = str(t.get("color") or "Neutral")
+            type_str = str(t.get("cardType") or "Unknown")
+
+            parts.append(f"""            <tr class="ncb-comp-row" data-priced="{'1' if has_price else '0'}" data-has-low="{'1' if has_low else '0'}" data-name="{html.escape(name_str.lower(), quote=True)}" data-num="{html.escape(num_str, quote=True)}" data-rarity="{code}" data-color="{html.escape(color_str, quote=True)}" data-type="{html.escape(type_str, quote=True)}" data-mkt-price="{mkt_p if mkt_p is not None else ''}" data-low-price="{low_p if low_p is not None else ''}" data-c7d-dlr="{c7d_dlr_attr}" data-c7d-pct="{c7d_pct_attr}" data-owned="{owned_qty}">
+              <td style="text-align:center;" class="comp-table-mono">{html.escape(num_str)}</td>
+              <td><div class="comp-card-name"><span class="color-dot color-{html.escape(color_str, quote=True)}"></span><span>{html.escape(name_str)}</span></div></td>
+              <td style="text-align:center;">{html.escape(type_str)}</td>
+              <td style="text-align:right;" class="comp-table-mono">{mkt_str}</td>
+              <td style="text-align:right;" class="comp-table-mono">{low_str}</td>
+              <td style="text-align:right;" class="comp-table-mono {c7d_cls}">{c7d_dlr_str}</td>
+              <td style="text-align:right;" class="comp-table-mono {c7d_cls}">{c7d_pct_str}</td>
+              <td style="text-align:center;" class="comp-table-mono">{owned_qty}</td>
+            </tr>
+""")
+
+        priced_t = [t for t in trajs if bool(t.get("hasPrice")) and float(t.get("currentPrice") or 0.0) > 0.0]
+        low_t = [t for t in priced_t if t.get("currentLowPrice") is not None and float(t["currentLowPrice"]) > 0.0]
+        tot_owned = sum(int(t.get("ownedQty", 0)) for t in trajs)
+        total_label = f"Total ({len(priced_t)}/{len(trajs)} priced)" if len(priced_t) < len(trajs) else "Total"
+
+        if priced_t:
+            mkt_sum = sum(float(t["currentPrice"]) for t in priced_t)
+            c7d_sum = sum(float(t.get("change7d", 0.0)) for t in priced_t)
+            prev_7d_sum = mkt_sum - c7d_sum
+            c7d_pct_tot = (c7d_sum / prev_7d_sum * 100.0) if prev_7d_sum > 0.0 else 0.0
+            tot_c7d_cls = "comp-premium-pos" if c7d_sum > 0 else ("comp-premium-neg" if c7d_sum < 0 else "")
+            tot_c7d_sign = "+" if c7d_sum > 0 else ""
+            tot_mkt_txt = f"${mkt_sum:.2f}"
+            tot_c7d_dlr_txt = _fmt_currency_delta(c7d_sum)
+            tot_c7d_pct_txt = f"{tot_c7d_sign}{c7d_pct_tot:.1f}%"
+        else:
+            tot_c7d_cls = ""
+            tot_mkt_txt = "N/A"
+            tot_c7d_dlr_txt = "N/A"
+            tot_c7d_pct_txt = "N/A"
+
+        if low_t:
+            low_sum = sum(float(t["currentLowPrice"]) for t in low_t)
+            tot_low_txt = (
+                f"${low_sum:.2f} ({len(low_t)}/{len(priced_t)})"
+                if len(low_t) < len(priced_t)
+                else f"${low_sum:.2f}"
+            )
+        else:
+            tot_low_txt = "N/A"
+
+        parts.append(f"""          </tbody>
+          <tfoot>
+            <tr class="comp-total-row" id="total-row-{code}">
+              <td style="text-align:center;" class="comp-table-mono">—</td>
+              <td id="total-label-{code}">{html.escape(total_label)}</td>
+              <td style="text-align:center;">—</td>
+              <td style="text-align:right;" class="comp-table-mono" id="total-mkt-price-{code}">{tot_mkt_txt}</td>
+              <td style="text-align:right;" class="comp-table-mono" id="total-low-price-{code}">{tot_low_txt}</td>
+              <td style="text-align:right;" class="comp-table-mono {tot_c7d_cls}" id="total-c7d-dlr-{code}">{tot_c7d_dlr_txt}</td>
+              <td style="text-align:right;" class="comp-table-mono {tot_c7d_cls}" id="total-c7d-pct-{code}">{tot_c7d_pct_txt}</td>
+              <td style="text-align:center;" class="comp-table-mono" id="total-owned-{code}">{tot_owned}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+""")
+
+    parts.append("  </div>\n")
+    return "".join(parts)
 
 
 def _render_comparison_view(comp_pairs: List[Dict[str, Any]]) -> str:
@@ -3353,6 +3688,11 @@ def generate_html_dashboard(
         if has_ncb
         else ""
     )
+    ncb_table_view_html = (
+        _render_ncb_table_view(ncb_trajectories, ncb_champ_trajectories)
+        if has_ncb
+        else ""
+    )
     comp_view_html = _render_comparison_view(comp_pairs)
     total_card_count = len(beta_trajectories)
     ncb_card_count = len(ncb_trajectories)
@@ -3375,6 +3715,15 @@ def generate_html_dashboard(
           <button type="button" class="toggle-btn active" id="btn-set-wnc" onclick="setActiveSet('wnc')">WNC</button>
           <button type="button" class="toggle-btn" id="btn-set-ncb" onclick="setActiveSet('ncb')">NCB S1</button>
         </div>\n"""
+        if has_ncb
+        else ""
+    )
+    ncb_view_toggle_html = (
+        """
+      <div class="edition-toggle" id="ncb-view-toggle" style="display:none;">
+        <button type="button" class="toggle-btn active" id="btn-ncb-charts" onclick="setNcbView('charts')">Charts</button>
+        <button type="button" class="toggle-btn" id="btn-ncb-table" onclick="setNcbView('table')">Table</button>
+      </div>"""
         if has_ncb
         else ""
     )
@@ -3420,6 +3769,9 @@ def generate_html_dashboard(
     (function() {{
       if (initialFilterState.set === 'ncb') {{
         document.documentElement.classList.add('preload-ncb');
+        if (initialFilterState.ncbView === 'table') {{
+          document.documentElement.classList.add('preload-ncb-table');
+        }}
       }} else if (initialFilterState.edition === 'comparison') {{
         document.documentElement.classList.add('preload-comparison');
       }} else if (initialFilterState.edition === 'retail') {{
@@ -3452,7 +3804,7 @@ def generate_html_dashboard(
         <button type="button" class="toggle-btn active" id="btn-beta" onclick="setEdition('beta')">Beta</button>
         <button type="button" class="toggle-btn" id="btn-retail" onclick="setEdition('retail')">Retail</button>
         <button type="button" class="toggle-btn" id="btn-comparison" onclick="setEdition('comparison')">Comparison</button>
-      </div>
+      </div>{ncb_view_toggle_html}
     </div>
 
     <div class="cluster-divider" id="divider-view"></div>
@@ -3545,7 +3897,7 @@ def generate_html_dashboard(
     <span class="legend-item"><span class="legend-dot" style="background:#0d1117;border:1.5px solid #bc8cff;"></span>Current TCG Low (excl. shipping)</span>
   </div>
   </header>
-{tier_sections_html}{ncb_section_html}{comp_view_html}  <div id="chart-tooltip" class="chart-tooltip"></div>
+{tier_sections_html}{ncb_section_html}{comp_view_html}{ncb_table_view_html}  <div id="chart-tooltip" class="chart-tooltip"></div>
 
   <script>
     const totalCardCount = {total_card_count};
