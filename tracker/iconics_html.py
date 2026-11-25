@@ -789,16 +789,10 @@ def generate_svg_chart(
 
     valid_low: Optional[float] = float(low_price) if (low_price is not None and low_price > 0.0) else None
     prices = [p[1] for p in points]
-    p_min = min(min(prices), valid_low) if valid_low is not None else min(prices)
     p_max = max(max(prices), valid_low) if valid_low is not None else max(prices)
 
-    if p_max == p_min:
-        y_min = max(0.0, p_min - 1.0)
-        y_max = p_max + 1.0
-    else:
-        pad = (p_max - p_min) * 0.12
-        y_min = max(0.0, p_min - pad)
-        y_max = p_max + pad
+    y_min = 0.0
+    y_max = float(max(1, math.ceil(p_max)))
 
     y_range = y_max - y_min if y_max > y_min else 1.0
     n = len(points)
@@ -861,11 +855,8 @@ def generate_svg_chart(
     is_dense = len(points) > 20
     svg_class = "chart-svg is-dense" if is_dense else "chart-svg"
 
-    y_top_label = math.ceil(p_max)
-    y_bot_label = math.floor(p_min)
-    if y_top_label == y_bot_label:
-        y_top_label += 1
-        y_bot_label = max(0, y_bot_label - 1)
+    y_top_label = int(y_max)
+    y_bot_label = 0
 
     svg_parts = [
         f'<svg viewBox="0 0 {width} {height}" class="{svg_class}" xmlns="http://www.w3.org/2000/svg">',

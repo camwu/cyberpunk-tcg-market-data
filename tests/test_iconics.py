@@ -2255,7 +2255,7 @@ process.stdout.write(JSON.stringify(out));
         points = [("2026-11-06", 20.0), ("2026-11-09", 34.0), ("2026-11-15", 34.0)]
         svg = generate_svg_chart(points, card_id="n_719700", low_price=15.13)
         self.assertIn(">$34</text>", svg)
-        self.assertIn(">$15</text>", svg)
+        self.assertIn(">$0</text>", svg)
         self.assertIn('class="low-price-connector"', svg)
         self.assertIn('class="low-price-dot"', svg)
         self.assertIn('data-low="true"', svg)
@@ -2281,21 +2281,58 @@ process.stdout.write(JSON.stringify(out));
         self.assertIn('r="3.0" class="low-price-dot"', svg_tiny_gap)
 
         # Close-but-separate gap (5.0 <= gap < 8.0) renders dot and connector without overlapping hit target
-        # For 20..34, y_range = 17.36 and plot_h = 82 => 1.3 price diff is ~6.1px
-        svg_mid_gap = generate_svg_chart(points, card_id="n_719700", low_price=32.70)
+        # For 0..34, y_range = 34.0 and plot_h = 82 => 3.0 price diff is ~7.2px
+        svg_mid_gap = generate_svg_chart(points, card_id="n_719700", low_price=31.00)
         self.assertIn('class="low-price-connector"', svg_mid_gap)
         self.assertIn('class="low-price-dot" fill="#0d1117" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;"', svg_mid_gap)
         self.assertNotIn('data-low="true"', svg_mid_gap)
-        self.assertIn('data-low-price="$32.70"', svg_mid_gap)
+        self.assertIn('data-low-price="$31.00"', svg_mid_gap)
 
         svg_no_low = generate_svg_chart(points, card_id="n_719700")
-        self.assertIn(">$20</text>", svg_no_low)
+        self.assertIn(">$34</text>", svg_no_low)
+        self.assertIn(">$0</text>", svg_no_low)
         self.assertNotIn("low-price-connector", svg_no_low)
+
+        svg_high_low = generate_svg_chart(points, card_id="n_719700", low_price=45.0)
+        self.assertIn(">$45</text>", svg_high_low)
+        self.assertIn(">$0</text>", svg_high_low)
 
         # Initial SVG line color matches setAnchor() strict sign thresholds (>0, <0, ==0)
         self.assertIn('stroke="#3fb950"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 100.5)], card_id="up"))
         self.assertIn('stroke="#f85149"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 99.5)], card_id="dn"))
         self.assertIn('stroke="#58a6ff"', generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 100.0)], card_id="fl"))
+
+    def test_generate_svg_chart_anchors_y_axis_to_zero_and_scales_proportionally(self):
+        """Verify y-axis anchors to $0 so narrow percentage swings stay flatter than wide swings."""
+        svg_tight = generate_svg_chart([("2026-11-14", 95.0), ("2026-11-15", 100.0)], card_id="tight")
+        self.assertIn(">$100</text>", svg_tight)
+        self.assertIn(">$0</text>", svg_tight)
+        self.assertIn('points="42.0,20.1 324.0,16.0"', svg_tight)
+
+        svg_wide = generate_svg_chart([("2026-11-14", 50.0), ("2026-11-15", 100.0)], card_id="wide")
+        self.assertIn('points="42.0,57.0 324.0,16.0"', svg_wide)
+
+        svg_frac = generate_svg_chart([("2026-11-14", 20.0), ("2026-11-15", 34.50)], card_id="frac")
+        self.assertIn(">$35</text>", svg_frac)
+        self.assertIn(">$0</text>", svg_frac)
+        self.assertIn('points="42.0,51.1 324.0,17.2"', svg_frac)
+
+    def test_generate_svg_chart_flat_subdollar_and_zero_series(self):
+        """Verify flat, sub-dollar, and zero-priced series render valid $0-anchored bounds."""
+        svg_flat = generate_svg_chart([("2026-11-14", 100.0), ("2026-11-15", 100.0)], card_id="flat")
+        self.assertIn(">$100</text>", svg_flat)
+        self.assertIn(">$0</text>", svg_flat)
+        self.assertIn('points="42.0,16.0 324.0,16.0"', svg_flat)
+
+        svg_sub = generate_svg_chart([("2026-11-14", 0.25), ("2026-11-15", 0.50)], card_id="sub")
+        self.assertIn(">$1</text>", svg_sub)
+        self.assertIn(">$0</text>", svg_sub)
+        self.assertIn('points="42.0,77.5 324.0,57.0"', svg_sub)
+
+        svg_zero = generate_svg_chart([("2026-11-14", 0.0), ("2026-11-15", 0.0)], card_id="zero")
+        self.assertIn(">$1</text>", svg_zero)
+        self.assertIn(">$0</text>", svg_zero)
+        self.assertIn('points="42.0,98.0 324.0,98.0"', svg_zero)
 
     def test_render_card_tile_shows_low_tooltip_and_preserves_acq_row(self):
         tile_html = _render_card_tile(
