@@ -45,6 +45,100 @@ def extract_date_from_text(text: Optional[str]) -> Optional[str]:
     return None
 
 
+def _extract_tag_variant_and_unknown_tags(
+    raw_tags: Optional[str],
+) -> Tuple[Optional[str], Optional[str], List[str]]:
+    """Extracts at most one canonical stamp variant and any unrecognized tokens from comma-separated tags."""
+    if not raw_tags or not str(raw_tags).strip():
+        return None, None, []
+
+    recognized: List[str] = []
+    unknown_tags: List[str] = []
+    seen_unknown: Set[str] = set()
+    for token in (t.strip() for t in str(raw_tags).split(",") if t.strip()):
+        canonical = normalize_stamp_variant(token)
+        if canonical:
+            if canonical not in recognized:
+                recognized.append(canonical)
+        else:
+            token_key = token.lower()
+            if token_key not in seen_unknown:
+                seen_unknown.add(token_key)
+                unknown_tags.append(token)
+
+    if len(recognized) > 1:
+        err = (
+            f"Conflicting stamp tags in 'tags': {', '.join(recognized)}. "
+            "Specify at most one stamp tag per inventory line."
+        )
+        return None, err, unknown_tags
+
+    return (recognized[0] if recognized else None), None, unknown_tags
+
+
+class TagsAndNotesResolution(NamedTuple):
+    lots: List[Tuple[Optional[str], int, Optional[str]]]
+    error: Optional[str]
+    is_qty_mismatch: bool
+    unknown_note_tags: List[str]
+    unknown_col_tags: List[str]
+
+
+def resolve_lots_with_tags_and_notes(
+    raw_tags: Optional[str],
+    raw_notes: Optional[str],
+    total_qty: int,
+    acq_date_col: Optional[str] = None,
+) -> TagsAndNotesResolution:
+    """
+    Resolves lot dates, quantities, and stamp variants using CardNexus line tags first,
+    failing closed on multi-stamp tags, tags-vs-notes conflicts, or mixed lots on a tagged line,
+    while falling back to parenthesized notes variants for untagged legacy CSV rows.
+    """
+    tag_variant, tag_err, unknown_col_tags = _extract_tag_variant_and_unknown_tags(raw_tags)
+    if tag_err:
+        return TagsAndNotesResolution([], tag_err, False, [], unknown_col_tags)
+
+    notes_str = (raw_notes or "").strip()
+    acq_str = (acq_date_col or "").strip()
+    if notes_str and extract_date_from_text(notes_str):
+        raw_to_parse = notes_str
+    elif acq_str:
+        raw_to_parse = acq_str
+    else:
+        raw_to_parse = notes_str
+
+    parsed_lots, lot_err, unknown_note_tags = parse_multi_lot_notes_with_variants(raw_to_parse, total_qty)
+    if raw_to_parse == acq_str and acq_str and notes_str and not extract_date_from_text(notes_str):
+        notes_variant, notes_unknown = _extract_lot_variant_and_unknown_tags(notes_str)
+        unknown_note_tags = unknown_note_tags + notes_unknown
+        if notes_variant is not None:
+            parsed_lots = [(d, q, v or notes_variant) for d, q, v in parsed_lots]
+
+    if lot_err:
+        return TagsAndNotesResolution(parsed_lots, lot_err, True, unknown_note_tags, unknown_col_tags)
+
+    if tag_variant is not None:
+        mismatched = [v for _, _, v in parsed_lots if v is not None and v != tag_variant]
+        if mismatched:
+            err = f"Conflicting stamp variant between tags ('{tag_variant}') and notes ('{mismatched[0]}')."
+            return TagsAndNotesResolution([], err, False, unknown_note_tags, unknown_col_tags)
+
+        has_stamped = any(v is not None for _, _, v in parsed_lots)
+        has_unstamped = any(v is None for _, _, v in parsed_lots)
+        if has_stamped and has_unstamped:
+            err = (
+                f"Mixed stamped and unstamped lots in notes on line tagged '{tag_variant}'. "
+                "Split stamped and regular copies onto separate lines."
+            )
+            return TagsAndNotesResolution([], err, False, unknown_note_tags, unknown_col_tags)
+
+        resolved_lots = [(d, q, tag_variant) for d, q, _ in parsed_lots]
+        return TagsAndNotesResolution(resolved_lots, None, False, unknown_note_tags, unknown_col_tags)
+
+    return TagsAndNotesResolution(parsed_lots, None, False, unknown_note_tags, unknown_col_tags)
+
+
 def _extract_lot_variant_and_unknown_tags(chunk_text: str) -> Tuple[Optional[str], List[str]]:
     """Extracts a recognized tournament stamp variant and any unrecognized parenthesized tags from one lot chunk."""
     matched_variant: Optional[str] = None
@@ -260,6 +354,7 @@ class LotResolutionResult(NamedTuple):
     mismatches: List[Dict[str, str]]
     lot_variants: Tuple[Optional[str], ...] = ()
     warnings: Tuple[str, ...] = ()
+    unknown_col_tags: Tuple[str, ...] = ()
 
 
 class DuplicateTracker:
@@ -447,6 +542,7 @@ def _parse_and_validate_row(
         "print_num_val": print_num_val,
         "item_desc": item_desc,
         "notes": (row.get("notes") or "").strip(),
+        "tags": (row.get("tags") or "").strip(),
         "acquisitionDate": (row.get("acquisitionDate") or "").strip(),
     }
     return parsed_data, []
@@ -458,6 +554,7 @@ def _resolve_row_lots(
     qty: int,
     today_str: str,
     item_info: Dict[str, Any],
+    raw_tags: Optional[str] = None,
 ) -> LotResolutionResult:
     """Parses lot purchase tranches, validates date formats, and enforces future-date bounds."""
     errors: List[str] = []
@@ -465,6 +562,7 @@ def _resolve_row_lots(
     warnings: List[str] = []
     lots: List[Tuple[Optional[str], int]] = []
     lot_variants: List[Optional[str]] = []
+    unknown_col_tags: List[str] = []
 
     name = item_info.get("name", "")
     print_num_val = item_info.get("print_num_val", "")
@@ -479,39 +577,35 @@ def _resolve_row_lots(
         acq_date_future_flagged = True
 
     if qty >= 1:
-        if raw_notes and extract_date_from_text(raw_notes):
-            raw_to_parse = raw_notes
-        elif acq_date_col:
-            raw_to_parse = acq_date_col
-        else:
-            raw_to_parse = raw_notes or ""
+        notes_str = (raw_notes or "").strip()
+        acq_str = (acq_date_col or "").strip()
+        raw_to_parse = notes_str if (notes_str and extract_date_from_text(notes_str)) else (acq_str or notes_str)
 
-        parsed_lots, lot_err, unknown_tags = parse_multi_lot_notes_with_variants(raw_to_parse, qty)
-        if raw_to_parse == acq_date_col and raw_notes and not extract_date_from_text(raw_notes):
-            notes_variant, notes_unknown = _extract_lot_variant_and_unknown_tags(raw_notes)
-            unknown_tags = unknown_tags + notes_unknown
-            if notes_variant is not None:
-                parsed_lots = [(d, q, v or notes_variant) for d, q, v in parsed_lots]
+        res = resolve_lots_with_tags_and_notes(raw_tags, raw_notes, qty, acq_date_col=acq_date_col)
+        unknown_col_tags = res.unknown_col_tags
 
-        for tag in unknown_tags:
+        for tag in res.unknown_note_tags:
             warnings.append(
                 f"Row {row_idx}: Unrecognized parenthesized tag '({tag})' in notes for '{name}' ({print_num_val}); treating lot as regular variant."
             )
 
-        if lot_err:
-            errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({print_num_val}). {lot_err} (notes: '{raw_to_parse}')")
-            parsed_qty = sum(q for _, q, _ in parsed_lots)
-            mismatches.append({
-                "row": str(row_idx),
-                "print_number": str(print_num_val),
-                "name": name,
-                "parsed": str(parsed_qty),
-                "qty": str(qty),
-                "notes": raw_to_parse,
-            })
+        if res.error:
+            if res.is_qty_mismatch:
+                errors.append(f"Row {row_idx}: Quantity mismatch for '{name}' ({print_num_val}). {res.error} (notes: '{raw_to_parse}')")
+                parsed_qty = sum(q for _, q, _ in res.lots)
+                mismatches.append({
+                    "row": str(row_idx),
+                    "print_number": str(print_num_val),
+                    "name": name,
+                    "parsed": str(parsed_qty),
+                    "qty": str(qty),
+                    "notes": raw_to_parse,
+                })
+            else:
+                errors.append(f"Row {row_idx}: Stamp tag conflict for '{name}' ({print_num_val}). {res.error}")
         else:
             future_lot_dates = [
-                d for d, _, _ in parsed_lots
+                d for d, _, _ in res.lots
                 if d and d > today_str and not (acq_date_future_flagged and d == acq_date_col)
             ]
             if future_lot_dates:
@@ -520,8 +614,8 @@ def _resolve_row_lots(
                         f"Row {row_idx}: Acquisition date '{fdate}' for '{name}' ({print_num_val}) is in the future (notes: '{raw_to_parse}')."
                     )
             else:
-                lots = [(d, q) for d, q, _ in parsed_lots]
-                lot_variants = [v for _, _, v in parsed_lots]
+                lots = [(d, q) for d, q, _ in res.lots]
+                lot_variants = [v for _, _, v in res.lots]
 
     return LotResolutionResult(
         lots=lots,
@@ -529,6 +623,7 @@ def _resolve_row_lots(
         mismatches=mismatches,
         lot_variants=tuple(lot_variants),
         warnings=tuple(warnings),
+        unknown_col_tags=tuple(unknown_col_tags),
     )
 
 
@@ -583,6 +678,8 @@ def validate_collection_file(
                 return False, [f"Missing required columns: {sorted(missing)} (required: {sorted(REQUIRED_COLUMNS)})"], []
 
             errors, lot_mismatches, validated_rows = [], [], []
+            distinct_unknown_col_tags: List[str] = []
+            seen_unknown_col_tags: Set[str] = set()
             tracker, today_str = DuplicateTracker(), datetime.date.today().isoformat()
             row_count = 0
             for row_idx, row in enumerate(reader, start=2):
@@ -593,7 +690,20 @@ def validate_collection_file(
                     continue
 
                 item_info = {"name": parsed["name"], "print_num_val": parsed["print_num_val"], "row_idx": row_idx, "item_desc": parsed["item_desc"]}
-                lot_res = _resolve_row_lots(parsed["notes"], parsed["acquisitionDate"], parsed["totalQtyOwned"], today_str, item_info)
+                lot_res = _resolve_row_lots(
+                    parsed["notes"],
+                    parsed["acquisitionDate"],
+                    parsed["totalQtyOwned"],
+                    today_str,
+                    item_info,
+                    raw_tags=parsed["tags"],
+                )
+                for utag in lot_res.unknown_col_tags:
+                    utag_key = utag.lower()
+                    if utag_key not in seen_unknown_col_tags:
+                        seen_unknown_col_tags.add(utag_key)
+                        distinct_unknown_col_tags.append(utag)
+
                 if lot_res.errors:
                     errors.extend(lot_res.errors)
                     lot_mismatches.extend(lot_res.mismatches)
@@ -611,11 +721,18 @@ def validate_collection_file(
                         "name": parsed["name"], "expansion": parsed["expansion"], "printNumber": parsed["printNumber"],
                         "finish": parsed["finish"], "totalQtyOwned": lot_qty, "price": parsed["price"],
                         "item_type": parsed["item_type"], "acquisitionDate": lot_date,
-                        "variant": lot_variant,
+                        "tags": parsed["tags"], "variant": lot_variant,
                     }}
                     if parsed["is_sealed"]:
                         row_copy["rarity"] = "Sealed"
                     validated_rows.append(row_copy)
+
+            if distinct_unknown_col_tags:
+                joined_tags = ", ".join(f"'{t}'" for t in distinct_unknown_col_tags)
+                print(
+                    f"Warning: Unrecognized CardNexus tags ({joined_tags}) ignored for variant matching.",
+                    file=sys.stderr,
+                )
 
             if row_count == 0 and not errors:
                 errors.append("Collection CSV contains 0 inventory rows.")

@@ -11,7 +11,7 @@ from typing import Any, List, Optional, Tuple
 from tracker.validation import (
     CollectionValidationError,
     REQUIRED_COLUMNS,
-    parse_multi_lot_notes_with_variants,
+    resolve_lots_with_tags_and_notes,
 )
 
 
@@ -108,9 +108,12 @@ def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollec
             lot_variants: List[Tuple[Optional[str], int, Optional[str]]] = []
             if qty > 0:
                 notes = (row.get("notes") or "").strip()
-                lot_variants, lot_err, _ = parse_multi_lot_notes_with_variants(notes, qty)
-                if lot_err:
-                    raise CollectionValidationError(f"Row {exp} #{pnum}: {lot_err}")
+                raw_tags = (row.get("tags") or "").strip()
+                acq_date = (row.get("acquisitionDate") or "").strip() or None
+                res = resolve_lots_with_tags_and_notes(raw_tags, notes, qty, acq_date_col=acq_date)
+                if res.error:
+                    raise CollectionValidationError(f"Row {exp} #{pnum}: {res.error}")
+                lot_variants = res.lots
                 lots = [(d, q) for d, q, _ in lot_variants]
 
             validated_rows.append(
