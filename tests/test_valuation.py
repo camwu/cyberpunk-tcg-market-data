@@ -2051,6 +2051,132 @@ class TestPortfolioValuation(unittest.TestCase):
                         collection_rows=ordered_rows,
                     )
 
+    def test_tag_first_csv_valuation_maps_stamped_variants_and_keeps_untagged_smasher(self):
+        """7-column tagged CSV with date-only notes maps stamped lines to exact TCGplayer catalog products."""
+        cards_file = os.path.join(self.cache_dir, "cards.json")
+        with open(cards_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "_groups": {},
+                "719698": {
+                    "productId": 719698,
+                    "name": "Maman Brigitte - Spirit of Death",
+                    "cleanName": "Maman Brigitte Spirit of Death",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": "015",
+                    "rarity": "NR",
+                    "color": "Blue",
+                    "cardType": "Unit",
+                },
+                "733506": {
+                    "productId": 733506,
+                    "name": "Maman Brigitte - Spirit of Death (Brawl Champ)",
+                    "cleanName": "Maman Brigitte Spirit of Death Brawl Champ",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": None,
+                    "rarity": None,
+                    "color": None,
+                    "cardType": None,
+                },
+                "719694": {
+                    "productId": 719694,
+                    "name": "Wraith Marauders",
+                    "cleanName": "Wraith Marauders",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": "011",
+                    "rarity": "NR",
+                    "color": "Red",
+                    "cardType": "Unit",
+                },
+                "733502": {
+                    "productId": 733502,
+                    "name": "Wraith Marauders (Brawl Champ)",
+                    "cleanName": "Wraith Marauders Brawl Champ",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": None,
+                    "rarity": None,
+                    "color": None,
+                    "cardType": None,
+                },
+                "733735": {
+                    "productId": 733735,
+                    "name": "Sandevistan",
+                    "cleanName": "Sandevistan",
+                    "groupName": "Set 1 Promos",
+                    "printNumber": "001",
+                    "rarity": "NR",
+                    "color": "Green",
+                    "cardType": "Gear",
+                },
+                "733736": {
+                    "productId": 733736,
+                    "name": "Sandevistan (Top 4)",
+                    "cleanName": "Sandevistan Top 4",
+                    "groupName": "Set 1 Promos",
+                    "printNumber": "003",
+                    "rarity": "NR",
+                    "color": "Green",
+                    "cardType": "Gear",
+                },
+                "733739": {
+                    "productId": 733739,
+                    "name": "Adam Smasher - Metal Over Meat",
+                    "cleanName": "Adam Smasher Metal Over Meat",
+                    "groupName": "Set 1 Promos",
+                    "printNumber": "002",
+                    "rarity": "NR",
+                    "color": "Yellow",
+                    "cardType": "Unit",
+                },
+            }, f)
+
+        price_file = os.path.join(self.cache_dir, "2026-11-24.json")
+        with open(price_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "date": "2026-11-24",
+                "prices": {
+                    "719698": {"Foil": {"marketPrice": 7.00}},
+                    "733506": {"Foil": {"marketPrice": None, "midPrice": 79.00}},
+                    "733502": {"Foil": {"marketPrice": None, "midPrice": 35.00}},
+                    "733735": {"Foil": {"marketPrice": 18.35}},
+                    "733736": {"Foil": {"marketPrice": 75.00}},
+                    "733739": {"Foil": {"marketPrice": 44.66}},
+                },
+            }, f)
+
+        csv_path = os.path.join(self.temp_dir.name, "tagged_collection.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes,tags\n"
+                'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,2,"2026-11-12: 1; 2026-11-22: 1",\n'
+                'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,1,"2026-11-07: 1","Brawl Champ"\n'
+                'Wraith Marauders,Night City Brawl Season 1,011,Foil,1,"2026-11-21: 1","Brawl Champ"\n'
+                'Sandevistan,Night City Showdown S1,001,Foil,1,"2026-11-14: 1",\n'
+                'Sandevistan,Night City Showdown S1,001,Foil,1,"2026-11-14: 1","Top 4"\n'
+                'Adam Smasher - Metal Over Meat,Night City Showdown S1,002,Foil,1,"2026-11-14: 1",\n'
+            )
+
+        res = calculate_portfolio_valuation(
+            date_str="2026-11-24",
+            collection_path=csv_path,
+            cache_dir=self.cache_dir,
+            db_path=self.db_path,
+            force=True,
+        )
+        self.assertEqual(res["total_cards"], 7)
+        self.assertAlmostEqual(res["total_value"], round(2 * 7.00 + 79.00 + 35.00 + 18.35 + 75.00 + 44.66, 2), places=2)
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT card_key, product_id, variant FROM card_metadata ORDER BY card_key")
+        meta = {r[0]: (r[1], r[2]) for r in cur.fetchall()}
+        conn.close()
+
+        self.assertEqual(meta["Night City Brawl Season 1::015::Brawl Champ::Foil::2026-11-07"], (733506, "Brawl Champ"))
+        self.assertEqual(meta["Night City Brawl Season 1::011::Brawl Champ::Foil::2026-11-21"], (733502, "Brawl Champ"))
+        self.assertEqual(meta["Set 1 Promos::001::Foil::2026-11-14"], (733735, None))
+        self.assertEqual(meta["Set 1 Promos::003::Foil::2026-11-14"], (733736, None))
+        self.assertEqual(meta["Set 1 Promos::002::Foil::2026-11-14"], (733739, None))
+
 
 class TestReportFormatting(unittest.TestCase):
 

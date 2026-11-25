@@ -48,6 +48,28 @@ class CardNexusAPIError(Exception):
     pass
 
 
+def _normalize_inventory_tags(raw_tags: Any) -> str:
+    """Normalizes CardNexus inventory tags (list/tuple or comma-separated string) into a deduplicated CSV string."""
+    if raw_tags is None:
+        return ""
+    if isinstance(raw_tags, (list, tuple)):
+        tokens = [str(t).strip() for t in raw_tags if t is not None and str(t).strip()]
+    elif isinstance(raw_tags, str):
+        tokens = [t.strip() for t in raw_tags.split(",") if t.strip()]
+    else:
+        cleaned = str(raw_tags).strip()
+        tokens = [cleaned] if cleaned else []
+
+    deduped: List[str] = []
+    seen: set[str] = set()
+    for token in tokens:
+        key = token.lower()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(token)
+    return ", ".join(deduped)
+
+
 class CardNexusClient:
     """
     Authenticated client for CardNexus Public API.
@@ -238,7 +260,7 @@ class CardNexusClient:
         """
         Transforms raw inventory items into standard collection CSV rows.
         CRITICAL: Discards internal productId completely. Only (name, expansion, printNumber,
-        finish, totalQtyOwned, notes) cross the boundary into downstream code.
+        finish, totalQtyOwned, notes, tags) cross the boundary into downstream code.
         """
         output_rows: List[Dict[str, str]] = []
 
@@ -270,6 +292,7 @@ class CardNexusClient:
             raw_finish = (item.get("finish") or "Standard").strip()
             finish = "Standard" if raw_finish.lower() in ("standard", "normal") else "Foil"
             notes = (item.get("notes") or "").strip()
+            tags = _normalize_inventory_tags(item.get("tags"))
 
             output_rows.append({
                 "name": name,
@@ -278,6 +301,7 @@ class CardNexusClient:
                 "finish": finish,
                 "totalQtyOwned": str(qty),
                 "notes": notes,
+                "tags": tags,
             })
 
         return output_rows
@@ -327,7 +351,7 @@ def sync_cardnexus_collection(
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     snapshot_path = os.path.join(target_dir, f"cardnexus_collection_{timestamp}.csv")
 
-    fieldnames = ["name", "expansion", "printNumber", "finish", "totalQtyOwned", "notes"]
+    fieldnames = ["name", "expansion", "printNumber", "finish", "totalQtyOwned", "notes", "tags"]
     with open(snapshot_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()

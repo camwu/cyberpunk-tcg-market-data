@@ -215,6 +215,40 @@ class TestCardNexusClient(unittest.TestCase):
         self.assertEqual(rows[1]["printNumber"], "")
         self.assertEqual(rows[1]["totalQtyOwned"], "1")
 
+    def test_transform_inventory_rows_normalizes_and_dedupes_tags(self):
+        client = CardNexusClient(api_key="test_key", cache_dir=str(self.cache_dir))
+        raw_inventory = [
+            {
+                "id": "line1",
+                "productId": 501,
+                "quantity": 1,
+                "finish": "Foil",
+                "notes": "2026-11-07: 1",
+                "tags": [" Trade Binder ", "Brawl Champ", "brawl champ", ""],
+            },
+            {
+                "id": "line2",
+                "productId": 501,
+                "quantity": 2,
+                "finish": "Foil",
+                "notes": "2026-11-12: 1; 2026-11-22: 1",
+                "tags": [],
+            },
+        ]
+        catalog_map = {
+            501: {
+                "name": "Maman Brigitte - Spirit of Death",
+                "expansion": "Night City Brawl Season 1",
+                "printNumber": "015",
+                "productType": "card",
+            },
+        }
+
+        rows = client.transform_inventory_rows(raw_inventory, catalog_map)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["tags"], "Trade Binder, Brawl Champ")
+        self.assertEqual(rows[1]["tags"], "")
+
 
 class TestSyncCardNexusCollection(unittest.TestCase):
 
@@ -289,6 +323,7 @@ class TestSyncCardNexusCollection(unittest.TestCase):
                 "quantity": 4,
                 "finish": "Standard",
                 "notes": "2026-09-02: 4",
+                "tags": ["Brawl Champ"],
             }
         ]
         mock_fetch_cat.return_value = {
@@ -318,10 +353,12 @@ class TestSyncCardNexusCollection(unittest.TestCase):
         staging_files = list(Path(self.temp_dir.name).glob("cardnexus_collection_*.csv"))
         self.assertEqual(len(staging_files), 0)
 
-        # Verify active_collection.csv was promoted
+        # Verify active_collection.csv was promoted with 7-column header including tags
         with open(self.target_csv, "r", encoding="utf-8") as f:
             content = f.read()
+            self.assertTrue(content.startswith("name,expansion,printNumber,finish,totalQtyOwned,notes,tags"))
             self.assertIn("Panam Palmer", content)
+            self.assertIn("Brawl Champ", content)
             self.assertNotIn("productId", content)
 
         # Verify no backups directory or backup files were created

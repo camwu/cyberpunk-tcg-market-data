@@ -3325,6 +3325,112 @@ process.stdout.write(JSON.stringify({{ ncbFiltered, wncRetailUnfiltered }}));
         self.assertNotIn("preload-header-pending", retail["rootClasses"])
         self.assertNotIn("preload-count-pending", retail["rootClasses"])
 
+    def test_load_ncb_champ_cards_via_tags_column_and_conflict_rejection(self):
+        from tracker.iconics import load_ncb_cards, load_ncb_champ_cards
+        from tracker.validation import CollectionValidationError
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            cards_file = tmp_path / "cards.json"
+            prices_dir = tmp_path / "prices"
+            prices_dir.mkdir(parents=True, exist_ok=True)
+            csv_path = tmp_path / "collection.csv"
+            csv_path.write_text(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes,tags\n"
+                'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,2,"2026-11-12: 1; 2026-11-22: 1",\n'
+                'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,1,"2026-11-07: 1","Brawl Champ"\n'
+                'Wraith Marauders,Night City Brawl Season 1,011,Foil,1,"2026-11-21: 1","Brawl Champ"\n',
+                encoding="utf-8",
+            )
+            catalog = {
+                "_groups": {},
+                "719694": {
+                    "productId": 719694,
+                    "name": "Wraith Marauders",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": "011",
+                    "rarity": "NR",
+                    "color": "Red",
+                    "cardType": "Unit",
+                },
+                "733502": {
+                    "productId": 733502,
+                    "name": "Wraith Marauders (Brawl Champ)",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": None,
+                    "rarity": None,
+                },
+                "719698": {
+                    "productId": 719698,
+                    "name": "Maman Brigitte - Spirit of Death",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": "015",
+                    "rarity": "NR",
+                    "color": "Blue",
+                    "cardType": "Program",
+                },
+                "733506": {
+                    "productId": 733506,
+                    "name": "Maman Brigitte - Spirit of Death (Brawl Champ)",
+                    "groupName": "Night City Brawl Season 1",
+                    "printNumber": None,
+                    "rarity": None,
+                },
+            }
+            cards_file.write_text(json.dumps(catalog), encoding="utf-8")
+            (prices_dir / "latest.json").write_text(
+                json.dumps({
+                    "date": "2026-11-24",
+                    "prices": {
+                        "719694": {"Foil": {"marketPrice": 5.0}},
+                        "733502": {"Foil": {"marketPrice": 35.0}},
+                        "719698": {"Foil": {"marketPrice": 7.0}},
+                        "733506": {"Foil": {"marketPrice": 79.0}},
+                    },
+                }),
+                encoding="utf-8",
+            )
+
+            vrows = load_validated_collection_rows(str(csv_path))
+            reg_cards = load_ncb_cards(
+                cards_path=cards_file,
+                prices_dir=prices_dir,
+                collection_path=str(csv_path),
+                validated_rows=vrows,
+            )
+            champ_cards = load_ncb_champ_cards(
+                cards_path=cards_file,
+                prices_dir=prices_dir,
+                collection_path=str(csv_path),
+                validated_rows=vrows,
+            )
+            reg_by_pnum = {c.print_number: c.owned for c in reg_cards}
+            champ_by_pnum = {c.print_number: c.owned for c in champ_cards}
+            self.assertEqual(reg_by_pnum, {"011": 0, "015": 2})
+            self.assertEqual(champ_by_pnum, {"011": 1, "015": 1})
+
+            bad_csv = tmp_path / "conflict.csv"
+            bad_csv.write_text(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes,tags\n"
+                'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,2,"2026-11-07: 1 (Brawl Champ); 2026-11-12: 1","Brawl Champ"\n',
+                encoding="utf-8",
+            )
+            with self.assertRaises(CollectionValidationError):
+                load_validated_collection_rows(str(bad_csv))
+
+            typo_csv = tmp_path / "typo_tags.csv"
+            typo_csv.write_text(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes,tags\n"
+                'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,1,"2026-11-07: 1","Brawl Champion"\n'
+                'Wraith Marauders,Night City Brawl Season 1,011,Foil,1,"2026-11-21: 1","Brawl Champion"\n',
+                encoding="utf-8",
+            )
+            stderr_buf = io.StringIO()
+            with patch("sys.stderr", stderr_buf):
+                load_validated_collection_rows(str(typo_csv))
+            self.assertEqual(stderr_buf.getvalue().count("Brawl Champion"), 1)
+            self.assertIn("Unrecognized CardNexus tags", stderr_buf.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

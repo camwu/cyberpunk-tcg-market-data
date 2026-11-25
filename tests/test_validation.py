@@ -12,6 +12,7 @@ from pathlib import Path
 from tracker.validation import (
     parse_multi_lot_notes,
     parse_multi_lot_notes_with_variants,
+    resolve_lots_with_tags_and_notes,
     validate_collection_file,
     validate_sealed_file,
     format_validation_report,
@@ -746,6 +747,123 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,not-a-date
         self.assertTrue(tracker.check_and_record(row_data, [("2026-11-28", 1, "Brawl Champ")], 2, dup_errors))
         self.assertFalse(tracker.check_and_record(row_data, [("2026-11-28", 1, "Brawl Champ")], 3, dup_errors))
         self.assertTrue(any("Brawl Champ" in e for e in dup_errors))
+
+    def test_resolve_lots_with_tags_and_notes_precedence_and_conflicts(self):
+        # Empty / dateless notes on a tagged line yields a single dateless stamped lot
+        res_dateless = resolve_lots_with_tags_and_notes("Brawl Champ", "", 2)
+        self.assertIsNone(res_dateless.error)
+        self.assertEqual(res_dateless.lots, [(None, 2, "Brawl Champ")])
+
+        # Date-only notes inherit tag_variant across all lots
+        res_dated = resolve_lots_with_tags_and_notes("Brawl Champ", "2026-11-07: 1; 2026-11-21: 1", 2)
+        self.assertIsNone(res_dated.error)
+        self.assertEqual(res_dated.lots, [("2026-11-07", 1, "Brawl Champ"), ("2026-11-21", 1, "Brawl Champ")])
+
+        # Uniform transitional notes matching tag_variant resolve cleanly
+        res_uniform = resolve_lots_with_tags_and_notes("Top 4", "2026-11-14: 1 (Top 4)", 1)
+        self.assertIsNone(res_uniform.error)
+        self.assertEqual(res_uniform.lots, [("2026-11-14", 1, "Top 4")])
+
+        # acquisitionDate column path honors tag_variant and rejects conflicting notes tag
+        res_acq = resolve_lots_with_tags_and_notes("Brawl Champ", "", 1, acq_date_col="2026-11-07")
+        self.assertIsNone(res_acq.error)
+        self.assertEqual(res_acq.lots, [("2026-11-07", 1, "Brawl Champ")])
+
+        res_acq_conflict = resolve_lots_with_tags_and_notes("Brawl Champ", "(Top 4)", 1, acq_date_col="2026-11-07")
+        self.assertIsNotNone(res_acq_conflict.error)
+        self.assertFalse(res_acq_conflict.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variant", res_acq_conflict.error)
+
+        # Multi-stamp tag on one line fails closed
+        res_multi_tag = resolve_lots_with_tags_and_notes("Brawl Champ, Top 4", "2026-11-07: 1", 1)
+        self.assertIsNotNone(res_multi_tag.error)
+        self.assertIn("Conflicting stamp tags", res_multi_tag.error)
+
+        # Tags vs notes variant conflict fails closed
+        res_notes_conflict = resolve_lots_with_tags_and_notes("Brawl Champ", "2026-11-07: 1 (Top 4)", 1)
+        self.assertIsNotNone(res_notes_conflict.error)
+        self.assertIn("Conflicting stamp variant", res_notes_conflict.error)
+
+        # Mixed stamped + unstamped lots on a tagged line fails closed
+        res_mixed = resolve_lots_with_tags_and_notes(
+            "Brawl Champ",
+            "2026-11-07: 1 (Brawl Champ); 2026-11-12: 1",
+            2,
+        )
+        self.assertIsNotNone(res_mixed.error)
+        self.assertIn("Mixed stamped and unstamped lots", res_mixed.error)
+
+        # Non-stamp organizational tag passes through and falls back to notes variant
+        res_org = resolve_lots_with_tags_and_notes("Trade Binder", "2026-11-07: 1 (Brawl Champ)", 1)
+        self.assertIsNone(res_org.error)
+        self.assertEqual(res_org.lots, [("2026-11-07", 1, "Brawl Champ")])
+        self.assertEqual(res_org.unknown_col_tags, ["Trade Binder"])
+
+        # Dateless prose chunk with stamp alongside single dated lot preserves stamp and detects tag conflict
+        res_comma_legacy = resolve_lots_with_tags_and_notes("", "2026-11-07: 1, won at LGS (Brawl Champ)", 1)
+        self.assertIsNone(res_comma_legacy.error)
+        self.assertEqual(res_comma_legacy.lots, [("2026-11-07", 1, "Brawl Champ")])
+
+        res_comma_conflict = resolve_lots_with_tags_and_notes("Brawl Champ", "2026-11-07: 1, finals (Top 4)", 1)
+        self.assertIsNotNone(res_comma_conflict.error)
+        self.assertFalse(res_comma_conflict.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variant", res_comma_conflict.error)
+
+        # Dateless stamp alongside multiple dated lots is ambiguous and fails closed
+        res_ambig = resolve_lots_with_tags_and_notes("", "2026-11-07: 1; 2026-11-12: 1, finals (Top 4)", 2)
+        self.assertIsNotNone(res_ambig.error)
+        self.assertFalse(res_ambig.is_qty_mismatch)
+        self.assertIn("Ambiguous dateless stamp variant", res_ambig.error)
+
+        # Multiple distinct recognized stamps in one chunk or acq_date fallback fail closed
+        res_dual_note = resolve_lots_with_tags_and_notes("", "2026-11-07: 1 (Brawl Champ) (Top 4)", 1)
+        self.assertIsNotNone(res_dual_note.error)
+        self.assertFalse(res_dual_note.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variants in notes", res_dual_note.error)
+
+        res_dual_acq = resolve_lots_with_tags_and_notes("Brawl Champ", "(Brawl Champ) (Top 4)", 1, acq_date_col="2026-11-07")
+        self.assertIsNotNone(res_dual_acq.error)
+        self.assertFalse(res_dual_acq.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variants in notes", res_dual_acq.error)
+
+        res_dual_dateless = resolve_lots_with_tags_and_notes("", "(Brawl Champ); (Top 4)", 1)
+        self.assertIsNotNone(res_dual_dateless.error)
+        self.assertFalse(res_dual_dateless.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variants in notes", res_dual_dateless.error)
+
+    def test_validate_collection_file_tags_round_trip_parity_and_dedup_warning(self):
+        from tracker.iconics_common import load_validated_collection_rows
+
+        csv_path = self.test_dir / "tagged_collection.csv"
+        csv_path.write_text(
+            "name,expansion,printNumber,finish,totalQtyOwned,notes,tags\n"
+            'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,2,"2026-11-12: 1; 2026-11-22: 1","Trade Binder"\n'
+            'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,1,"2026-11-07: 1","Trade Binder, Brawl Champ"\n'
+            'Sandevistan,Night City Showdown S1,001,Foil,1,"2026-11-14: 1 (non-foil participation card)",\n'
+            'Sandevistan,Night City Showdown S1,001,Foil,1,"2026-11-14: 1","Top 4"\n'
+            'Wraith Marauders,Night City Brawl Season 1,011,Foil,1,"",\n'
+            'Wraith Marauders,Night City Brawl Season 1,011,Foil,1,"","Brawl Champ"\n',
+            encoding="utf-8",
+        )
+        stderr_buf = io.StringIO()
+        with redirect_stderr(stderr_buf):
+            ok, errs, rows = validate_collection_file(str(csv_path), error_export_path=None)
+
+        self.assertTrue(ok, f"Expected tagged CSV validation to pass, got: {errs}")
+        self.assertEqual(len(rows), 7)
+        # Deduped unrecognized column tag warning emitted once even across multiple rows
+        self.assertEqual(stderr_buf.getvalue().count("Trade Binder"), 1)
+
+        # Full round-trip parity with iconics_common.load_validated_collection_rows
+        vrows = load_validated_collection_rows(str(csv_path))
+        self.assertEqual(len(vrows), 6)
+        validated_variants = [r["variant"] for r in rows]
+        iconics_variants = [v for vr in vrows for _, _, v in (vr.lot_variants or [])]
+        self.assertEqual(validated_variants, iconics_variants)
+        self.assertEqual(
+            validated_variants,
+            [None, None, "Brawl Champ", None, "Top 4", None, "Brawl Champ"],
+        )
 
 
 if __name__ == "__main__":
