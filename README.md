@@ -8,10 +8,12 @@ Automated daily market price scraper and portfolio valuation CLI tool for the Cy
 
 - **Automated Daily Price Sync**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:17 UTC to update card metadata (`cards.json`) and record daily TCGplayer market prices under `prices/`.
 - **Unified Portfolio Tracking & Direct Sync**: Ingests cards and sealed products (Booster Boxes, Starter Decks) via direct CardNexus Public API synchronization or offline CSV exports into a local SQLite database (`data/price_history.db`).
-- **Purchase Cost Basis Tracking**: Ingests purchase receipts from `purchase_history/` to calculate invested capital and net unrealized portfolio returns.
+- **Tournament Stamp Variants**: Separates stamped tournament promos via native CardNexus line `tags` (`Brawl Champ`, `Showdown Champ`, and `Top 4`), retains legacy parenthesized `notes` as a fallback on untagged lines, and aliases `Night City Showdown S1` to `Set 1 Promos`.
+- **Purchase Cost Basis Tracking**: Ingests purchase receipts from `purchase_history/` and receiptless manual purchases (`add-manual` / `add-cash`) to calculate invested capital and net unrealized portfolio returns.
 - **Historical Performance & ROI**: Calculates rolling 7-day price deltas and lifetime gain/loss against purchase prices or initial market baselines.
 - **Rarity, Finish & Color Breakdowns**: Summarizes collection distribution across official rarity tiers (`▽ Common` through `▣ Nova Rare`), standard/foil finishes, and card colors.
-- **1-Click & Drag-and-Drop Launchers**: Update portfolios via Windows batch (`launchers/update_portfolio.bat`), Unix shell (`launchers/update_portfolio.sh`), or the Python CLI with automatic CSV detection.
+- **Interactive Set Price Trajectory Dashboard (`track-sets`)**: Generates `set_price_trajectories.html` to compare Welcome to Night City Iconic and Box Topper cards (Beta vs. Retail) and track Night City Brawl Season 1 Nova Rares with Charts and Table subtabs, latest-day low price tooltips and chart endpoints, and separate `(Brawl Champ)` stamped tracking.
+- **1-Click & Drag-and-Drop Launchers**: Provides cross-platform launchers (`update_portfolio`, `track_sets`, and `add_manual_purchase`) under `launchers/` (`.bat` for Windows and `.sh` for macOS/Linux), with automatic best-effort `git pull --ff-only` updates on `update_portfolio` and `track_sets`.
 
 ---
 
@@ -30,10 +32,12 @@ cyberpunk-tcg-market-data/
 ├── scrape.py                  # Standalone daily market price scraper
 ├── run_tracker.py             # Main CLI entry point
 ├── launchers/                 # Cross-platform 1-click CLI launchers (.bat, .sh)
-    ├── update_portfolio.bat   # Windows 1-click execution launcher
-    ├── update_portfolio.sh    # Unix 1-click execution launcher
-    ├── track_sets.bat         # Windows WNC & NCB Set Tracker dashboard launcher
-    └── track_sets.sh          # Unix WNC & NCB Set Tracker dashboard launcher
+│   ├── update_portfolio.bat   # Windows 1-click execution launcher
+│   ├── update_portfolio.sh    # Unix 1-click execution launcher
+│   ├── track_sets.bat         # Windows WNC & NCB Set Tracker dashboard launcher
+│   ├── track_sets.sh          # Unix WNC & NCB Set Tracker dashboard launcher
+│   ├── add_manual_purchase.bat # Windows interactive receiptless purchase launcher
+│   └── add_manual_purchase.sh # Unix interactive receiptless purchase launcher
 └── data/                      # Local private data directory (gitignored)
     ├── price_history.db       # Historical portfolio valuation SQLite database
     ├── my_collection.csv      # CardNexus collection export (auto-discovered)
@@ -62,7 +66,10 @@ If you prefer to store your personal collection files, valuation database, and p
    `config.json` is listed in `.gitignore` so your personal directory paths remain private and untracked.
 
 ### 3. Launcher Workflow
-The 1-click launchers (`launchers/update_portfolio.bat` on Windows and `launchers/update_portfolio.sh` on macOS/Linux) automatically read active paths from `config.json` (or default to `data/`), run the portfolio valuation pipeline, and open the generated markdown report directly upon completion without requiring terminal interaction.
+The 1-click launchers under `launchers/` (`.bat` on Windows and `.sh` on macOS/Linux) automatically read active paths from `config.json` (or default to `data/`):
+- `update_portfolio.bat` / `update_portfolio.sh`: Runs a best-effort `git pull --ff-only` when inside a git checkout, executes the portfolio valuation pipeline, and opens the generated `portfolio_summary.md` report upon completion.
+- `track_sets.bat` / `track_sets.sh`: Runs a best-effort `git pull --ff-only` when inside a git checkout, generates `set_price_trajectories.html`, and opens the dashboard in your default browser.
+- `add_manual_purchase.bat` / `add_manual_purchase.sh`: Launches interactive receiptless purchase entry (`python run_tracker.py add-manual`) to save a durable manual purchase record into `purchase_history/`.
 
 ---
 
@@ -109,6 +116,7 @@ When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes y
    Place a CardNexus CSV export directly into the `data/` directory (e.g. `data/my_collection.csv`). The pipeline ingests both cards and sealed products (e.g. Booster Boxes, Starter Decks) from a unified CardNexus export.
    - **Sealed Products**: Identified by product catalog matching and naming conventions; `printNumber` is optional for sealed items.
    - **Acquisition Dates & Multi-Lot Entries**: Extracted from the CardNexus `notes` field. Multiple purchase dates are recorded as semicolon-delimited lots (e.g. `2026-09-02: 1; 2026-09-18: 2`). In multi-lot lists, dates lacking an explicit `: <qty>` default to 1 unit (e.g. `2026-09-02; 2026-09-18: 2` assigns 1 unit to 2026-09-02). If only a single date appears without semicolons, the entire `totalQtyOwned` is attributed to that date. The sum of parsed lots must strictly equal `totalQtyOwned`; any mismatch raises a validation error displaying an aligned 6-column CLI table and exporting failing entries to `validation_errors.csv` (adjacent to the collection file) for single-pass resolution in CardNexus. If an acquisition date predates the earliest available price history, the baseline clamps to the oldest market price date. If the `notes` field omits an acquisition date entirely, the database defaults the item's acquisition date to the snapshot date when it first appears in an imported collection CSV.
+   - **Tournament Stamp Variants** *(API Sync & Offline CSV)*: CardNexus does not maintain separate catalog entries for stamped tournament promos (`Night City Brawl Season 1` `(Brawl Champ)` and `Night City Showdown S1` `003`/`004`). Keep stamped copies on separate CardNexus inventory lines and apply a native CardNexus line tag (`Brawl Champ`, `Showdown Champ`, or `Top 4`). Parenthesized `notes` (e.g. `2026-10-15: 1 (Brawl Champ)`) remain supported as a fallback on untagged lines. Validation fails closed on conflicting multi-stamp tags, tag-vs-note mismatches, or mixed stamped and unstamped lots on a tagged line, and emits one warning per run for unrecognized tags. `Night City Showdown S1` automatically aliases to `Set 1 Promos`.
    - **Auto-Discovery**: The pipeline validates required columns (`name`, `expansion`, `printNumber`, `finish`, `totalQtyOwned`) and automatically selects the newest CSV by modification timestamp.
 
 2. **Run the tracker**:
@@ -120,7 +128,9 @@ When `CARDNEXUS_API_KEY` is configured, the tracker automatically synchronizes y
      ```
 
 3. **(Optional) Purchase History & Cost Basis**:
-   Place purchase receipts (`.pdf`, `.csv`, `.txt`, `.json`) directly into the scaffolded `data/purchase_history/` directory (or a sibling `purchase_history/` folder next to your collection CSV). Plain text, CSV, and JSON receipts are parsed natively with 0 external dependencies, while `.pdf` receipts use `pypdf`. The intake engine parses totals to calculate invested capital and net unrealized returns, caching checksums in `data/purchase_history_cache.json` and recording entries to `data/purchase_history.csv`.
+   Place purchase receipts (`.pdf`, `.csv`, `.txt`, and `.json`) directly into the scaffolded `data/purchase_history/` directory (or a sibling `purchase_history/` folder next to your collection CSV). Plain text, CSV, and JSON receipts are parsed natively with 0 external dependencies, while `.pdf` receipts use `pypdf`. The intake engine parses totals to calculate invested capital and net unrealized returns, prompts interactively for the year when web order receipts omit an explicit year, caches checksums in `data/purchase_history_cache.json`, and records entries to `data/purchase_history.csv`.
+
+   For purchases without a receipt, run `python run_tracker.py add-manual` (alias `add-cash`) or launch `launchers/add_manual_purchase.bat` / `launchers/add_manual_purchase.sh` to write a durable JSON sentinel (`{date}_{vendor}_{item}_manual.json`) into `purchase_history/` that persists across `--reparse-purchases`.
 
    > **Note**: `data/purchase_history.csv` and `data/purchase_history_cache.json` remain local and untracked by Git to protect private financial transactions. If you customize merchant names or descriptions in `purchase_history.csv`, back up the file locally before migrating repository environments.
 
@@ -181,8 +191,16 @@ pytest
 - `--purchase-cache <path>`: Custom path to document SHA-256 fingerprint cache (default: sibling `purchase_history_cache.json`).
 - `--reparse-purchases`: Force re-parsing of all purchase receipt documents, bypassing the SHA-256 cache and updating the CSV ledger while preserving custom ledger descriptions.
 
+### Manual Purchase Entry (`add-manual`)
+Run `python run_tracker.py add-manual` (aliases: `add-cash` and `add-cash-purchase`, or `launchers/add_manual_purchase.bat` on Windows and `launchers/add_manual_purchase.sh` on macOS/Linux) to record a receiptless purchase directly into `purchase_history/` as a durable `*_manual.json` sentinel file and exit. Omitted fields are prompted interactively with inline validation when running in a terminal.
+
+- `--date <YYYY-MM-DD>`: Purchase date in ISO `YYYY-MM-DD` format (defaults to today).
+- `--amount <USD>`: Positive purchase amount in USD (integer or 2 decimal places, e.g. `35.00`).
+- `--merchant <name>`: Store or seller name (defaults to `Manual Purchase`, or `Cash Purchase` for `add-cash`).
+- `--description <text>`: Description of items acquired (optional).
+
 ### Set Trajectory Tracker (`track-sets`)
-Run `python run_tracker.py track-sets` (or `launchers/track_sets.bat` on Windows and `launchers/track_sets.sh` on macOS/Linux) to generate a self-contained interactive HTML dashboard (`set_price_trajectories.html`) tracking Welcome to Night City Iconic and Box Topper cards (Beta vs. Retail comparisons, 5-number distributions, and owned set totals) alongside Night City Brawl Season 1 Nova Rare cards.
+Run `python run_tracker.py track-sets` (or `launchers/track_sets.bat` on Windows and `launchers/track_sets.sh` on macOS/Linux) to generate a self-contained interactive HTML dashboard (`set_price_trajectories.html`) tracking Welcome to Night City Iconic and Box Topper cards (Beta vs. Retail paired comparisons, 5-number distributions, and owned set totals) alongside Night City Brawl Season 1 Nova Rare cards. The NCB Season 1 view includes **Charts** and **Table** subtabs, latest-day TCGplayer low price hover tooltips and chart endpoints (with y-axes anchored to zero), and separate tracking for `(Brawl Champ)` stamped cards apart from regular Nova Rare counts.
 
 - `--output <path>`, `-o <path>`: Override destination path for the HTML set tracker dashboard (defaults to `set_price_trajectories.html` next to `output_report` or under `data/`).
 - `--collection <path>`: Read an explicit offline collection CSV file (cannot be combined with `--sync-collection`).
@@ -232,8 +250,17 @@ python run_tracker.py --reparse-purchases
 # Use custom configuration file
 python run_tracker.py --config custom_config.json
 
+# Record a receiptless manual purchase interactively
+python run_tracker.py add-manual
+
+# Record a manual purchase non-interactively via flags
+python run_tracker.py add-manual --date 2026-10-04 --amount 35.00 --merchant "Local Game Store" --description "Starter Deck"
+
 # Generate unified WNC & NCB Season 1 interactive HTML dashboard
 python run_tracker.py track-sets
+
+# Refresh collection from CardNexus API before generating Set Tracker dashboard
+python run_tracker.py track-sets --sync-collection
 
 # Generate Set Tracker dashboard against an explicit offline CSV export
 python run_tracker.py track-sets --collection path/to/export.csv
