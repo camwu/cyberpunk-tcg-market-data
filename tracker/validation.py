@@ -82,6 +82,7 @@ class TagsAndNotesResolution(NamedTuple):
     is_qty_mismatch: bool
     unknown_note_tags: List[str]
     unknown_col_tags: List[str]
+    raw_to_parse: str = ""
 
 
 def resolve_lots_with_tags_and_notes(
@@ -116,13 +117,13 @@ def resolve_lots_with_tags_and_notes(
             parsed_lots = [(d, q, v or notes_variant) for d, q, v in parsed_lots]
 
     if lot_err:
-        return TagsAndNotesResolution(parsed_lots, lot_err, True, unknown_note_tags, unknown_col_tags)
+        return TagsAndNotesResolution(parsed_lots, lot_err, True, unknown_note_tags, unknown_col_tags, raw_to_parse)
 
     if tag_variant is not None:
         mismatched = [v for _, _, v in parsed_lots if v is not None and v != tag_variant]
         if mismatched:
             err = f"Conflicting stamp variant between tags ('{tag_variant}') and notes ('{mismatched[0]}')."
-            return TagsAndNotesResolution([], err, False, unknown_note_tags, unknown_col_tags)
+            return TagsAndNotesResolution([], err, False, unknown_note_tags, unknown_col_tags, raw_to_parse)
 
         has_stamped = any(v is not None for _, _, v in parsed_lots)
         has_unstamped = any(v is None for _, _, v in parsed_lots)
@@ -131,12 +132,12 @@ def resolve_lots_with_tags_and_notes(
                 f"Mixed stamped and unstamped lots in notes on line tagged '{tag_variant}'. "
                 "Split stamped and regular copies onto separate lines."
             )
-            return TagsAndNotesResolution([], err, False, unknown_note_tags, unknown_col_tags)
+            return TagsAndNotesResolution([], err, False, unknown_note_tags, unknown_col_tags, raw_to_parse)
 
         resolved_lots = [(d, q, tag_variant) for d, q, _ in parsed_lots]
-        return TagsAndNotesResolution(resolved_lots, None, False, unknown_note_tags, unknown_col_tags)
+        return TagsAndNotesResolution(resolved_lots, None, False, unknown_note_tags, unknown_col_tags, raw_to_parse)
 
-    return TagsAndNotesResolution(parsed_lots, None, False, unknown_note_tags, unknown_col_tags)
+    return TagsAndNotesResolution(parsed_lots, None, False, unknown_note_tags, unknown_col_tags, raw_to_parse)
 
 
 def _extract_lot_variant_and_unknown_tags(chunk_text: str) -> Tuple[Optional[str], List[str]]:
@@ -577,11 +578,8 @@ def _resolve_row_lots(
         acq_date_future_flagged = True
 
     if qty >= 1:
-        notes_str = (raw_notes or "").strip()
-        acq_str = (acq_date_col or "").strip()
-        raw_to_parse = notes_str if (notes_str and extract_date_from_text(notes_str)) else (acq_str or notes_str)
-
         res = resolve_lots_with_tags_and_notes(raw_tags, raw_notes, qty, acq_date_col=acq_date_col)
+        raw_to_parse = res.raw_to_parse
         unknown_col_tags = res.unknown_col_tags
 
         for tag in res.unknown_note_tags:
