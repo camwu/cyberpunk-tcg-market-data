@@ -3418,6 +3418,19 @@ process.stdout.write(JSON.stringify({{ ncbFiltered, wncRetailUnfiltered }}));
             with self.assertRaises(CollectionValidationError):
                 load_validated_collection_rows(str(bad_csv))
 
+            typo_csv = tmp_path / "typo_tags.csv"
+            typo_csv.write_text(
+                "name,expansion,printNumber,finish,totalQtyOwned,notes,tags\n"
+                'Maman Brigitte - Spirit of Death,Night City Brawl Season 1,015,Foil,1,"2026-11-07: 1","Brawl Champion"\n'
+                'Wraith Marauders,Night City Brawl Season 1,011,Foil,1,"2026-11-21: 1","Brawl Champion"\n',
+                encoding="utf-8",
+            )
+            stderr_buf = io.StringIO()
+            with patch("sys.stderr", stderr_buf):
+                load_validated_collection_rows(str(typo_csv))
+            self.assertEqual(stderr_buf.getvalue().count("Brawl Champion"), 1)
+            self.assertIn("Unrecognized CardNexus tags", stderr_buf.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

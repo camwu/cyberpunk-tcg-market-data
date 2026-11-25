@@ -6,11 +6,12 @@ and fail-closed CardNexus collection CSV row validation.
 import csv
 from dataclasses import dataclass
 import statistics
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Set, Tuple
 
 from tracker.validation import (
     CollectionValidationError,
     REQUIRED_COLUMNS,
+    emit_unrecognized_tags_warning,
     resolve_lots_with_tags_and_notes,
 )
 
@@ -81,6 +82,8 @@ class ValidatedCollectionRow:
 def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollectionRow]:
     """Reads a collection CSV and validates positive-quantity acquisition lot notes once."""
     validated_rows: List[ValidatedCollectionRow] = []
+    distinct_unknown_col_tags: List[str] = []
+    seen_unknown_col_tags: Set[str] = set()
     with open(collection_path, "r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         missing_columns = REQUIRED_COLUMNS - set(reader.fieldnames or [])
@@ -111,6 +114,11 @@ def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollec
                 raw_tags = (row.get("tags") or "").strip()
                 acq_date = (row.get("acquisitionDate") or "").strip() or None
                 res = resolve_lots_with_tags_and_notes(raw_tags, notes, qty, acq_date_col=acq_date)
+                for utag in res.unknown_col_tags:
+                    utag_key = utag.lower()
+                    if utag_key not in seen_unknown_col_tags:
+                        seen_unknown_col_tags.add(utag_key)
+                        distinct_unknown_col_tags.append(utag)
                 if res.error:
                     raise CollectionValidationError(f"Row {exp} #{pnum}: {res.error}")
                 lot_variants = res.lots
@@ -127,4 +135,5 @@ def load_validated_collection_rows(collection_path: str) -> List[ValidatedCollec
                     lot_variants=lot_variants,
                 )
             )
+    emit_unrecognized_tags_warning(distinct_unknown_col_tags)
     return validated_rows

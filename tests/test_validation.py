@@ -799,6 +799,38 @@ Towerfall,Welcome to Night City - Beta,B034,Standard,1,1.50,not-a-date
         self.assertEqual(res_org.lots, [("2026-11-07", 1, "Brawl Champ")])
         self.assertEqual(res_org.unknown_col_tags, ["Trade Binder"])
 
+        # Dateless prose chunk with stamp alongside single dated lot preserves stamp and detects tag conflict
+        res_comma_legacy = resolve_lots_with_tags_and_notes("", "2026-11-07: 1, won at LGS (Brawl Champ)", 1)
+        self.assertIsNone(res_comma_legacy.error)
+        self.assertEqual(res_comma_legacy.lots, [("2026-11-07", 1, "Brawl Champ")])
+
+        res_comma_conflict = resolve_lots_with_tags_and_notes("Brawl Champ", "2026-11-07: 1, finals (Top 4)", 1)
+        self.assertIsNotNone(res_comma_conflict.error)
+        self.assertFalse(res_comma_conflict.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variant", res_comma_conflict.error)
+
+        # Dateless stamp alongside multiple dated lots is ambiguous and fails closed
+        res_ambig = resolve_lots_with_tags_and_notes("", "2026-11-07: 1; 2026-11-12: 1, finals (Top 4)", 2)
+        self.assertIsNotNone(res_ambig.error)
+        self.assertFalse(res_ambig.is_qty_mismatch)
+        self.assertIn("Ambiguous dateless stamp variant", res_ambig.error)
+
+        # Multiple distinct recognized stamps in one chunk or acq_date fallback fail closed
+        res_dual_note = resolve_lots_with_tags_and_notes("", "2026-11-07: 1 (Brawl Champ) (Top 4)", 1)
+        self.assertIsNotNone(res_dual_note.error)
+        self.assertFalse(res_dual_note.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variants in notes", res_dual_note.error)
+
+        res_dual_acq = resolve_lots_with_tags_and_notes("Brawl Champ", "(Brawl Champ) (Top 4)", 1, acq_date_col="2026-11-07")
+        self.assertIsNotNone(res_dual_acq.error)
+        self.assertFalse(res_dual_acq.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variants in notes", res_dual_acq.error)
+
+        res_dual_dateless = resolve_lots_with_tags_and_notes("", "(Brawl Champ); (Top 4)", 1)
+        self.assertIsNotNone(res_dual_dateless.error)
+        self.assertFalse(res_dual_dateless.is_qty_mismatch)
+        self.assertIn("Conflicting stamp variants in notes", res_dual_dateless.error)
+
     def test_validate_collection_file_tags_round_trip_parity_and_dedup_warning(self):
         from tracker.iconics_common import load_validated_collection_rows
 
