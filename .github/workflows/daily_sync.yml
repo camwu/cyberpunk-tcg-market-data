@@ -19,6 +19,7 @@ on:
 concurrency:
   group: daily-market-scrape
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: write
