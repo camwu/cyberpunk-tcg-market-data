@@ -1,8 +1,9 @@
 name: Daily Market Price Scrape
+run-name: Daily Market Price Scrape (${{ inputs.source || github.event_name }})
 
 on:
   schedule:
-    # 20:17 UTC daily (1:17 PM PDT / 4:17 PM EDT)
+    # 20:17 UTC fallback if external Cloudflare Worker dispatch misses or token expires (no-ops via is_valid_snapshot)
     - cron: '17 20 * * *'
   workflow_dispatch:
     inputs:
@@ -10,6 +11,15 @@ on:
         description: 'Force re-scrape even if today snapshot exists'
         type: boolean
         default: false
+      source:
+        description: 'Trigger source (manual or cloudflare-cron)'
+        type: string
+        default: 'manual'
+
+concurrency:
+  group: daily-market-scrape
+  cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: write

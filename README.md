@@ -6,7 +6,7 @@ Automated daily market price scraper and portfolio valuation CLI tool for the Cy
 
 ## ✨ Features
 
-- **Automated Daily Price Sync**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:17 UTC to update card metadata (`cards.json`) and record daily TCGplayer market prices under `prices/`.
+- **Automated Daily Price Sync**: GitHub Actions workflow (`.github/workflows/daily_sync.yml`) runs daily at 20:17 UTC (dispatched via an external Cloudflare Worker `workflow_dispatch` trigger, with `on.schedule` retained as a fallback and for repository forks) to update card metadata (`cards.json`) and record daily TCGplayer market prices under `prices/`.
 - **Unified Portfolio Tracking & Direct Sync**: Ingests cards and sealed products (Booster Boxes, Starter Decks) via direct CardNexus Public API synchronization or offline CSV exports into a local SQLite database (`data/price_history.db`).
 - **Tournament Stamp Variants**: Separates stamped tournament promos via native CardNexus line `tags` (`Brawl Champ`, `Showdown Champ`, and `Top 4`), retains legacy parenthesized `notes` as a fallback on untagged lines, and aliases `Night City Showdown S1` to `Set 1 Promos`.
 - **Purchase Cost Basis Tracking**: Ingests purchase receipts from `purchase_history/` and receiptless manual purchases (`add-manual` / `add-cash`) to calculate invested capital and net unrealized portfolio returns.
@@ -178,7 +178,7 @@ pytest
 - `--prices <path>`: Path to daily price cache directory (default: `prices`).
 - `--output <path>`: Path to markdown summary report (default: `portfolio_summary.md`).
 - `--import <path>`, `--import-file <path>`: Validate and promote a new CardNexus CSV export to the active collection.
-- `--live`: Scrape live market prices directly from TCGCSV endpoints instead of using cached local files or remote GitHub snapshots. When omitted and today's remote snapshot has not yet been published (daily cloud sync runs at 20:17 UTC, subject to standard GitHub Actions queue latency of up to 3 hours during peak load), the pipeline falls back cleanly to `prices/latest.json` with an informational notice.
+- `--live`: Scrape live market prices directly from TCGCSV endpoints instead of using cached local files or remote GitHub snapshots. When omitted and today's remote snapshot has not yet been published (daily cloud sync runs at 20:17 UTC via external `workflow_dispatch`, with the built-in GitHub `schedule` fallback subject to multi-hour queue latency if used alone), the pipeline falls back cleanly to `prices/latest.json` with an informational notice.
 - `--force`: Force a fresh price sync and recalculate/overwrite the portfolio valuation snapshot for the target date.
 - `--backfill <YYYY-MM-DD>`: Backfill historical market prices from TCGCSV archive bundles (requires 7-Zip).
 - `--report-only`: Render the markdown portfolio report from existing database records without syncing prices or running valuation calculations.
