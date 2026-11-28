@@ -82,6 +82,10 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       return { q: q, o: o, r: r, c: c, t: t, s: s, b: b, statsOpen: statsOpen };
     }
 
+    function _normalizeLowMode(raw) {
+      return (raw === 'all' || raw === 'hide' || raw === 'current') ? raw : 'current';
+    }
+
     function normalizeSavedFilterState(saved, hasNcb) {
       var allowNcb = hasNcb !== false;
       var base = {
@@ -89,6 +93,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
         edition: 'beta',
         ncbView: 'charts',
         anchor: 'acq',
+        lowMode: 'current',
         filtersBySet: {
           wnc: defaultSetFilters(),
           ncb: defaultSetFilters()
@@ -98,6 +103,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
       var ed = (saved.edition === 'retail' || saved.edition === 'beta' || saved.edition === 'comparison') ? saved.edition : 'beta';
       var ncbV = (saved.ncbView === 'table' || saved.ncbView === 'charts') ? saved.ncbView : 'charts';
       var anc = (saved.anchor === 'lifetime' || saved.anchor === 'acq' || saved.anchor === 'l7d') ? saved.anchor : 'acq';
+      var lm = _normalizeLowMode(saved.lowMode);
       if (saved.filtersBySet && typeof saved.filtersBySet === 'object') {
         var activeSet = (allowNcb && saved.set === 'ncb') ? 'ncb' : 'wnc';
         return {
@@ -105,6 +111,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
           edition: ed,
           ncbView: ncbV,
           anchor: anc,
+          lowMode: lm,
           filtersBySet: {
             wnc: _normalizeFilterObj(saved.filtersBySet.wnc),
             ncb: _normalizeFilterObj(saved.filtersBySet.ncb)
@@ -116,6 +123,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
         edition: ed,
         ncbView: ncbV,
         anchor: anc,
+        lowMode: lm,
         filtersBySet: {
           wnc: _normalizeFilterObj(saved),
           ncb: defaultSetFilters()
@@ -142,6 +150,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
         edition: normalized.edition,
         ncbView: normalized.ncbView,
         anchor: normalized.anchor,
+        lowMode: normalized.lowMode,
         filtersBySet: {
           wnc: nextWnc,
           ncb: nextNcb
@@ -164,6 +173,7 @@ _SET_STATE_JS = r"""    function defaultSetFilters() {
         edition: normalized.edition,
         ncbView: normalized.ncbView,
         anchor: normalized.anchor,
+        lowMode: normalized.lowMode,
         filtersBySet: {
           wnc: nextWnc,
           ncb: nextNcb
@@ -586,6 +596,15 @@ def _build_card_trajectory(
         if latest_p_data is not None:
             current_low_price = extract_finish_price(latest_p_data, valid_finish, field="lowPrice")
 
+    low_points: List[Optional[float]] = (
+        [
+            extract_finish_price(price_by_date.get(d, {}).get(pid_str), valid_finish, field="lowPrice")
+            for d, _ in clean_points
+        ]
+        if (clean_points and current_price > 0.0 and pid_str)
+        else []
+    )
+
     acq_key: Tuple[Any, ...] = (
         (expansion_name, display_pnum, valid_finish, variant)
         if variant
@@ -670,6 +689,7 @@ def _build_card_trajectory(
         "minPrice": min_price,
         "maxPrice": max_price,
         "points": clean_points,
+        "lowPoints": low_points,
     }
 
 
@@ -859,7 +879,7 @@ def generate_svg_chart(
     y_bot_label = 0
 
     svg_parts = [
-        f'<svg viewBox="0 0 {width} {height}" class="{svg_class}" xmlns="http://www.w3.org/2000/svg">',
+        f'<svg viewBox="0 0 {width} {height}" class="{svg_class}" data-card-id="{safe_card_id}" xmlns="http://www.w3.org/2000/svg">',
         "<defs>",
         f'  <linearGradient id="{grad_id}" x1="0" y1="0" x2="0" y2="1">',
         f'    <stop class="chart-grad-stop" offset="0%" stop-color="{gradient_stop}" stop-opacity="0.15" />',
@@ -868,7 +888,7 @@ def generate_svg_chart(
         "</defs>",
         f'<line x1="{padding_left}" y1="{padding_top}" x2="{width - padding_right}" y2="{padding_top}" stroke="#21262d" stroke-dasharray="3,3" />',
         f'<line x1="{padding_left}" y1="{bottom_y}" x2="{width - padding_right}" y2="{bottom_y}" stroke="#30363d" />',
-        f'<text x="{padding_left - 6}" y="{padding_top + 4}" fill="#8b949e" font-size="10" text-anchor="end">${y_top_label}</text>',
+        f'<text x="{padding_left - 6}" y="{padding_top + 4}" class="chart-y-max" fill="#8b949e" font-size="10" text-anchor="end">${y_top_label}</text>',
         f'<text x="{padding_left - 6}" y="{bottom_y - 2}" fill="#8b949e" font-size="10" text-anchor="end">${y_bot_label}</text>',
     ]
 
@@ -928,9 +948,6 @@ def generate_svg_chart(
         )
 
     svg_parts.append(f'<polygon points="{area_pts}" fill="url(#{grad_id})" />')
-    svg_parts.append(
-        f'<polyline class="chart-line" points="{polyline_pts}" fill="none" stroke="{stroke_color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />'
-    )
 
     low_y: Optional[float] = None
     low_gap: float = 0.0
@@ -938,11 +955,19 @@ def generate_svg_chart(
         _, low_y = get_coords(n - 1, valid_low)
         _, last_y = coords[-1]
         low_gap = abs(low_y - last_y)
-        if low_gap >= 5.0:
-            svg_parts.append(
-                f'<line x1="{last_x}" y1="{last_y}" x2="{last_x}" y2="{low_y}" '
-                f'stroke="#bc8cff" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" class="low-price-connector" />'
-            )
+
+    svg_parts.append('<g class="low-price-line-layer">')
+    if valid_low is not None and low_y is not None and low_gap >= 5.0:
+        _, last_y = coords[-1]
+        svg_parts.append(
+            f'<line x1="{last_x}" y1="{last_y}" x2="{last_x}" y2="{low_y}" '
+            f'stroke="#bc8cff" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.85" class="low-price-connector" />'
+        )
+    svg_parts.append("</g>")
+
+    svg_parts.append(
+        f'<polyline class="chart-line" points="{polyline_pts}" fill="none" stroke="{stroke_color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />'
+    )
 
     for i, ((x, y), (d, val)) in enumerate(zip(coords, points)):
         is_acq = i == acq_idx
@@ -965,6 +990,7 @@ def generate_svg_chart(
             f'<circle cx="{x}" cy="{y}" r="{hit_r}" class="chart-hit-point" fill="transparent" data-date="{html.escape(d)}" data-price="${val:.2f}"{acq_attr}{low_attr} style="cursor: crosshair; pointer-events: all;" />'
         )
 
+    svg_parts.append('<g class="low-price-dot-layer">')
     if valid_low is not None and low_y is not None and not (acq_idx == n - 1 and low_gap < 5.0):
         svg_parts.append(
             f'<circle cx="{last_x}" cy="{low_y}" r="3.0" class="low-price-dot" fill="#0d1117" stroke="#bc8cff" stroke-width="1.5" style="pointer-events: none;" />'
@@ -977,6 +1003,7 @@ def generate_svg_chart(
                 f'data-date="{html.escape(last_date)}" data-price="${valid_low:.2f}" data-low="true" '
                 f'style="cursor: crosshair; pointer-events: all;" />'
             )
+    svg_parts.append("</g>")
 
     svg_parts.append("</svg>")
     return "".join(svg_parts)
@@ -1500,6 +1527,12 @@ _DASHBOARD_CSS = """    :root {
       border-radius: 50%;
       box-sizing: border-box;
     }
+    .legend-dashed-line {
+      display: inline-block;
+      width: 14px;
+      height: 0;
+      border-top: 2px dashed #bc8cff;
+    }
     .acq-dot-halo, .acq-dot-core, .low-price-dot { pointer-events: none; }
     .price-main { font-size: 22px; font-weight: 600; font-family: var(--font-mono); }
     .price-change { font-size: 12px; font-family: var(--font-mono); font-weight: 600; }
@@ -1815,7 +1848,9 @@ _DASHBOARD_CSS = """    :root {
     html.preload-comparison .tier-section { display: none !important; }
     html.preload-comparison #view-comparison { display: block !important; }
     html.preload-comparison #cluster-basis,
-    html.preload-comparison #cluster-basis + .cluster-divider { display: none !important; }
+    html.preload-comparison #cluster-basis + .cluster-divider,
+    html.preload-comparison #cluster-low,
+    html.preload-comparison #divider-low { display: none !important; }
     html.preload-comparison #btn-beta { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
     html.preload-comparison #btn-comparison { background: var(--card-bg) !important; color: var(--accent) !important; border-color: var(--card-border) !important; }
     html.preload-comparison #meta-snapshots,
@@ -1837,10 +1872,12 @@ _DASHBOARD_CSS = """    :root {
     html.preload-ncb #cluster-view,
     html.preload-ncb #ncb-view-toggle { display: inline-flex !important; }
     html.preload-ncb #divider-view,
+    html.preload-ncb #divider-low,
     html.preload-ncb #section-NR,
     html.preload-ncb #section-NRC { display: block !important; }
     html.preload-ncb #ms-variant { display: inline-block !important; }
-    html.preload-ncb #cluster-basis { display: inline-flex !important; }
+    html.preload-ncb #cluster-basis,
+    html.preload-ncb #cluster-low { display: inline-flex !important; }
     html.preload-ncb #meta-snapshots { display: block !important; }
     html.preload-ncb #chart-legend { display: flex !important; }
     html.preload-ncb #btn-set-wnc { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; }
@@ -1849,6 +1886,8 @@ _DASHBOARD_CSS = """    :root {
     html.preload-ncb-table #section-NRC,
     html.preload-ncb-table #cluster-basis,
     html.preload-ncb-table #cluster-basis + .cluster-divider,
+    html.preload-ncb-table #cluster-low,
+    html.preload-ncb-table #divider-low,
     html.preload-ncb-table #meta-snapshots,
     html.preload-ncb-table #chart-legend { display: none !important; }
     html.preload-ncb-table #view-ncb-table { display: block !important; }
@@ -1924,6 +1963,35 @@ _HEADER_HYDRATION_JS = r"""    const multiselectCategories = ['color', 'type', '
       if (btnL7d) btnL7d.classList.toggle('active', anchor === 'l7d');
     }
 
+    function applyLowModeControls(lowMode) {
+      const mode = _normalizeLowMode(lowMode);
+      const lowSel = document.getElementById('low-price-select');
+      if (lowSel) lowSel.value = mode;
+      const legendLow = document.getElementById('legend-low-price');
+      if (!legendLow) return;
+      if (mode === 'hide') {
+        legendLow.style.display = 'none';
+        return;
+      }
+      legendLow.style.display = '';
+      const swatch = legendLow.querySelector('.legend-low-swatch');
+      const label = legendLow.querySelector('.legend-low-label');
+      if (swatch) {
+        if (mode === 'all') {
+          swatch.className = 'legend-dashed-line legend-low-swatch';
+          swatch.removeAttribute('style');
+        } else {
+          swatch.className = 'legend-dot legend-low-swatch';
+          swatch.setAttribute('style', 'background:#0d1117;border:1.5px solid #bc8cff;');
+        }
+      }
+      if (label) {
+        label.textContent = mode === 'all'
+          ? 'Historical TCG Low (excl. shipping)'
+          : 'Current TCG Low (excl. shipping)';
+      }
+    }
+
     function applyHeaderFromDescriptor(desc, activeSet, activeEdition, activeNcbView) {
       const titleEl = document.getElementById('dashboard-title');
       if (titleEl) titleEl.textContent = desc.title;
@@ -1956,6 +2024,8 @@ _HEADER_HYDRATION_JS = r"""    const multiselectCategories = ['color', 'type', '
       const legendType = document.getElementById('type-item-legend');
       const cBasis = document.getElementById('cluster-basis');
       const dBasis = cBasis ? cBasis.nextElementSibling : null;
+      const cLow = document.getElementById('cluster-low');
+      const dLow = document.getElementById('divider-low');
 
       if (cView) cView.style.display = desc.showClusterView ? 'inline-flex' : 'none';
       if (dView) dView.style.display = desc.showClusterView ? 'block' : 'none';
@@ -1966,6 +2036,8 @@ _HEADER_HYDRATION_JS = r"""    const multiselectCategories = ['color', 'type', '
       if (legendType) legendType.style.display = desc.showLegendTypeItem ? '' : 'none';
       if (cBasis) cBasis.style.display = desc.showBasisCluster ? 'inline-flex' : 'none';
       if (dBasis) dBasis.style.display = desc.showBasisCluster ? 'block' : 'none';
+      if (cLow) cLow.style.display = desc.showBasisCluster ? 'inline-flex' : 'none';
+      if (dLow) dLow.style.display = desc.showBasisCluster ? 'block' : 'none';
 
       const sortEl = document.getElementById('sort-select');
       const sortNumOption = sortEl ? sortEl.querySelector('option[value="num-asc"]') : null;
@@ -2037,6 +2109,7 @@ _HEADER_HYDRATION_JS = r"""    const multiselectCategories = ['color', 'type', '
       const desc = computeSetViewState(state.set, state.edition, meta, state.ncbView);
       applyHeaderFromDescriptor(desc, state.set, state.edition, state.ncbView);
       applyAnchorButtons(state.anchor);
+      applyLowModeControls(state.lowMode);
       const filterObj = (state.filtersBySet && state.filtersBySet[state.set]) || defaultSetFilters();
       applyFilterControlValues(state.set, filterObj);
 
@@ -2056,6 +2129,95 @@ _HEADER_HYDRATION_JS = r"""    const multiselectCategories = ['color', 'type', '
     }"""
 
 
+_CHART_GEOMETRY_JS = r"""    function computeLowModeChartGeometry(marketPrices, lowPoints, acqIdx, mode) {
+      const width = 340;
+      const height = 120;
+      const paddingTop = 16;
+      const paddingBottom = 22;
+      const paddingLeft = 42;
+      const paddingRight = 16;
+      const plotW = width - paddingLeft - paddingRight;
+      const plotH = height - paddingTop - paddingBottom;
+      const bottomY = height - paddingBottom;
+      const n = Array.isArray(marketPrices) ? marketPrices.length : 0;
+      if (n < 2) return null;
+
+      const resolvedMode = (mode === 'all' || mode === 'hide') ? mode : 'current';
+      const lows = Array.isArray(lowPoints) && lowPoints.length === n ? lowPoints : [];
+      const validLastLow = (resolvedMode !== 'hide' && lows.length === n && lows[n - 1] !== null && lows[n - 1] !== undefined && Number(lows[n - 1]) > 0)
+        ? Number(lows[n - 1])
+        : null;
+
+      let pMax = Math.max(...marketPrices);
+      if (resolvedMode === 'current' && validLastLow !== null) {
+        pMax = Math.max(pMax, validLastLow);
+      } else if (resolvedMode === 'all') {
+        for (let i = 0; i < lows.length; i++) {
+          const lv = lows[i];
+          if (lv !== null && lv !== undefined && Number(lv) > 0) {
+            pMax = Math.max(pMax, Number(lv));
+          }
+        }
+      }
+
+      const yMax = Math.max(1, Math.ceil(pMax));
+      const yRange = yMax > 0 ? yMax : 1.0;
+      const round1 = (v) => Math.round(v * 10) / 10;
+      const getCoords = (idx, val) => ({
+        x: round1(paddingLeft + (idx / (n - 1)) * plotW),
+        y: round1(paddingTop + (1.0 - (val / yRange)) * plotH)
+      });
+
+      const marketCoords = marketPrices.map((val, i) => getCoords(i, val));
+      const lowSegments = [];
+      if (resolvedMode === 'all' && lows.length === n) {
+        let seg = [];
+        for (let i = 0; i < n; i++) {
+          const lv = lows[i];
+          if (lv !== null && lv !== undefined && Number(lv) > 0) {
+            const pt = getCoords(i, Number(lv));
+            seg.push({ idx: i, x: pt.x, y: pt.y });
+          } else if (seg.length > 0) {
+            lowSegments.push(seg);
+            seg = [];
+          }
+        }
+        if (seg.length > 0) lowSegments.push(seg);
+      }
+
+      const lastPt = marketCoords[n - 1];
+      let lowY = null;
+      let lowGap = 0;
+      let showConnector = false;
+      let lastHitR = 9;
+      let showLowDot = false;
+      let lowHitR = null;
+
+      if (validLastLow !== null) {
+        lowY = getCoords(n - 1, validLastLow).y;
+        lowGap = Math.abs(lowY - lastPt.y);
+        showConnector = (resolvedMode === 'current') && (lowGap >= 5.0);
+        lastHitR = (lowGap >= 8.0) ? Math.min(6.0, round1(lowGap / 2.0)) : 9;
+        showLowDot = !(acqIdx === n - 1 && lowGap < 5.0);
+        lowHitR = (showLowDot && lowGap >= 8.0) ? Math.min(6.0, round1(lowGap / 2.0)) : null;
+      }
+
+      return {
+        yMax,
+        bottomY,
+        marketCoords,
+        lowSegments,
+        validLastLow,
+        lowY,
+        lowGap,
+        showConnector,
+        lastHitR,
+        showLowDot,
+        lowHitR
+      };
+    }"""
+
+
 _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? hasNcb : true;
     let activeSetState = (typeof initialFilterState !== 'undefined' && initialFilterState)
       ? normalizeSavedFilterState(initialFilterState, allowNcb)
@@ -2064,6 +2226,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     let currentEdition = activeSetState.edition;
     let currentNcbView = activeSetState.ncbView || 'charts';
     let currentAnchor = activeSetState.anchor;
+    let currentLowMode = activeSetState.lowMode || 'current';
     let activePricedSetTier = (activeSetState.filtersBySet[currentSet] && activeSetState.filtersBySet[currentSet].b) || 'all';
     const btnSetWnc = document.getElementById('btn-set-wnc');
     const btnSetNcb = document.getElementById('btn-set-ncb');
@@ -2093,6 +2256,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
     const chartLegend = document.getElementById('chart-legend');
     const searchInput = document.getElementById('search-input');
     const sortSelect = document.getElementById('sort-select');
+    const lowPriceSelect = document.getElementById('low-price-select');
     const countDisplay = document.getElementById('count-display');
     const tierCodes = Array.isArray(renderedTierCodes) && renderedTierCodes.length > 0 ? renderedTierCodes : ['IL', 'IO', 'IS'];
     const ncbSectionCodes = (typeof renderedNcbCodes !== 'undefined' && Array.isArray(renderedNcbCodes) && renderedNcbCodes.length > 0) ? renderedNcbCodes : ['NR'];
@@ -2215,6 +2379,169 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       if (save) saveState();
     }
 
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+    function renderChartForLowMode(svgEl, lowPoints, mode) {
+      if (!svgEl) return;
+      const hitPoints = Array.from(svgEl.querySelectorAll('.chart-hit-point:not(.low-hit-point)'));
+      const n = hitPoints.length;
+      if (n < 2) return;
+
+      const marketPrices = hitPoints.map(hp => parseFloat(String(hp.dataset.price || '').replace(/[$,]/g, '')) || 0);
+      const acqIdx = hitPoints.findIndex(hp => hp.dataset.acq === 'true');
+      const geom = computeLowModeChartGeometry(marketPrices, lowPoints, acqIdx, mode);
+      if (!geom) return;
+
+      const yMaxEl = svgEl.querySelector('.chart-y-max');
+      if (yMaxEl) yMaxEl.textContent = `$${geom.yMax}`;
+
+      const polyPts = geom.marketCoords.map(pt => `${pt.x.toFixed(1)},${pt.y.toFixed(1)}`).join(' ');
+      const firstX = geom.marketCoords[0].x.toFixed(1);
+      const lastX = geom.marketCoords[n - 1].x.toFixed(1);
+      const lastMktY = geom.marketCoords[n - 1].y.toFixed(1);
+      const bottomY = geom.bottomY;
+
+      const polyEl = svgEl.querySelector('polygon');
+      if (polyEl) polyEl.setAttribute('points', `${polyPts} ${lastX},${bottomY} ${firstX},${bottomY}`);
+
+      const lineEl = svgEl.querySelector('.chart-line');
+      if (lineEl) lineEl.setAttribute('points', polyPts);
+
+      const resolvedMode = _normalizeLowMode(mode);
+      const lows = Array.isArray(lowPoints) && lowPoints.length === n ? lowPoints : [];
+
+      for (let i = 0; i < n; i++) {
+        const hp = hitPoints[i];
+        const cx = geom.marketCoords[i].x.toFixed(1);
+        const cy = geom.marketCoords[i].y.toFixed(1);
+        hp.setAttribute('cx', cx);
+        hp.setAttribute('cy', cy);
+        hp.setAttribute('r', i === n - 1 ? String(geom.lastHitR) : '9');
+
+        if (resolvedMode === 'hide') {
+          hp.removeAttribute('data-low-price');
+        } else if (resolvedMode === 'current') {
+          if (i === n - 1 && geom.validLastLow !== null) {
+            hp.setAttribute('data-low-price', `$${geom.validLastLow.toFixed(2)}`);
+          } else {
+            hp.removeAttribute('data-low-price');
+          }
+        } else {
+          const lv = lows[i];
+          if (lv !== null && lv !== undefined && Number(lv) > 0) {
+            hp.setAttribute('data-low-price', `$${Number(lv).toFixed(2)}`);
+          } else {
+            hp.removeAttribute('data-low-price');
+          }
+        }
+
+        const prev = hp.previousElementSibling;
+        if (prev) {
+          prev.setAttribute('cx', cx);
+          prev.setAttribute('cy', cy);
+          if (prev.classList.contains('acq-dot-core')) {
+            const halo = prev.previousElementSibling;
+            if (halo && halo.classList.contains('acq-dot-halo')) {
+              halo.setAttribute('cx', cx);
+              halo.setAttribute('cy', cy);
+            }
+          }
+        }
+      }
+
+      const lineLayer = svgEl.querySelector('.low-price-line-layer');
+      if (lineLayer) {
+        lineLayer.textContent = '';
+        if (geom.showConnector && geom.lowY !== null) {
+          const conn = document.createElementNS(SVG_NS, 'line');
+          conn.setAttribute('x1', lastX);
+          conn.setAttribute('y1', lastMktY);
+          conn.setAttribute('x2', lastX);
+          conn.setAttribute('y2', geom.lowY.toFixed(1));
+          conn.setAttribute('stroke', '#bc8cff');
+          conn.setAttribute('stroke-width', '1.2');
+          conn.setAttribute('stroke-dasharray', '2,2');
+          conn.setAttribute('opacity', '0.85');
+          conn.setAttribute('class', 'low-price-connector');
+          lineLayer.appendChild(conn);
+        } else if (resolvedMode === 'all') {
+          geom.lowSegments.forEach(seg => {
+            if (seg.length >= 2) {
+              const pl = document.createElementNS(SVG_NS, 'polyline');
+              pl.setAttribute('class', 'low-price-line');
+              pl.setAttribute('points', seg.map(pt => `${pt.x.toFixed(1)},${pt.y.toFixed(1)}`).join(' '));
+              pl.setAttribute('fill', 'none');
+              pl.setAttribute('stroke', '#bc8cff');
+              pl.setAttribute('stroke-width', '1.4');
+              pl.setAttribute('stroke-dasharray', '3,2.5');
+              pl.setAttribute('stroke-linecap', 'round');
+              pl.setAttribute('stroke-linejoin', 'round');
+              pl.setAttribute('opacity', '0.92');
+              lineLayer.appendChild(pl);
+            } else if (seg.length === 1 && !(seg[0].idx === n - 1 && geom.showLowDot)) {
+              const iso = document.createElementNS(SVG_NS, 'circle');
+              iso.setAttribute('cx', seg[0].x.toFixed(1));
+              iso.setAttribute('cy', seg[0].y.toFixed(1));
+              iso.setAttribute('r', '2.0');
+              iso.setAttribute('class', 'low-price-isolated-dot');
+              iso.setAttribute('fill', '#0d1117');
+              iso.setAttribute('stroke', '#bc8cff');
+              iso.setAttribute('stroke-width', '1.5');
+              lineLayer.appendChild(iso);
+            }
+          });
+        }
+      }
+
+      const dotLayer = svgEl.querySelector('.low-price-dot-layer');
+      if (dotLayer) {
+        dotLayer.textContent = '';
+        if (geom.showLowDot && geom.lowY !== null && geom.validLastLow !== null) {
+          const lowDot = document.createElementNS(SVG_NS, 'circle');
+          lowDot.setAttribute('cx', lastX);
+          lowDot.setAttribute('cy', geom.lowY.toFixed(1));
+          lowDot.setAttribute('r', '3.0');
+          lowDot.setAttribute('class', 'low-price-dot');
+          lowDot.setAttribute('fill', '#0d1117');
+          lowDot.setAttribute('stroke', '#bc8cff');
+          lowDot.setAttribute('stroke-width', '1.5');
+          lowDot.setAttribute('style', 'pointer-events: none;');
+          dotLayer.appendChild(lowDot);
+
+          if (geom.lowHitR !== null) {
+            const lastDate = hitPoints[n - 1].dataset.date || '';
+            const lowHit = document.createElementNS(SVG_NS, 'circle');
+            lowHit.setAttribute('cx', lastX);
+            lowHit.setAttribute('cy', geom.lowY.toFixed(1));
+            lowHit.setAttribute('r', String(geom.lowHitR));
+            lowHit.setAttribute('class', 'chart-hit-point low-hit-point');
+            lowHit.setAttribute('fill', 'transparent');
+            lowHit.setAttribute('data-date', lastDate);
+            lowHit.setAttribute('data-price', `$${geom.validLastLow.toFixed(2)}`);
+            lowHit.setAttribute('data-low', 'true');
+            lowHit.setAttribute('style', 'cursor: crosshair; pointer-events: all;');
+            dotLayer.appendChild(lowHit);
+          }
+        }
+      }
+    }
+
+    function setLowMode(mode, save = true) {
+      const normalized = _normalizeLowMode(mode);
+      currentLowMode = normalized;
+      activeSetState.lowMode = normalized;
+      applyLowModeControls(normalized);
+
+      const seriesMap = (typeof chartLowSeriesById !== 'undefined' && chartLowSeriesById) ? chartLowSeriesById : {};
+      document.querySelectorAll('svg.chart-svg[data-card-id]').forEach(svgEl => {
+        const cardId = svgEl.getAttribute('data-card-id');
+        if (!cardId || !Object.prototype.hasOwnProperty.call(seriesMap, cardId)) return;
+        renderChartForLowMode(svgEl, seriesMap[cardId], normalized);
+      });
+
+      if (save) saveState();
+    }
+
     function applyTierStatsOpen(code, isOpen) {
       const group = document.getElementById(`stats-group-${code}`);
       const btn = document.getElementById(`btn-stats-${code}`);
@@ -2310,6 +2637,7 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
         activeSetState.edition = currentEdition;
         activeSetState.ncbView = currentNcbView;
         activeSetState.anchor = currentAnchor;
+        activeSetState.lowMode = currentLowMode;
         activeSetState.filtersBySet[currentSet] = readOutgoingControls();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(activeSetState));
       } catch (err) {
@@ -2933,6 +3261,11 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       clearTableHeaderSorts(currentSet === 'ncb' ? ncbSectionCodes : tierCodes);
       onFilterChange();
     });
+    if (lowPriceSelect) {
+      lowPriceSelect.addEventListener('change', () => {
+        setLowMode(lowPriceSelect.value, true);
+      });
+    }
 
     function clearTableHeaderSorts(codes) {
       const targetCodes = Array.isArray(codes) ? codes : tierCodes.concat(ncbSectionCodes);
@@ -2971,9 +3304,15 @@ _DASHBOARD_JS_BODY = r"""    const allowNcb = typeof hasNcb !== 'undefined' ? ha
       currentEdition = activeSetState.edition;
       currentNcbView = activeSetState.ncbView || 'charts';
       currentAnchor = activeSetState.anchor;
+      currentLowMode = activeSetState.lowMode || 'current';
       applyControlsFromFilterObj(activeSetState.filtersBySet[currentSet]);
       setActiveSet(currentSet, false);
       setAnchor(currentAnchor, false);
+      if (currentLowMode !== 'current') {
+        setLowMode(currentLowMode, false);
+      } else {
+        applyLowModeControls('current');
+      }
       const root = document.documentElement;
       root.classList.remove(
         'preload-comparison',
@@ -3737,6 +4076,7 @@ def generate_html_dashboard(
         acquisitions=acquisitions,
     )
 
+    chart_low_series_by_id: Dict[str, List[Optional[float]]] = {}
     for prefix, series in [
         ("r", retail_trajectories),
         ("b", beta_trajectories),
@@ -3744,10 +4084,15 @@ def generate_html_dashboard(
         ("nc", ncb_champ_trajectories),
     ]:
         for t in series:
+            raw_pid = str(t.get("productId") or "").strip()
+            raw_card_id = f"{prefix}_{raw_pid}"
+            safe_card_id = "".join(ch if ch.isalnum() or ch in ("_", "-") else "_" for ch in raw_card_id)
             acq_info = {"date": t["acqDate"], "cost": t["acqCost"]} if t.get("hasAcquisition") else None
             t["svgChart"] = generate_svg_chart(
-                t["points"], card_id=f"{prefix}_{t['productId']}", acq_info=acq_info, low_price=t.get("currentLowPrice")
+                t["points"], card_id=raw_card_id, acq_info=acq_info, low_price=t.get("currentLowPrice")
             )
+            if raw_pid and len(t["points"]) >= 2 and t.get("hasPrice"):
+                chart_low_series_by_id[safe_card_id] = t.get("lowPoints") or []
 
     has_box_toppers = any(t["rarity"] == "BT" for t in beta_trajectories)
     wnc_tier_codes = ["IL", "IO", "IS", "BT"] if has_box_toppers else ["IL", "IO", "IS"]
@@ -3967,6 +4312,17 @@ def generate_html_dashboard(
 
     <div class="cluster-divider"></div>
 
+    <div class="control-cluster" id="cluster-low">
+      <span class="cluster-label">Low</span>
+      <select id="low-price-select" class="filter-select" aria-label="TCG Low display mode">
+        <option value="current">Current</option>
+        <option value="all">All</option>
+        <option value="hide">Hide</option>
+      </select>
+    </div>
+
+    <div class="cluster-divider" id="divider-low"></div>
+
     <div class="control-cluster flex-grow">
       <span class="cluster-label">Filter</span>
       <input type="text" id="search-input" class="search-box" placeholder="Search by name or number (e.g. B141, Panam, Judy)..." />
@@ -4041,7 +4397,7 @@ def generate_html_dashboard(
     <span class="legend-item"><span class="legend-line" style="background:#f85149;"></span>Down</span>
     <span class="legend-item"><span class="legend-line" style="background:#58a6ff;"></span>Flat (0%)</span>
     <span class="legend-item"><span class="legend-dot" style="background:#d29922;"></span>Acquisition date</span>
-    <span class="legend-item"><span class="legend-dot" style="background:#0d1117;border:1.5px solid #bc8cff;"></span>Current TCG Low (excl. shipping)</span>
+    <span class="legend-item" id="legend-low-price"><span class="legend-dot legend-low-swatch" style="background:#0d1117;border:1.5px solid #bc8cff;"></span><span class="legend-low-label">Current TCG Low (excl. shipping)</span></span>
   </div>
   </header>
   <script>
@@ -4056,6 +4412,8 @@ def generate_html_dashboard(
     const hasNcbChamp = {'true' if has_ncb_champ else 'false'};
     const renderedTierCodes = {serialize_json_for_script(wnc_tier_codes)};
     const renderedNcbCodes = {serialize_json_for_script(ncb_section_codes)};
+    const chartLowSeriesById = {serialize_json_for_script(chart_low_series_by_id)};
+{_CHART_GEOMETRY_JS}
 {_DASHBOARD_JS_BODY}"""
 
     out_file = Path(output_path)
