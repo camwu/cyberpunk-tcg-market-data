@@ -1608,6 +1608,7 @@ const fresh = context.normalizeSavedFilterState(null);
 const legacyFlat = context.normalizeSavedFilterState({{
   edition: 'comparison',
   anchor: 'l7d',
+  lowMode: 'all',
   q: 'Panam',
   o: ['owned'],
   r: ['IL'],
@@ -1619,13 +1620,14 @@ const legacyFlat = context.normalizeSavedFilterState({{
 }});
 const legacyLong = context.normalizeSavedFilterState({{
   edition: 'retail',
+  lowMode: 'invalid-mode',
   search: 'Judy',
   ownership: ['unowned'],
   rarity: ['IS'],
   sort: 'price-asc'
 }});
 const afterToNcb = context.switchSetFilterState(
-  {{ set: 'wnc', edition: 'retail', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
+  {{ set: 'wnc', edition: 'retail', anchor: 'acq', lowMode: 'hide', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
   'ncb',
   {{ q: 'Smasher', o: ['owned'], r: ['IL'], c: ['Red'], t: ['Legend'], s: 'price-desc', b: 'IL', statsOpen: {{ IL: true, BT: false }} }}
 );
@@ -1660,7 +1662,7 @@ const resolvedStats = {{
   nrExplicitFalseOnWide: context.resolveTierStatsOpen({{ NR: false }}, 'NR', true),
 }};
 const toggledWncStep1 = context.applySetTierStatsToggle(
-  {{ set: 'wnc', edition: 'beta', ncbView: 'table', anchor: 'acq', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
+  {{ set: 'wnc', edition: 'beta', ncbView: 'table', anchor: 'acq', lowMode: 'all', filtersBySet: {{ wnc: context.defaultSetFilters(), ncb: context.defaultSetFilters() }} }},
   'wnc',
   'IL',
   false,
@@ -1716,12 +1718,14 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(res["fresh"]["set"], "wnc")
         self.assertEqual(res["fresh"]["edition"], "beta")
         self.assertEqual(res["fresh"]["ncbView"], "charts")
+        self.assertEqual(res["fresh"]["lowMode"], "current")
         self.assertEqual(res["fresh"]["filtersBySet"]["ncb"], clean_default)
 
         self.assertEqual(res["legacyFlat"]["set"], "wnc")
         self.assertEqual(res["legacyFlat"]["edition"], "comparison")
         self.assertEqual(res["legacyFlat"]["ncbView"], "charts")
         self.assertEqual(res["legacyFlat"]["anchor"], "l7d")
+        self.assertEqual(res["legacyFlat"]["lowMode"], "all")
         self.assertEqual(res["legacyFlat"]["filtersBySet"]["wnc"], {
             "q": "Panam", "o": ["owned"], "r": ["IL"], "c": ["Red"], "t": ["Legend"], "s": "price-desc", "b": "IL", "statsOpen": {},
         })
@@ -1730,6 +1734,7 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(res["legacyLong"]["set"], "wnc")
         self.assertEqual(res["legacyLong"]["edition"], "retail")
         self.assertEqual(res["legacyLong"]["ncbView"], "charts")
+        self.assertEqual(res["legacyLong"]["lowMode"], "current")
         self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["q"], "Judy")
         self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["o"], ["unowned"])
         self.assertEqual(res["legacyLong"]["filtersBySet"]["wnc"]["r"], ["IS"])
@@ -1738,6 +1743,7 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(res["afterToNcb"]["set"], "ncb")
         self.assertEqual(res["afterToNcb"]["edition"], "retail")
         self.assertEqual(res["afterToNcb"]["ncbView"], "charts")
+        self.assertEqual(res["afterToNcb"]["lowMode"], "hide")
         self.assertEqual(res["afterToNcb"]["filtersBySet"]["wnc"]["q"], "Smasher")
         self.assertEqual(res["afterToNcb"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": True, "BT": False})
         self.assertEqual(res["afterToNcb"]["filtersBySet"]["ncb"], clean_default)
@@ -1745,6 +1751,7 @@ process.stdout.write(JSON.stringify(out));
         self.assertEqual(res["backToWnc"]["set"], "wnc")
         self.assertEqual(res["backToWnc"]["edition"], "retail")
         self.assertEqual(res["backToWnc"]["ncbView"], "charts")
+        self.assertEqual(res["backToWnc"]["lowMode"], "hide")
         self.assertEqual(res["backToWnc"]["filtersBySet"]["wnc"]["q"], "Smasher")
         self.assertEqual(res["backToWnc"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": True, "BT": False})
         self.assertEqual(res["backToWnc"]["filtersBySet"]["ncb"]["q"], "Chrome")
@@ -1764,6 +1771,7 @@ process.stdout.write(JSON.stringify(out));
             "nrExplicitFalseOnWide": False,
         })
         self.assertEqual(res["roundTripped"]["ncbView"], "table")
+        self.assertEqual(res["roundTripped"]["lowMode"], "all")
         self.assertEqual(res["roundTripped"]["filtersBySet"]["wnc"]["q"], "Smasher")
         self.assertEqual(res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"], {"IL": False, "BT": True})
         self.assertNotIn("IO", res["roundTripped"]["filtersBySet"]["wnc"]["statsOpen"])
@@ -2205,8 +2213,30 @@ process.stdout.write(JSON.stringify(out));
         )
         self.assertEqual(traj["currentPrice"], 107.03)
         self.assertEqual(traj["currentLowPrice"], 98.80)
+        self.assertEqual(traj["lowPoints"], [99.00, 99.50, 98.80])
+        self.assertEqual(traj["lowPoints"][-1], traj["currentLowPrice"])
         self.assertEqual(traj["minPrice"], 107.03)
         self.assertEqual(traj["maxPrice"], 107.55)
+
+        # Missing or $0.00 intermediate lowPrice remains None without carrying forward
+        price_by_date["2026-11-14"]["714306"]["Foil"] = {"marketPrice": 107.03, "lowPrice": 0.0}
+        traj_mid_gap = _build_card_trajectory(
+            pid=714306,
+            name="V - Streetkid (ILegend)",
+            display_pnum="B144",
+            clean_pnum="144",
+            rarity_code="IL",
+            color="Red",
+            card_type="Legend",
+            valid_finish="Foil",
+            owned_qty=1,
+            expansion_name="Welcome to Night City - Beta",
+            dates=dates,
+            price_by_date=price_by_date,
+            acquisitions={},
+        )
+        self.assertEqual(traj_mid_gap["lowPoints"], [99.00, None, 98.80])
+        self.assertEqual(traj_mid_gap["lowPoints"][-1], traj_mid_gap["currentLowPrice"])
 
         # Missing lowPrice on the latest day must remain None without carrying forward prior days
         price_by_date["2026-11-15"]["714306"]["Foil"] = {"marketPrice": 107.03}
@@ -2226,6 +2256,7 @@ process.stdout.write(JSON.stringify(out));
             acquisitions={},
         )
         self.assertIsNone(traj_no_latest_low["currentLowPrice"])
+        self.assertEqual(traj_no_latest_low["lowPoints"], [99.00, None, None])
 
         # Unpriced cards (hasPrice == False) must not expose an orphan lowPrice
         unpriced_by_date = {
@@ -2250,10 +2281,15 @@ process.stdout.write(JSON.stringify(out));
         )
         self.assertFalse(traj_unpriced["hasPrice"])
         self.assertIsNone(traj_unpriced["currentLowPrice"])
+        self.assertEqual(traj_unpriced["lowPoints"], [])
 
     def test_generate_svg_chart_renders_low_price_endpoint_and_expands_y_axis(self):
         points = [("2026-11-06", 20.0), ("2026-11-09", 34.0), ("2026-11-15", 34.0)]
         svg = generate_svg_chart(points, card_id="n_719700", low_price=15.13)
+        self.assertIn('data-card-id="n_719700"', svg)
+        self.assertIn('class="chart-y-max"', svg)
+        self.assertIn('<g class="low-price-line-layer">', svg)
+        self.assertIn('<g class="low-price-dot-layer">', svg)
         self.assertIn(">$34</text>", svg)
         self.assertIn(">$0</text>", svg)
         self.assertIn('class="low-price-connector"', svg)
@@ -2261,6 +2297,7 @@ process.stdout.write(JSON.stringify(out));
         self.assertIn('data-low="true"', svg)
         self.assertIn('data-price="$15.13"', svg)
         self.assertIn('data-low-price="$15.13"', svg)
+        self.assertLess(svg.index('class="low-price-dot"'), svg.index('low-hit-point'))
 
         # Overlapping lowPrice == marketPrice on latest-day acquisition omits .low-price-dot so gold acq core stays unoccluded
         svg_overlap = generate_svg_chart(
@@ -3183,10 +3220,24 @@ function runScenario(savedState) {{
     'ms-variant': makeEl('ms-variant'),
     'type-item-legend': makeEl('type-item-legend'),
     'cluster-basis': makeEl('cluster-basis'),
+    'cluster-low': makeEl('cluster-low'),
+    'divider-low': makeEl('divider-low'),
+    'low-price-select': makeEl('low-price-select'),
     'sort-select': makeEl('sort-select', {{ querySelector: (sel) => sel === 'option[value="num-asc"]' ? sortNumOpt : null }}),
     'search-input': makeEl('search-input'),
     'meta-snapshots': makeEl('meta-snapshots'),
     'chart-legend': makeEl('chart-legend'),
+    'legend-low-price': (() => {{
+      const swatch = makeEl('swatch');
+      swatch.className = 'legend-dot legend-low-swatch';
+      swatch.setAttribute = () => {{}};
+      swatch.removeAttribute = () => {{}};
+      const label = makeEl('label');
+      label.textContent = 'Current TCG Low (excl. shipping)';
+      return makeEl('legend-low-price', {{
+        querySelector: (sel) => sel === '.legend-low-swatch' ? swatch : (sel === '.legend-low-label' ? label : null)
+      }});
+    }})(),
     'btn-reset-filters': makeEl('btn-reset-filters'),
     'count-display': makeEl('count-display'),
     'badge-color': makeEl('badge-color'),
@@ -3258,6 +3309,12 @@ function runScenario(savedState) {{
     anchorL7dActive: elements['btn-anchor-l7d'].classList.contains('active'),
     anchorLifetimeActive: elements['btn-anchor-lifetime'].classList.contains('active'),
     anchorAcqActive: elements['btn-anchor-acq'].classList.contains('active'),
+    lowSelectVal: elements['low-price-select'].value,
+    clusterLowDisplay: elements['cluster-low'].style.display,
+    dividerLowDisplay: elements['divider-low'].style.display,
+    legendLowDisplay: elements['legend-low-price'].style.display,
+    legendLowLabel: elements['legend-low-price'].querySelector('.legend-low-label').textContent,
+    legendLowSwatchClass: elements['legend-low-price'].querySelector('.legend-low-swatch').className,
     rootClasses: rootClasses.toArray(),
     stickyNavVar: cssVars['--sticky-nav-height']
   }};
@@ -3268,6 +3325,7 @@ const ncbFiltered = runScenario({{
   edition: 'beta',
   ncbView: 'table',
   anchor: 'l7d',
+  lowMode: 'hide',
   filtersBySet: {{
     wnc: {{ q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{}} }},
     ncb: {{ q: 'Chrome', o: [], r: ['NRC'], c: ['Blue'], t: [], s: 'price-desc', b: 'all', statsOpen: {{}} }}
@@ -3279,13 +3337,26 @@ const wncRetailUnfiltered = runScenario({{
   edition: 'retail',
   ncbView: 'charts',
   anchor: 'lifetime',
+  lowMode: 'all',
   filtersBySet: {{
     wnc: {{ q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{}} }},
     ncb: {{ q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{}} }}
   }}
 }});
 
-process.stdout.write(JSON.stringify({{ ncbFiltered, wncRetailUnfiltered }}));
+const wncComparison = runScenario({{
+  set: 'wnc',
+  edition: 'comparison',
+  ncbView: 'charts',
+  anchor: 'acq',
+  lowMode: 'current',
+  filtersBySet: {{
+    wnc: {{ q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{}} }},
+    ncb: {{ q: '', o: [], r: [], c: [], t: [], s: 'num', b: 'all', statsOpen: {{}} }}
+  }}
+}});
+
+process.stdout.write(JSON.stringify({{ ncbFiltered, wncRetailUnfiltered, wncComparison }}));
 """
         proc = subprocess.run([node_bin, "-e", driver], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
@@ -3324,6 +3395,138 @@ process.stdout.write(JSON.stringify({{ ncbFiltered, wncRetailUnfiltered }}));
         self.assertFalse(retail["resetActive"])
         self.assertNotIn("preload-header-pending", retail["rootClasses"])
         self.assertNotIn("preload-count-pending", retail["rootClasses"])
+        self.assertEqual(ncb["lowSelectVal"], "hide")
+        self.assertEqual(ncb["clusterLowDisplay"], "none")
+        self.assertEqual(ncb["dividerLowDisplay"], "none")
+        self.assertEqual(ncb["legendLowDisplay"], "none")
+
+        self.assertEqual(retail["lowSelectVal"], "all")
+        self.assertEqual(retail["clusterLowDisplay"], "inline-flex")
+        self.assertEqual(retail["dividerLowDisplay"], "block")
+        self.assertEqual(retail["legendLowDisplay"], "")
+        self.assertEqual(retail["legendLowLabel"], "Historical TCG Low (excl. shipping)")
+        self.assertIn("legend-dashed-line", retail["legendLowSwatchClass"])
+
+        comp = res["wncComparison"]
+        self.assertEqual(comp["lowSelectVal"], "current")
+        self.assertEqual(comp["clusterLowDisplay"], "none")
+        self.assertEqual(comp["dividerLowDisplay"], "none")
+        self.assertEqual(comp["legendLowLabel"], "Current TCG Low (excl. shipping)")
+
+    def test_generate_html_dashboard_emits_low_mode_controls_and_series_payload(self):
+        p_dir = self.test_dir / "low_mode_prices"
+        p_dir.mkdir(parents=True, exist_ok=True)
+        for day, b_mkt, b_low, r_mkt, r_low, n_mkt, n_low, nc_mkt, nc_low in [
+            ("2026-11-25", 100.0, 95.0, 50.0, 40.0, 20.0, 18.0, 80.0, 75.0),
+            ("2026-11-26", 105.0, 150.0, 48.0, 35.0, 22.0, None, 85.0, 82.0),
+            ("2026-11-27", 110.0, 115.0, 45.0, 30.0, 25.0, 21.0, 90.0, 88.0),
+        ]:
+            (p_dir / f"{day}.json").write_text(
+                json.dumps({
+                    "date": day,
+                    "prices": {
+                        "101": {"Foil": {"marketPrice": b_mkt, "lowPrice": b_low}},
+                        "102": {"Foil": {"marketPrice": r_mkt, "lowPrice": r_low}},
+                        "201": {"Foil": {"marketPrice": n_mkt, "lowPrice": n_low}},
+                        "202": {"Foil": {"marketPrice": nc_mkt, "lowPrice": nc_low}},
+                    },
+                }),
+                encoding="utf-8",
+            )
+        p1 = IconicCardPair("141", "Smasher", "Legends", "Foil", 101, 102, 110.0, 45.0, 65.0, 144.4, 0, 0, color="Red", card_type="Legend")
+        ncb_cards = [PromoSetCard("001", "Chrome", "Nova Rare", "Foil", 201, 25.0, 0, color="Blue", card_type="Program")]
+        ncb_champ = [PromoSetCard("001", "Champ", "Nova Rare", "Foil", 202, 90.0, 0, color="Blue", card_type="Program", variant="Brawl Champ")]
+
+        out_html = self.test_dir / "low_mode_dash.html"
+        generate_html_dashboard(
+            pairs=[p1],
+            prices_dir=p_dir,
+            collection_path=None,
+            output_path=str(out_html),
+            database_path=None,
+            earliest_beta_date="2026-11-25",
+            earliest_retail_date="2026-11-25",
+            ncb_cards=ncb_cards,
+            ncb_champ_cards=ncb_champ,
+            earliest_ncb_date="2026-11-25",
+        )
+        content = out_html.read_text(encoding="utf-8")
+        self.assertIn('id="low-price-select"', content)
+        self.assertIn('id="cluster-low"', content)
+        self.assertIn('id="divider-low"', content)
+        self.assertIn('id="legend-low-price"', content)
+        self.assertLess(content.index("html.preload-ncb #cluster-low"), content.index("html.preload-ncb-table #section-NR"))
+
+        import re
+        m = re.search(r"const chartLowSeriesById = (\{.*?\});", content)
+        self.assertIsNotNone(m)
+        payload = json.loads(m.group(1))
+        self.assertEqual(payload["b_101"], [95.0, 150.0, 115.0])
+        self.assertEqual(payload["r_102"], [40.0, 35.0, 30.0])
+        self.assertEqual(payload["n_201"], [18.0, None, 21.0])
+        self.assertEqual(payload["nc_202"], [75.0, 82.0, 88.0])
+
+    def test_js_compute_low_mode_chart_geometry_parity_and_modes(self):
+        import re as _re
+        from tracker.iconics_html import _CHART_GEOMETRY_JS
+
+        node_bin = self._require_node()
+        points = [("2026-11-06", 20.0), ("2026-11-09", 34.0), ("2026-11-15", 34.0)]
+        py_svg = generate_svg_chart(points, card_id="n_719700", low_price=15.13)
+        py_coords_match = _re.search(r'class="chart-line" points="([^"]+)"', py_svg)
+        self.assertIsNotNone(py_coords_match)
+        py_coords = [
+            tuple(float(v) for v in pt.split(","))
+            for pt in py_coords_match.group(1).split(" ")
+        ]
+        py_low_y = float(_re.search(r'cy="([^"]+)"[^>]*class="low-price-dot"', py_svg).group(1))
+        py_last_hit_r = float(_re.findall(r'r="([^"]+)" class="chart-hit-point"', py_svg)[-1])
+        py_low_hit_r = float(_re.search(r'r="([^"]+)" class="chart-hit-point low-hit-point"', py_svg).group(1))
+
+        driver = f"""
+const vm = require('vm');
+const context = {{}};
+vm.createContext(context);
+vm.runInContext({json.dumps(_CHART_GEOMETRY_JS)}, context);
+
+const currentGeom = context.computeLowModeChartGeometry([20.0, 34.0, 34.0], [18.0, 50.0, 15.13], -1, 'current');
+const allGeom = context.computeLowModeChartGeometry([20.0, 34.0, 34.0], [18.0, null, 50.0], -1, 'all');
+const allContiguous = context.computeLowModeChartGeometry([20.0, 34.0, 34.0, 36.0], [18.0, 22.0, null, 50.0], -1, 'all');
+const hideGeom = context.computeLowModeChartGeometry([20.0, 34.0, 34.0], [18.0, 50.0, 15.13], -1, 'hide');
+const overlapCurrent = context.computeLowModeChartGeometry([20.0, 34.0, 34.0], [18.0, 50.0, 34.0], 2, 'current');
+
+process.stdout.write(JSON.stringify({{ currentGeom, allGeom, allContiguous, hideGeom, overlapCurrent }}));
+"""
+        proc = subprocess.run([node_bin, "-e", driver], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        res = json.loads(proc.stdout)
+
+        curr = res["currentGeom"]
+        self.assertEqual(curr["yMax"], 34)
+        for (px, py), js_pt in zip(py_coords, curr["marketCoords"]):
+            self.assertAlmostEqual(js_pt["x"], px, delta=0.1)
+            self.assertAlmostEqual(js_pt["y"], py, delta=0.1)
+        self.assertAlmostEqual(curr["lowY"], py_low_y, delta=0.1)
+        self.assertAlmostEqual(curr["lastHitR"], py_last_hit_r, delta=0.1)
+        self.assertAlmostEqual(curr["lowHitR"], py_low_hit_r, delta=0.1)
+        self.assertTrue(curr["showLowDot"])
+        self.assertTrue(curr["showConnector"])
+
+        all_g = res["allContiguous"]
+        self.assertEqual(all_g["yMax"], 50)
+        self.assertEqual([len(seg) for seg in all_g["lowSegments"]], [2, 1])
+        self.assertFalse(all_g["showConnector"])
+
+        hide_g = res["hideGeom"]
+        self.assertEqual(hide_g["yMax"], 34)
+        self.assertEqual(hide_g["lastHitR"], 9)
+        self.assertFalse(hide_g["showLowDot"])
+        self.assertFalse(hide_g["showConnector"])
+        self.assertIsNone(hide_g["validLastLow"])
+
+        overlap_g = res["overlapCurrent"]
+        self.assertFalse(overlap_g["showLowDot"])
+        self.assertIsNone(overlap_g["lowHitR"])
 
     def test_load_ncb_champ_cards_via_tags_column_and_conflict_rejection(self):
         from tracker.iconics import load_ncb_cards, load_ncb_champ_cards
